@@ -19,6 +19,10 @@ local function refresh_buffer(bufnr)
     
     debug.log_context("Core", "collecting lens data for buffer " .. bufnr)
     
+    -- clear cache for this buffer since content may have changed
+    local lsp_provider = require("lensline.providers.lsp")
+    lsp_provider.clear_cache(bufnr)
+    
     -- collect lens data and render it
     providers.collect_lens_data(bufnr, function(lens_data)
         debug.log_context("Core", "rendering " .. #lens_data .. " lenses for buffer " .. bufnr)
@@ -29,9 +33,15 @@ end
 local function get_debounced_refresh(bufnr)
     if not refresh_timers[bufnr] then
         local opts = config.get()
+        -- get debounce from lsp provider performance settings (with fallback)
+        local debounce_ms = 150  -- fallback default
+        if opts.providers.lsp and opts.providers.lsp.performance and opts.providers.lsp.performance.debounce_ms then
+            debounce_ms = opts.providers.lsp.performance.debounce_ms
+        end
+        
         refresh_timers[bufnr] = utils.debounce(function()
             refresh_buffer(bufnr)
-        end, opts.refresh.debounce_ms)
+        end, debounce_ms)
     end
     return refresh_timers[bufnr]
 end
@@ -65,6 +75,16 @@ local function setup_autocommands()
         group = autocmd_group,
         callback = function(event)
             on_buffer_event(event.buf)
+        end,
+    })
+    
+    -- additional cache invalidation events
+    vim.api.nvim_create_autocmd("LspDetach", {
+        group = autocmd_group,
+        callback = function(event)
+            debug.log_context("Core", "lsp detach detected, clearing cache for buffer " .. event.buf)
+            local lsp_provider = require("lensline.providers.lsp")
+            lsp_provider.clear_cache(event.buf)
         end,
     })
     

@@ -37,7 +37,14 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 ```lua
 require("lensline").setup({
   providers = {
-    references = true, -- LSP references (implemented)
+    lsp = {
+      references = true,    -- enable lsp references feature
+      enabled = true,       -- enable lsp provider
+      performance = {
+        debounce_ms = 150,  -- delay before triggering after burst of events
+        cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
+      },
+    },
   },
   style = {
     separator = " • ",
@@ -45,8 +52,7 @@ require("lensline").setup({
     prefix = "┃ ",
   },
   refresh = {
-    events = { "BufWritePost", "CursorHold", "LspAttach" },
-    debounce_ms = 150,
+    events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
   },
   debug_mode = false, -- Enable debug output
 })
@@ -54,9 +60,18 @@ require("lensline").setup({
 
 ### Built-in Providers
 
-* `references`: Shows number of references (via `textDocument/references`)
-* `git_author`: Shows last author to touch the function (via `git blame`)
-* More providers can be added via plugin API
+* `lsp`: LSP-based information (references, definitions, etc.)
+* `git`: Git-based information (author, blame, etc.) [planned]
+
+### Performance Controls
+
+Per-provider performance controls under `performance` table:
+* `debounce_ms`: delay before triggering after burst of events
+* `cache_ttl`: cache duration in milliseconds
+
+Provider-level controls:
+* `enabled`: enable/disable entire provider (defaults to true)
+* `references`: enable/disable specific features within provider
 
 ### Styling Options
 
@@ -67,7 +82,6 @@ require("lensline").setup({
 ### Refresh Options
 
 * `events`: List of autocommands to trigger refresh
-* `debounce_ms`: Time to wait before re-rendering
 
 ## Roadmap
 
@@ -96,6 +110,32 @@ set `debug_mode = true` in your config to enable file-based debug logging. use `
 ```lua
 require("lensline").setup({
   debug_mode = true  -- creates trace file in nvim cache dir
+})
+```
+
+### disabling providers
+
+to disable an entire provider, set `enabled = false`:
+
+```lua
+require("lensline").setup({
+  providers = {
+    lsp = {
+      enabled = false  -- disable entire lsp provider
+    }
+  }
+})
+```
+
+to disable specific features within a provider:
+
+```lua
+require("lensline").setup({
+  providers = {
+    lsp = {
+      references = false  -- disable lsp reference counts only
+    }
+  }
 })
 ```
 

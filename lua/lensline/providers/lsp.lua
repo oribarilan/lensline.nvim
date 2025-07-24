@@ -4,6 +4,105 @@ local debug = require("lensline.debug")
 
 local M = {}
 
+-- simple cache for reference counts
+local reference_cache = {}
+
+-- helper function to create cache key
+local function get_cache_key(bufnr, line, character)
+    local uri = vim.uri_from_bufnr(bufnr)
+    return uri .. ":" .. line .. ":" .. character
+end
+
+-- helper function to check if cache entry is valid
+local function is_cache_valid(entry, timeout_ms)
+    if not entry then
+        return false
+    end
+    local current_time = vim.fn.reltime()
+    local elapsed_ms = vim.fn.reltimestr(vim.fn.reltime(entry.timestamp, current_time)) * 1000
+    return elapsed_ms < timeout_ms
+end
+
+-- helper function to get cached reference count
+local function get_cached_count(bufnr, line, character)
+    local opts = config.get()
+    local lsp_config = opts.providers.lsp
+    
+    -- check if caching is enabled (always cache by default)
+    local cache_enabled = true
+    if lsp_config.performance and lsp_config.performance.cache_enabled == false then
+        cache_enabled = false
+    end
+    
+    if not cache_enabled then
+        return nil
+    end
+    
+    local key = get_cache_key(bufnr, line, character)
+    local entry = reference_cache[key]
+    
+    -- get cache ttl (default 30 seconds)
+    local cache_ttl = 30000
+    if lsp_config.performance and lsp_config.performance.cache_ttl then
+        cache_ttl = lsp_config.performance.cache_ttl
+    end
+    
+    if is_cache_valid(entry, cache_ttl) then
+        debug.log_context("LSP", "using cached reference count for " .. key .. ": " .. entry.count)
+        return entry.count
+    else
+        -- remove expired entry
+        if entry then
+            reference_cache[key] = nil
+            debug.log_context("LSP", "cache entry expired for " .. key)
+        end
+        return nil
+    end
+end
+
+-- helper function to cache reference count
+local function cache_count(bufnr, line, character, count)
+    local opts = config.get()
+    local lsp_config = opts.providers.lsp
+    
+    -- check if caching is enabled (always cache by default)
+    local cache_enabled = true
+    if lsp_config.performance and lsp_config.performance.cache_enabled == false then
+        cache_enabled = false
+    end
+    
+    if not cache_enabled then
+        return
+    end
+    
+    local key = get_cache_key(bufnr, line, character)
+    reference_cache[key] = {
+        count = count,
+        timestamp = vim.fn.reltime()
+    }
+    debug.log_context("LSP", "cached reference count for " .. key .. ": " .. count)
+end
+
+-- function to clear cache for a specific buffer when file is modified
+function M.clear_cache(bufnr)
+    local uri = vim.uri_from_bufnr(bufnr)
+    local to_remove = {}
+    
+    for key, _ in pairs(reference_cache) do
+        if key:match("^" .. vim.pesc(uri) .. ":") then
+            table.insert(to_remove, key)
+        end
+    end
+    
+    for _, key in ipairs(to_remove) do
+        reference_cache[key] = nil
+    end
+    
+    if #to_remove > 0 then
+        debug.log_context("LSP", "cleared " .. #to_remove .. " cache entries for buffer " .. bufnr)
+    end
+end
+
 -- recursively extract function symbols from lsp document symbols
 local function get_function_symbols(symbols, results)
     results = results or {}
@@ -122,6 +221,13 @@ end
 local function count_references(bufnr, position, callback)
     debug.log_context("LSP", "requesting references for position " .. vim.inspect(position))
     
+    -- check cache first
+    local cached_count = get_cached_count(bufnr, position.line, position.character)
+    if cached_count ~= nil then
+        callback(cached_count)
+        return
+    end
+    
     -- check that we have lsp clients that support references
     local clients = utils.get_lsp_clients(bufnr)
     if not clients or #clients == 0 then
@@ -162,6 +268,9 @@ local function count_references(bufnr, position, callback)
         
         debug.log_context("LSP", "total reference count: " .. total_count)
         
+        -- cache the result
+        cache_count(bufnr, position.line, position.character, total_count)
+        
         -- no need to subtract 1 since we set includeDeclaration = false
         
         callback(total_count)
@@ -171,8 +280,30 @@ end
 function M.get_lens_data(bufnr, callback)
     debug.log_context("LSP", "get_lens_data called for buffer " .. bufnr)
     
+    local opts = config.get()
+    local lsp_config = opts.providers.lsp
+    
+    -- check if lsp provider is enabled (defaults to true)
+    local provider_enabled = lsp_config.enabled
+    if provider_enabled == nil then
+        provider_enabled = true
+    end
+    
+    if not provider_enabled then
+        debug.log_context("LSP", "lsp provider is disabled")
+        callback({})
+        return
+    end
+    
+    -- check if references feature is enabled
+    if not lsp_config.references then
+        debug.log_context("LSP", "lsp references feature is disabled")
+        callback({})
+        return
+    end
+    
     if not utils.is_valid_buffer(bufnr) then
-        debug.log_context("LSP", "Buffer " .. bufnr .. " is not valid", "WARN")
+        debug.log_context("LSP", "buffer " .. bufnr .. " is not valid", "WARN")
         callback({})
         return
     end

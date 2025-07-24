@@ -2,7 +2,14 @@ local M = {}
 
 M.defaults = {
     providers = {
-        references = true,
+        lsp = {
+            references = true,  -- enable lsp references feature
+            enabled = true,     -- enable lsp provider (defaults to true if absent)
+            performance = {
+                debounce_ms = 150,   -- delay before triggering after burst of events
+                cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
+            },
+        },
     },
     style = {
         separator = " • ",
@@ -10,8 +17,7 @@ M.defaults = {
         prefix = "┃ ",
     },
     refresh = {
-        events = { "BufWritePost", "CursorHold", "LspAttach" },
-        debounce_ms = 150,
+        events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
     },
     debug_mode = false,
 }

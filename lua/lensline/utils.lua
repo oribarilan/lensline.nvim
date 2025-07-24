@@ -1,15 +1,14 @@
 local M = {}
 
 function M.debounce(fn, delay)
-    local timer = nil
+    local timer = vim.loop.new_timer()
     return function(...)
         local args = { ... }
-        if timer then
-            vim.fn.timer_stop(timer)
-        end
-        timer = vim.fn.timer_start(delay, function()
-            fn(unpack(args))
-            timer = nil
+        timer:stop()
+        timer:start(delay, 0, function()
+            vim.schedule(function()
+                fn(unpack(args))
+            end)
         end)
     end
 end

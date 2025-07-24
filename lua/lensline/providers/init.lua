@@ -3,16 +3,26 @@ local config = require("lensline.config")
 local M = {}
 
 M.providers = {
-    references = require("lensline.providers.lsp"),
+    lsp = require("lensline.providers.lsp"),
 }
 
 function M.get_enabled_providers()
     local opts = config.get()
     local enabled = {}
     
-    for name, provider in pairs(M.providers) do
-        if opts.providers[name] then
-            enabled[name] = provider
+    -- check each provider type (tech-based: lsp, git, etc.)
+    for provider_type, provider_module in pairs(M.providers) do
+        local provider_config = opts.providers[provider_type]
+        if provider_config then
+            -- check if provider is enabled (defaults to true if absent)
+            local provider_enabled = provider_config.enabled
+            if provider_enabled == nil then
+                provider_enabled = true  -- default to true if not specified
+            end
+            
+            if provider_enabled then
+                enabled[provider_type] = provider_module
+            end
         end
     end
     
