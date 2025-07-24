@@ -29,11 +29,24 @@ local function get_function_symbols(symbols, results)
 end
 
 local function collect_functions(bufnr, callback)
+    local opts = config.get()
     local clients = utils.get_lsp_clients(bufnr)
     
+    if opts.debug_mode then
+        print("lensline: Checking LSP clients for buffer", bufnr)
+        print("lensline: Found", clients and #clients or 0, "LSP clients")
+    end
+    
     if not clients or #clients == 0 then
+        if opts.debug_mode then
+            print("lensline: No LSP clients available")
+        end
         callback({})
         return
+    end
+    
+    if opts.debug_mode then
+        print("lensline: Requesting document symbols from LSP")
     end
     
     vim.lsp.buf_request_all(bufnr, "textDocument/documentSymbol", {
@@ -41,7 +54,21 @@ local function collect_functions(bufnr, callback)
     }, function(results)
         local functions = {}
         
+        if opts.debug_mode then
+            print("lensline: Got document symbol results from", results and vim.tbl_count(results) or 0, "clients")
+        end
+        
         for client_id, result in pairs(results) do
+            if opts.debug_mode then
+                if result.error then
+                    print("lensline: Client", client_id, "returned error:", vim.inspect(result.error))
+                elseif result.result then
+                    print("lensline: Client", client_id, "returned", #result.result, "symbols")
+                else
+                    print("lensline: Client", client_id, "returned no result")
+                end
+            end
+            
             if result.result then
                 local symbols = get_function_symbols(result.result)
                 for _, symbol in ipairs(symbols) do
@@ -80,7 +107,16 @@ local function count_references(bufnr, position, callback)
 end
 
 function M.get_lens_data(bufnr, callback)
+    local opts = config.get()
+    
+    if opts.debug_mode then
+        print("lensline: get_lens_data called for buffer", bufnr)
+    end
+    
     if not utils.is_valid_buffer(bufnr) then
+        if opts.debug_mode then
+            print("lensline: Buffer", bufnr, "is not valid")
+        end
         callback({})
         return
     end

@@ -9,12 +9,28 @@ local autocmd_group = nil
 local refresh_timers = {}
 
 local function refresh_buffer(bufnr)
+    local opts = config.get()
+    
+    if opts.debug_mode then
+        print("lensline: refresh_buffer called for buffer", bufnr)
+    end
+    
     if not utils.is_valid_buffer(bufnr) then
+        if opts.debug_mode then
+            print("lensline: Buffer", bufnr, "is not valid for refresh")
+        end
         return
+    end
+    
+    if opts.debug_mode then
+        print("lensline: Collecting lens data for buffer", bufnr)
     end
     
     -- collect lens data and render it
     providers.collect_lens_data(bufnr, function(lens_data)
+        if opts.debug_mode then
+            print("lensline: Rendering", #lens_data, "lenses for buffer", bufnr)
+        end
         renderer.render_buffer_lenses(bufnr, lens_data)
     end)
 end
@@ -79,11 +95,28 @@ local function setup_autocommands()
 end
 
 function M.initialize()
+    local opts = config.get()
+    
+    if opts.debug_mode then
+        print("lensline: Initializing plugin with config:", vim.inspect(opts))
+    end
+    
     setup_autocommands()
     
     local current_buf = vim.api.nvim_get_current_buf()
+    if opts.debug_mode then
+        print("lensline: Current buffer:", current_buf)
+    end
+    
     if utils.is_valid_buffer(current_buf) then
+        if opts.debug_mode then
+            print("lensline: Triggering initial refresh for buffer", current_buf)
+        end
         on_buffer_event(current_buf)
+    else
+        if opts.debug_mode then
+            print("lensline: Current buffer is not valid, skipping initial refresh")
+        end
     end
 end
 
