@@ -7,6 +7,7 @@ local M = {}
 -- simple cache for reference counts
 local reference_cache = {}
 
+
 -- helper function to create cache key
 local function get_cache_key(bufnr, line, character)
     local uri = vim.uri_from_bufnr(bufnr)
@@ -99,7 +100,7 @@ function M.clear_cache(bufnr)
     end
     
     if #to_remove > 0 then
-        debug.log_context("LSP", "cleared " .. #to_remove .. " cache entries for buffer " .. bufnr)
+    debug.log_context("LSP", "cleared " .. #to_remove .. " cache entries for buffer " .. bufnr)
     end
 end
 

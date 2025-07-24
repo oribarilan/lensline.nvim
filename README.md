@@ -41,7 +41,6 @@ require("lensline").setup({
       references = true,    -- enable lsp references feature
       enabled = true,       -- enable lsp provider
       performance = {
-        debounce_ms = 150,  -- delay before triggering after burst of events
         cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
       },
     },
@@ -53,6 +52,7 @@ require("lensline").setup({
   },
   refresh = {
     events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
+    debounce_ms = 300,    -- global debounce to trigger refresh (caching used)
   },
   debug_mode = false, -- Enable debug output
 })
@@ -65,8 +65,10 @@ require("lensline").setup({
 
 ### Performance Controls
 
+Global performance controls:
+* `refresh.debounce_ms`: single debounce delay for all providers
+
 Per-provider performance controls under `performance` table:
-* `debounce_ms`: delay before triggering after burst of events
 * `cache_ttl`: cache duration in milliseconds
 
 Provider-level controls:
@@ -82,6 +84,7 @@ Provider-level controls:
 ### Refresh Options
 
 * `events`: List of autocommands to trigger refresh
+* `debounce_ms`: Global debounce for all providers (single UI update)
 
 ## Roadmap
 

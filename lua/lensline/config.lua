@@ -6,7 +6,6 @@ M.defaults = {
             references = true,  -- enable lsp references feature
             enabled = true,     -- enable lsp provider (defaults to true if absent)
             performance = {
-                debounce_ms = 150,   -- delay before triggering after burst of events
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
         },
@@ -18,6 +17,7 @@ M.defaults = {
     },
     refresh = {
         events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
+        debounce_ms = 150,   -- global debounce for all providers
     },
     debug_mode = false,
 }

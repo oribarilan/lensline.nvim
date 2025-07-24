@@ -33,15 +33,9 @@ end
 local function get_debounced_refresh(bufnr)
     if not refresh_timers[bufnr] then
         local opts = config.get()
-        -- get debounce from lsp provider performance settings (with fallback)
-        local debounce_ms = 150  -- fallback default
-        if opts.providers.lsp and opts.providers.lsp.performance and opts.providers.lsp.performance.debounce_ms then
-            debounce_ms = opts.providers.lsp.performance.debounce_ms
-        end
-        
         refresh_timers[bufnr] = utils.debounce(function()
             refresh_buffer(bufnr)
-        end, debounce_ms)
+        end, opts.refresh.debounce_ms)
     end
     return refresh_timers[bufnr]
 end
@@ -51,6 +45,7 @@ local function on_buffer_event(bufnr)
         return
     end
     
+    -- global debouncing - single update for all providers
     local debounced_refresh = get_debounced_refresh(bufnr)
     debounced_refresh()
 end
