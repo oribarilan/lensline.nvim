@@ -89,6 +89,16 @@ require("lensline").setup({
 
 PRs, issues, and suggestions welcome.
 
+### debugging
+
+set `debug_mode = true` in your config to enable file-based debug logging. use `:LenslineDebug` to view the trace file with detailed lsp request/response info and function detection logs.
+
+```lua
+require("lensline").setup({
+  debug_mode = true  -- creates trace file in nvim cache dir
+})
+```
+
 ### File Structure
 
 ```

@@ -18,7 +18,7 @@ function M.is_valid_buffer(bufnr)
     return bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr)
 end
 
--- helper to get lsp clients (works with newer and older nvim versions)
+-- helper to get lsp clients  (works with newer and older nvim versions)
 function M.get_lsp_clients(bufnr)
     if vim.lsp.get_clients then
         return vim.lsp.get_clients({ bufnr = bufnr })

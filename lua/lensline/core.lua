@@ -2,6 +2,7 @@ local config = require("lensline.config")
 local utils = require("lensline.utils")
 local renderer = require("lensline.renderer")
 local providers = require("lensline.providers")
+local debug = require("lensline.debug")
 
 local M = {}
 
@@ -9,28 +10,18 @@ local autocmd_group = nil
 local refresh_timers = {}
 
 local function refresh_buffer(bufnr)
-    local opts = config.get()
-    
-    if opts.debug_mode then
-        print("lensline: refresh_buffer called for buffer", bufnr)
-    end
+    debug.log_context("Core", "refresh_buffer called for buffer " .. bufnr)
     
     if not utils.is_valid_buffer(bufnr) then
-        if opts.debug_mode then
-            print("lensline: Buffer", bufnr, "is not valid for refresh")
-        end
+        debug.log_context("Core", "buffer " .. bufnr .. " is not valid for refresh", "WARN")
         return
     end
     
-    if opts.debug_mode then
-        print("lensline: Collecting lens data for buffer", bufnr)
-    end
+    debug.log_context("Core", "collecting lens data for buffer " .. bufnr)
     
     -- collect lens data and render it
     providers.collect_lens_data(bufnr, function(lens_data)
-        if opts.debug_mode then
-            print("lensline: Rendering", #lens_data, "lenses for buffer", bufnr)
-        end
+        debug.log_context("Core", "rendering " .. #lens_data .. " lenses for buffer " .. bufnr)
         renderer.render_buffer_lenses(bufnr, lens_data)
     end)
 end
@@ -97,26 +88,21 @@ end
 function M.initialize()
     local opts = config.get()
     
-    if opts.debug_mode then
-        print("lensline: Initializing plugin with config:", vim.inspect(opts))
-    end
+    -- initialize debug system first
+    debug.init()
+    
+    debug.log_context("Core", "initializing plugin with config: " .. vim.inspect(opts))
     
     setup_autocommands()
     
     local current_buf = vim.api.nvim_get_current_buf()
-    if opts.debug_mode then
-        print("lensline: Current buffer:", current_buf)
-    end
+    debug.log_context("Core", "current buffer: " .. current_buf)
     
     if utils.is_valid_buffer(current_buf) then
-        if opts.debug_mode then
-            print("lensline: Triggering initial refresh for buffer", current_buf)
-        end
+        debug.log_context("Core", "triggering initial refresh for buffer " .. current_buf)
         on_buffer_event(current_buf)
     else
-        if opts.debug_mode then
-            print("lensline: Current buffer is not valid, skipping initial refresh")
-        end
+        debug.log_context("Core", "current buffer is not valid, skipping initial refresh", "WARN")
     end
 end
 
