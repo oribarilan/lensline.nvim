@@ -20,7 +20,7 @@ Inline metadata for your code: references, Git blame, and more — right where i
 
 ```lua
 {
-  'yourname/lensline.nvim',
+  'oribarilan/lensline.nvim',
   event = 'BufReadPre',
   config = function()
     require("lensline").setup()
@@ -37,8 +37,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 ```lua
 require("lensline").setup({
   providers = {
-    references = true, -- LSP references
-    git_author = true, -- Git blame author
+    references = true, -- LSP references (implemented)
   },
   style = {
     separator = " • ",
@@ -46,7 +45,7 @@ require("lensline").setup({
     prefix = "┃ ",
   },
   refresh = {
-    events = { "BufWritePost", "CursorHold" },
+    events = { "BufWritePost", "CursorHold", "LspAttach" },
     debounce_ms = 150,
   },
 })
@@ -56,7 +55,7 @@ require("lensline").setup({
 
 * `references`: Shows number of references (via `textDocument/references`)
 * `git_author`: Shows last author to touch the function (via `git blame`)
-* More providers can be added via plugin API (see `docs/providers.md`)
+* More providers can be added via plugin API
 
 ### Styling Options
 
@@ -72,12 +71,12 @@ require("lensline").setup({
 ## Roadmap
 
 * Core features:
-* [ ] Function-level metadata display
-* [ ] LSP reference count support
+* [x] Function-level metadata display
+* [x] LSP reference count support
 * [ ] Git blame author display
-* [ ] Custom provider API for extensibility
-* [ ] Configurable styling and layout
-* [ ] Debounce refresh for performance
+* [x] Custom provider API for extensibility
+* [x] Configurable styling and layout
+* [x] Debounce refresh for performance
 * [ ] Extended LSP features (e.g., diagnostics, definitions)
 * Other features:
 * [ ] Telescope integration for lens search
