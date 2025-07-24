@@ -48,6 +48,7 @@ require("lensline").setup({
     events = { "BufWritePost", "CursorHold", "LspAttach" },
     debounce_ms = 150,
   },
+  debug_mode = false, -- Enable debug output
 })
 ```
 

@@ -13,6 +13,7 @@ M.defaults = {
         events = { "BufWritePost", "CursorHold", "LspAttach" },
         debounce_ms = 150,
     },
+    debug_mode = false,
 }
 
 M.options = {}

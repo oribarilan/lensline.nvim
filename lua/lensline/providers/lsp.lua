@@ -1,4 +1,5 @@
 local utils = require("lensline.utils")
+local config = require("lensline.config")
 
 local M = {}
 
@@ -57,7 +58,7 @@ local function count_references(bufnr, position, callback)
     vim.lsp.buf_request_all(bufnr, "textDocument/references", {
         textDocument = vim.lsp.util.make_text_document_params(bufnr),
         position = position,
-        context = { includeDeclaration = false }
+        context = { includeDeclaration = true }
     }, function(results)
         local total_count = 0
         
@@ -65,8 +66,14 @@ local function count_references(bufnr, position, callback)
         for client_id, result in pairs(results) do
             if result.result and type(result.result) == "table" then
                 total_count = total_count + #result.result
+            elseif result.error then
+                -- LSP error occurred, maybe log it
+                total_count = 0
             end
         end
+        
+        -- subtract 1 to exclude the declaration itself
+        total_count = math.max(0, total_count - 1)
         
         callback(total_count)
     end)
@@ -79,6 +86,15 @@ function M.get_lens_data(bufnr, callback)
     end
     
     collect_functions(bufnr, function(functions)
+        local opts = config.get()
+        
+        if opts.debug_mode then
+            print("lensline: Found functions:", #functions)
+            for _, func in ipairs(functions) do
+                print("lensline: Function:", func.name, "at line", func.line)
+            end
+        end
+        
         if #functions == 0 then
             callback({})
             return
@@ -92,6 +108,10 @@ function M.get_lens_data(bufnr, callback)
                 line = func.line,
                 character = func.character
             }, function(count)
+                if opts.debug_mode then
+                    print("lensline: Function", func.name, "has", count, "references")
+                end
+                
                 table.insert(lens_data, {
                     line = func.line,
                     text_parts = { utils.format_reference_count(count) }
