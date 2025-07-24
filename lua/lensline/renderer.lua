@@ -37,8 +37,8 @@ function M.render_lens(bufnr, line, text_parts)
     end
     
     vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line, 0, {
-        virt_text = virt_text,
-        virt_text_pos = "above",
+        virt_lines = { virt_text },
+        virt_lines_above = true,
     })
 end
 
