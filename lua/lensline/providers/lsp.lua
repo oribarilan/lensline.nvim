@@ -201,6 +201,7 @@ function M.get_lens_data(bufnr, callback)
                 
                 table.insert(lens_data, {
                     line = func.line,
+                    character = func.character,
                     text_parts = { utils.format_reference_count(count) }
                 })
                 

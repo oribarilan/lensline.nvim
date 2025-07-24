@@ -12,7 +12,7 @@ function M.clear_buffer(bufnr)
     vim.api.nvim_buf_clear_namespace(bufnr, M.namespace, 0, -1)
 end
 
-function M.render_lens(bufnr, line, text_parts)
+function M.render_lens(bufnr, line, text_parts, character)
     if not utils.is_valid_buffer(bufnr) or not text_parts or #text_parts == 0 then
         return
     end
@@ -23,6 +23,21 @@ function M.render_lens(bufnr, line, text_parts)
     local prefix = opts.style.prefix
     
     local virt_text = {}
+    
+    -- calculate indentation based on character position
+    local indent = ""
+    if character and character > 0 then
+        -- get the actual line content to determine whitespace style
+        local line_content = vim.api.nvim_buf_get_lines(bufnr, line, line + 1, false)[1] or ""
+        -- extract the leading whitespace
+        local leading_whitespace = line_content:match("^%s*") or ""
+        indent = leading_whitespace
+    end
+    
+    -- add indentation first
+    if indent ~= "" then
+        table.insert(virt_text, { indent, highlight })
+    end
     
     -- add prefix if configured
     if prefix and prefix ~= "" then
@@ -51,7 +66,7 @@ function M.render_buffer_lenses(bufnr, lens_data)
     
     for _, lens in ipairs(lens_data) do
         if lens.line and lens.text_parts then
-            M.render_lens(bufnr, lens.line, lens.text_parts)
+            M.render_lens(bufnr, lens.line, lens.text_parts, lens.character)
         end
     end
 end
