@@ -1,17 +1,23 @@
 -- diagnostics function level collector
 -- this was extracted from the old diagnostics.lua provider
 
--- diagnostic severity icons/symbols (from old provider)
-local severity_symbols = {
-    [vim.diagnostic.severity.ERROR] = "E",
-    [vim.diagnostic.severity.WARN] = "W", 
-    [vim.diagnostic.severity.INFO] = "I",
-    [vim.diagnostic.severity.HINT] = "H",
-}
+-- helper function to get diagnostic icons based on config
+local function get_diagnostic_icons()
+    local config = require("lensline.config")
+    local opts = config.get()
+    
+    return {
+        [vim.diagnostic.severity.ERROR] = opts.use_nerdfonts and "" or "E",
+        [vim.diagnostic.severity.WARN] = opts.use_nerdfonts and "" or "W",
+        [vim.diagnostic.severity.INFO] = opts.use_nerdfonts and "" or "I",
+        [vim.diagnostic.severity.HINT] = opts.use_nerdfonts and "" or "H",
+    }
+end
 
 -- helper function to format diagnostic counts into a string (from old provider)
 local function format_diagnostic_counts(counts)
     local parts = {}
+    local icons = get_diagnostic_icons()
     
     -- add each severity type if count > 0, in order of severity
     local severities = {
@@ -24,7 +30,7 @@ local function format_diagnostic_counts(counts)
     for _, severity in ipairs(severities) do
         local count = counts[severity]
         if count and count > 0 then
-            table.insert(parts, count .. " " .. severity_symbols[severity])
+            table.insert(parts, count .. icons[severity])
         end
     end
     
@@ -32,7 +38,7 @@ local function format_diagnostic_counts(counts)
         return nil
     end
     
-    return table.concat(parts, " ")
+    return table.concat(parts, "  ")  -- double space between different severities
 end
 
 -- helper to check if diagnostic is within function range
@@ -85,7 +91,7 @@ return function(diagnostics_context, function_info)
     
     local text = format_diagnostic_counts(counts)
     if text then
-        return "diag: %s", text
+        return "%s", text
     end
     
     return nil, nil

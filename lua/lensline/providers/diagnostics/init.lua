@@ -40,7 +40,7 @@ M.collectors = load_built_in_collectors()
 -- to see all available collectors: require("lensline.providers.diagnostics").collectors
 -- to customize: set providers.diagnostics.collectors = { your_functions } in setup()
 M.default_collectors = {
-    M.collectors.summary,  -- diagnostic summary per function
+    -- diagnostic summary removed from defaults - users can add it manually if needed
     -- add new built-in collectors here as they're created
 }
 
