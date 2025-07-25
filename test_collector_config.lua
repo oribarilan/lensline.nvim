@@ -16,7 +16,6 @@ require("lensline").setup({
       collectors = {
         -- use built-in collectors
         lsp.collectors.references,
-        lsp.collectors.definitions,
         
         -- example: copy and customize built-in collector (just change format)
         function(lsp_context, function_info)
@@ -25,9 +24,8 @@ require("lensline").setup({
           local cached = lsp_context.cache_get(cache_key)
           if cached then return "👁 %d", cached end
           
-          local position = { line = function_info.line, character = function_info.character }
-          -- simplified version for demo - could copy full logic from references.lua
-          return "👁 refs", "?"  -- placeholder for demo
+          -- for demo: return placeholder, real implementation would do LSP call
+          return "👁 refs", "?"
         end,
         
         -- example: completely custom collector

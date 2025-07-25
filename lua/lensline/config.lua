@@ -7,13 +7,15 @@ M.defaults = {
             performance = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
-            -- collectors are auto-loaded from lsp/collectors/ directory
-            -- to customize, set providers.lsp.collectors = { your_functions }
+            -- collectors: uses default_collectors from providers/lsp/init.lua unless overridden
+            -- to see defaults: require("lensline.providers.lsp").default_collectors
+            -- to customize: set providers.lsp.collectors = { your_functions }
             -- see test_collector_config.lua for examples
         },
         diagnostics = {
             enabled = true,     -- enable diagnostics provider
-            -- collectors are auto-loaded from diagnostics/collectors/ directory
+            -- collectors: uses default_collectors from providers/diagnostics/init.lua unless overridden
+            -- to see defaults: require("lensline.providers.diagnostics").default_collectors
         },
     },
     style = {

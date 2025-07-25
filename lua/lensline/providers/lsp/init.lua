@@ -31,11 +31,10 @@ local function load_built_in_collectors()
     local collectors = {}
     local base_path = "lensline.providers.lsp.collectors"
     
-    -- for now, manually list collectors - later we can auto-discover
+    -- manually list available collectors
     local collector_files = {
         "references",
-        "definitions",     -- now available
-        -- "implementations"  -- can add more later
+        -- add more collectors here as needed
     }
     
     for _, name in ipairs(collector_files) do
@@ -54,10 +53,15 @@ end
 -- export collectors for user import
 M.collectors = load_built_in_collectors()
 
--- default collectors used when user doesn't override
+-- ========================================
+-- DEFAULT COLLECTORS FOR LSP PROVIDER
+-- ========================================
+-- these are enabled by default unless user provides custom collectors array
+-- to see all available collectors: require("lensline.providers.lsp").collectors
+-- to customize: set providers.lsp.collectors = { your_functions } in setup()
 M.default_collectors = {
-    M.collectors.references,
-    M.collectors.definitions,
+    M.collectors.references,  -- lsp reference counting with smart async updates
+    -- add new built-in collectors here as they're created
 }
 
 -- provider context creation (domain-specific only - no function discovery)

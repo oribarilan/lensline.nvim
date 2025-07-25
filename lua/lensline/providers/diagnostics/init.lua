@@ -33,9 +33,15 @@ end
 -- export collectors for user import
 M.collectors = load_built_in_collectors()
 
--- default collectors used when user doesn't override
+-- ========================================
+-- DEFAULT COLLECTORS FOR DIAGNOSTICS PROVIDER
+-- ========================================
+-- these are enabled by default unless user provides custom collectors array
+-- to see all available collectors: require("lensline.providers.diagnostics").collectors
+-- to customize: set providers.diagnostics.collectors = { your_functions } in setup()
 M.default_collectors = {
-    M.collectors.function_level,
+    M.collectors.function_level,  -- aggregated diagnostics per function
+    -- add new built-in collectors here as they're created
 }
 
 -- provider context creation (domain-specific only)
