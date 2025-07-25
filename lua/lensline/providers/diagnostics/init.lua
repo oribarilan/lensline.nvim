@@ -12,9 +12,9 @@ local function load_built_in_collectors()
     local collectors = {}
     local base_path = "lensline.providers.diagnostics.collectors"
     
-    -- for now, manually list collectors - later we can auto-discover
+    -- manually list available collectors
     local collector_files = {
-        "function_level",
+        "summary",
     }
     
     for _, name in ipairs(collector_files) do
@@ -40,7 +40,7 @@ M.collectors = load_built_in_collectors()
 -- to see all available collectors: require("lensline.providers.diagnostics").collectors
 -- to customize: set providers.diagnostics.collectors = { your_functions } in setup()
 M.default_collectors = {
-    M.collectors.function_level,  -- aggregated diagnostics per function
+    M.collectors.summary,  -- diagnostic summary per function
     -- add new built-in collectors here as they're created
 }
 

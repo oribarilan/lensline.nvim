@@ -53,7 +53,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
         diagnostics = {
           enabled = true,
           collectors = {
-            diagnostics.collectors.function_level,  -- function-level diagnostics
+            diagnostics.collectors.summary,  -- diagnostic summary per function
           },
         },
       },
@@ -85,7 +85,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 * `lsp`: LSP-based information
   - `references`: Reference counting with smart async updates
 * `diagnostics`: Diagnostic information
-  - `function_level`: Errors, warnings, info, hints aggregated per function
+  - `summary`: Errors, warnings, info, hints aggregated per function
 * `git`: Git-based information [planned]
 
 ### Customizing Collectors
@@ -223,7 +223,7 @@ lensline.nvim/
 │       │   └── diagnostics/
 │       │       ├── init.lua           -- Diagnostics provider
 │       │       └── collectors/
-│       │           └── function_level.lua -- Function diagnostics collector
+│       │           └── summary.lua -- Function diagnostics collector
 │       └── utils.lua        -- Shared helper functions
 ├── README.md                -- Plugin documentation
 ├── LICENSE                  -- License file
