@@ -17,6 +17,15 @@ M.defaults = {
             -- collectors: uses default_collectors from providers/diagnostics/init.lua unless overridden
             -- to see defaults: require("lensline.providers.diagnostics").default_collectors
         },
+        git = {
+            enabled = true,     -- enable git provider
+            performance = {
+                cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
+            },
+            -- collectors: uses default_collectors from providers/git/init.lua unless overridden
+            -- to see defaults: require("lensline.providers.git").default_collectors
+            -- to customize: set providers.git.collectors = { your_functions }
+        },
     },
     style = {
         separator = " • ",

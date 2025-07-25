@@ -5,6 +5,7 @@ local M = {}
 M.providers = {
     lsp = require("lensline.providers.lsp"),  -- now points to new lsp/ directory
     diagnostics = require("lensline.providers.diagnostics"),
+    git = require("lensline.providers.git"),
 }
 
 function M.get_enabled_providers()
