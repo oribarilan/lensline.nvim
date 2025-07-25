@@ -47,10 +47,8 @@ return function(lsp_context, function_info)
                 end
             end
             
-            -- subtract 1 to exclude the function declaration itself
-            if total_count > 0 then
-                total_count = total_count - 1
-            end
+            -- don't subtract 1 since we already set includeDeclaration = false
+            -- this should exclude the function declaration automatically
             
             -- cache the result for next time
             lsp_context.cache_set(cache_key, total_count, 30000)

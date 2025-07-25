@@ -1,12 +1,6 @@
 # lensline.nvim
 
-##### A statusline for your functions.
-
-[![Neovim](https://img.shields.io/badge/Neovim%200.7+-green.svg?style=for-the-badge\&logo=neovim)](https://neovim.io)
-
-<!-- <img alt="lensline" height="260" src="/assets/lensline_banner.png" /> -->
-
-Inline metadata for your code: references, Git blame, and more — right where it matters.
+A lightweight Neovim plugin that displays contextual information about functions using virtual text lenses.
 
 ## Core Features
 
@@ -14,7 +8,7 @@ Inline metadata for your code: references, Git blame, and more — right where i
 * **LSP**: Show reference counts using built-in LSP, if available
 * **Diagnostics**: Display diagnostics for functions and lines
 * **Git**: Display last author, if available
-* **Extensible providers**: Plug in your own data sources for any lens component imagined
+* **Extensible providers & collectors**: Plug in your own data sources using the provider-collector architecture
 * **Highly configurable**: Customize style, layout, icons, and more
 
 ## Install
@@ -23,7 +17,7 @@ Inline metadata for your code: references, Git blame, and more — right where i
 {
   'oribarilan/lensline.nvim',
   event = 'LspAttach',
-  config = function()
+  config = functio 
     require("lensline").setup()
   end,
 }
@@ -39,14 +33,17 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 require("lensline").setup({
   providers = {
     lsp = {
-      references = true,    -- enable lsp references feature
       enabled = true,       -- enable lsp provider
       performance = {
         cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
       },
+      -- collectors: uses default_collectors from providers/lsp/init.lua unless overridden
+      -- to see defaults: require("lensline.providers.lsp").default_collectors
+      -- to customize: set providers.lsp.collectors = { your_functions }
     },
     diagnostics = {
       enabled = true,       -- enable diagnostics provider
+      -- collectors: uses default_collectors from providers/diagnostics/init.lua unless overridden
     },
   },
   style = {
@@ -62,11 +59,46 @@ require("lensline").setup({
 })
 ```
 
-### Built-in Providers
+### Architecture: Providers and Collectors
 
-* `diagnostics`: Diagnostic information (errors, warnings, info, hints) aggregated per function
-* `lsp`: LSP-based information (references, definitions, etc.)
-* `git`: Git-based information (author, blame, etc.) [planned]
+**lensline** uses a **Provider-Collector** architecture for extensibility:
+
+- **Providers** manage domain-specific resources (LSP clients, diagnostics, git repos)
+- **Collectors** are functions that generate lens text using provider context
+- Built-in collectors handle common use cases, custom collectors enable unlimited extensibility
+
+### Built-in Providers & Collectors
+
+* `lsp`: LSP-based information
+  - `references`: Reference counting with smart async updates
+* `diagnostics`: Diagnostic information
+  - `function_level`: Errors, warnings, info, hints aggregated per function
+* `git`: Git-based information [planned]
+
+### Customizing Collectors
+
+You can override default collectors with custom functions:
+
+```lua
+local lsp = require("lensline.providers.lsp")
+
+require("lensline").setup({
+  providers = {
+    lsp = {
+      collectors = {
+        -- use built-in collector
+        lsp.collectors.references,
+        
+        -- add custom collector
+        function(lsp_context, function_info)
+          local my_data = get_my_custom_data(function_info)
+          return "custom: %s", my_data
+        end
+      }
+    }
+  }
+})
+```
 
 ### Performance Controls
 
@@ -78,7 +110,7 @@ Per-provider performance controls under `performance` table:
 
 Provider-level controls:
 * `enabled`: enable/disable entire provider (defaults to true)
-* `references`: enable/disable specific features within provider
+* `collectors`: array of collector functions (uses provider defaults if not specified)
 
 ### Styling Options
 
@@ -136,17 +168,26 @@ require("lensline").setup({
 })
 ```
 
-to disable specific features within a provider:
+to customize collectors within a provider:
 
 ```lua
 require("lensline").setup({
   providers = {
     lsp = {
-      references = false  -- disable lsp reference counts only
+      collectors = {
+        -- only enable custom collectors, disable built-in defaults
+        function(lsp_context, function_info)
+          return "custom: %s", "data"
+        end
+      }
     }
   }
 })
 ```
+
+### Known Issues
+
+* **C# Reference Counts**: May show +1 due to LSP server differences in handling `includeDeclaration`
 
 ### File Structure
 
@@ -154,14 +195,23 @@ require("lensline").setup({
 lensline.nvim/
 ├── lua/
 │   └── lensline/
-│       ├── init.lua         -- Plugin entry point (required by `require("lensline")`)
+│       ├── init.lua         -- Plugin entry point
 │       ├── core.lua         -- Core logic and setup
 │       ├── renderer.lua     -- Virtual text rendering and extmark management
+│       ├── infrastructure/
+│       │   ├── function_discovery.lua -- Shared function discovery
+│       │   └── lens_manager.lua       -- Orchestration layer
 │       ├── providers/
-│       │   ├── init.lua     -- Aggregates provider modules
-│       │   ├── lsp.lua      -- Reference count provider via LSP
-│       │   └── git.lua      -- Git blame author provider
+│       │   ├── init.lua     -- Provider coordination
+│       │   ├── lsp/
+│       │   │   ├── init.lua           -- LSP provider
+│       │   │   └── collectors/
+│       │   │       └── references.lua -- Reference counting collector
+│       │   └── diagnostics/
+│       │       ├── init.lua           -- Diagnostics provider
+│       │       └── collectors/
+│       │           └── function_level.lua -- Function diagnostics collector
 │       └── utils.lua        -- Shared helper functions
 ├── README.md                -- Plugin documentation
-├── LICENSE                  -- License file (e.g. MIT)
+├── LICENSE                  -- License file
 ```
