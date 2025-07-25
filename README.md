@@ -13,11 +13,13 @@ A lightweight Neovim plugin that displays contextual information about functions
 
 ## Install
 
+Using [lazy.nvim](https://github.com/folke/lazy.nvim):
+
 ```lua
 {
   'oribarilan/lensline.nvim',
   event = 'LspAttach',
-  config = functio 
+  config = function()
     require("lensline").setup()
   end,
 }
@@ -30,33 +32,44 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 ### Default Configuration
 
 ```lua
-require("lensline").setup({
-  providers = {
-    lsp = {
-      enabled = true,       -- enable lsp provider
-      performance = {
-        cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
+{
+  'oribarilan/lensline.nvim',
+  event = 'LspAttach',
+  config = function()
+    local lsp = require("lensline.providers.lsp")
+    local diagnostics = require("lensline.providers.diagnostics")
+
+    require("lensline").setup({
+      providers = {
+        lsp = {
+          enabled = true,
+          performance = {
+            cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
+          },
+          collectors = {
+            lsp.collectors.references,  -- lsp reference counts
+          },
+        },
+        diagnostics = {
+          enabled = true,
+          collectors = {
+            diagnostics.collectors.function_level,  -- function-level diagnostics
+          },
+        },
       },
-      -- collectors: uses default_collectors from providers/lsp/init.lua unless overridden
-      -- to see defaults: require("lensline.providers.lsp").default_collectors
-      -- to customize: set providers.lsp.collectors = { your_functions }
-    },
-    diagnostics = {
-      enabled = true,       -- enable diagnostics provider
-      -- collectors: uses default_collectors from providers/diagnostics/init.lua unless overridden
-    },
-  },
-  style = {
-    separator = " • ",
-    highlight = "Comment",
-    prefix = "┃ ",
-  },
-  refresh = {
-    events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
-    debounce_ms = 300,    -- global debounce to trigger refresh (caching used)
-  },
-  debug_mode = false, -- Enable debug output, use for development
-})
+      style = {
+        separator = " • ",      -- separator between providers
+        highlight = "Comment",  -- highlight group for lens text
+        prefix = "┃ ",         -- prefix before lens content
+      },
+      refresh = {
+        events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
+        debounce_ms = 300,      -- global debounce to trigger refresh
+      },
+      debug_mode = false,       -- enable debug output for development
+    })
+  end,
+}
 ```
 
 ### Architecture: Providers and Collectors
@@ -196,9 +209,9 @@ lensline.nvim/
 ├── lua/
 │   └── lensline/
 │       ├── init.lua         -- Plugin entry point
-│       ├── core.lua         -- Core logic and setup
+│       ├── setup.lua        -- Setup logic and orchestration
 │       ├── renderer.lua     -- Virtual text rendering and extmark management
-│       ├── infrastructure/
+│       ├── core/
 │       │   ├── function_discovery.lua -- Shared function discovery
 │       │   └── lens_manager.lua       -- Orchestration layer
 │       ├── providers/

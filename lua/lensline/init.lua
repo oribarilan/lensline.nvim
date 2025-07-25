@@ -1,19 +1,19 @@
 local M = {}
 
 local config = require("lensline.config")
-local core = require("lensline.core")
+local setup = require("lensline.setup")
 
 function M.setup(opts)
     config.setup(opts or {})
-    core.initialize()
+    setup.initialize()
 end
 
 function M.disable()
-    core.disable()
+    setup.disable()
 end
 
 function M.refresh()
-    core.refresh_current_buffer()
+    setup.refresh_current_buffer()
 end
 
 -- debug function to test lsp provider directly

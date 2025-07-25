@@ -24,7 +24,7 @@ local function refresh_buffer(bufnr)
     lsp_provider.clear_cache(bufnr)
     
     -- use new lens manager for orchestration instead of direct provider calls
-    local lens_manager = require("lensline.infrastructure.lens_manager")
+    local lens_manager = require("lensline.core.lens_manager")
     lens_manager.refresh_buffer_lenses(bufnr)
 end
 

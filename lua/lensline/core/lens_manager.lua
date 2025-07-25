@@ -6,7 +6,7 @@ local M = {}
 -- main orchestration function
 -- replaces the direct provider calls from core.lua
 function M.refresh_buffer_lenses(bufnr)
-    local function_discovery = require("lensline.infrastructure.function_discovery")
+    local function_discovery = require("lensline.core.function_discovery")
     local providers = require("lensline.providers")
     local renderer = require("lensline.renderer")
     local debug = require("lensline.debug")

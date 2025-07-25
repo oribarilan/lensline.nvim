@@ -54,8 +54,8 @@ return function(lsp_context, function_info)
             lsp_context.cache_set(cache_key, total_count, 30000)
             
             -- trigger a refresh so the updated count shows up
-            local core = require("lensline.core")
-            core.refresh_current_buffer()
+            local setup = require("lensline.setup")
+            setup.refresh_current_buffer()
         end)
     end)
     
