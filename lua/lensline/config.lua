@@ -3,14 +3,17 @@ local M = {}
 M.defaults = {
     providers = {
         lsp = {
-            references = true,  -- enable lsp references feature
-            enabled = true,     -- enable lsp provider (defaults to true if absent)
+            enabled = true,     -- enable lsp provider
             performance = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
+            -- collectors are auto-loaded from lsp/collectors/ directory
+            -- to customize, set providers.lsp.collectors = { your_functions }
+            -- see test_collector_config.lua for examples
         },
         diagnostics = {
-            enabled = true,     -- enable diagnostics provider (defaults to true if absent)
+            enabled = true,     -- enable diagnostics provider
+            -- collectors are auto-loaded from diagnostics/collectors/ directory
         },
     },
     style = {
