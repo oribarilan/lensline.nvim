@@ -46,12 +46,33 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     local all_lens_data = {}
     
     -- get providers in configuration order
+    -- Note: pairs() doesn't preserve order, so we use a fixed order that matches typical config
     local provider_order = {}
     local enabled_providers = {}
     
-    for provider_type, provider_config in pairs(opts.providers) do
+    -- Define the expected order (matching typical config definition order)
+    local known_provider_order = {"lsp", "diagnostics", "git"}
+    
+    for _, provider_type in ipairs(known_provider_order) do
+        local provider_config = opts.providers[provider_type]
         local provider_module = M.providers[provider_type]
         if provider_module and provider_config then
+            local provider_enabled = provider_config.enabled
+            if provider_enabled == nil then
+                provider_enabled = true
+            end
+            
+            if provider_enabled then
+                table.insert(provider_order, provider_type)
+                enabled_providers[provider_type] = provider_module
+            end
+        end
+    end
+    
+    -- Handle any additional providers not in the known list (for extensibility)
+    for provider_type, provider_config in pairs(opts.providers) do
+        local provider_module = M.providers[provider_type]
+        if provider_module and provider_config and not enabled_providers[provider_type] then
             local provider_enabled = provider_config.enabled
             if provider_enabled == nil then
                 provider_enabled = true
@@ -72,7 +93,7 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     local pending_providers = #provider_order
     
     -- each provider gets the same function list from infrastructure
-    for _, provider_type in ipairs(provider_order) do
+    for order_index, provider_type in ipairs(provider_order) do
         local provider = enabled_providers[provider_type]
         
         -- call new provider method that accepts pre-discovered functions
@@ -89,9 +110,12 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                         }
                     end
                     
-                    -- append text_parts from this provider
+                    -- append text_parts from this provider with order information
                     for _, text_part in ipairs(lens.text_parts or {}) do
-                        table.insert(all_lens_data[key].text_parts, text_part)
+                        table.insert(all_lens_data[key].text_parts, {
+                            text = text_part,
+                            order = order_index
+                        })
                     end
                 end
                 
@@ -120,7 +144,10 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                     end
                     
                     for _, text_part in ipairs(lens.text_parts or {}) do
-                        table.insert(all_lens_data[key].text_parts, text_part)
+                        table.insert(all_lens_data[key].text_parts, {
+                            text = text_part,
+                            order = order_index
+                        })
                     end
                 end
                 

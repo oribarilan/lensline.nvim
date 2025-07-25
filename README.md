@@ -186,6 +186,7 @@ Provider-level controls:
 * `separator`: Delimiter between all lens parts (providers and collectors)
 * `highlight`: Highlight group used for lens text
 * `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
+* **Provider order**: Providers display in the order defined in your config - `{ lsp = {...}, git = {...} }` shows as `lsp info • git info`
 
 ### Refresh Options
 
