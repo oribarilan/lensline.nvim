@@ -41,6 +41,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
     local git = require("lensline.providers.git")
 
     require("lensline").setup({
+      use_nerdfonts = true,     -- enable nerd font icons in built-in collectors
       providers = {
         lsp = {
           enabled = true,
@@ -53,9 +54,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
         },
         diagnostics = {
           enabled = true,
-          collectors = {
-            diagnostics.collectors.summary,  -- diagnostic summary per function
-          },
+          -- collectors = {},  -- no default collectors, add manually if needed
         },
         git = {
           enabled = true,
@@ -90,6 +89,17 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 - **Collectors** are functions that generate lens text using provider context
 - Built-in collectors handle common use cases, custom collectors enable unlimited extensibility
 
+### Design Philosophy
+
+**lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
+
+- **Opinionated defaults**: Built-in collectors provide commonly-used functionality inspired by popular IDEs (VSCode, IntelliJ) - reference counts, diagnostic summaries, git blame info
+- **Extension over configuration**: Rather than adding endless config options for styling and filtering, lensline encourages writing custom collectors for specific needs
+- **Clean collector API**: Simple function signature makes it easy to create custom collectors that integrate seamlessly with the existing system
+- **No configuration bloat**: Instead of complex nested options, customization happens through code - more powerful and maintainable
+
+This design keeps the plugin lightweight while enabling unlimited customization. The collector-based approach scales better than trying to support everything through configuration.
+
 ### Features (Built-in Providers & Collectors)
 
 <details>
@@ -106,7 +116,6 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 
 **Available Collectors**:
 - `references`: Reference counting with smart async updates
-  - Returns: `"refs: %s"`, `count` (e.g., "refs: 5")
 
 </details>
 
@@ -122,8 +131,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 - `cache_set(key, value)`: Store diagnostic data in cache
 
 **Available Collectors**:
-- `summary`: Errors, warnings, info, hints aggregated per function
-  - Returns: `"diag: %s"`, `"2 E 1 W"` (e.g., "diag: 2 E 1 W")
+- `summary`: Errors, warnings, info, hints aggregated per entity
 
 </details>
 
@@ -139,8 +147,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 - `cache_set(key, value)`: Store git data in cache
 
 **Available Collectors**:
-- `last_author`: Git blame information for each function
-  - Returns: `"git: %s"`, `"johndoe, 2d ago"` (e.g., "git: johndoe, 2d ago")
+- `last_author`: Git blame information for each entity
 
 </details>
 
@@ -183,10 +190,17 @@ Provider-level controls:
 
 ### Styling Options
 
+* `use_nerdfonts`: Enable nerd font icons in built-in collectors (default: `true`)
 * `separator`: Delimiter between all lens parts (providers and collectors)
 * `highlight`: Highlight group used for lens text
 * `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
 * **Provider order**: Providers display in the order defined in your config - `{ lsp = {...}, git = {...} }` shows as `lsp info • git info`
+
+**Nerd Font Icons**: When `use_nerdfonts = true`, built-in collectors display icons:
+- LSP collector: `X` (placeholder for your custom icon) before reference count
+- Diagnostics collector: `󰅚 󰀪 󰋽 󰌶` (error, warn, info, hint icons)
+- Git collector: No icons (clean author info)
+- Set `use_nerdfonts = false` to disable icons and use text patterns (`8 refs`, `E W I H`)
 
 ### Refresh Options
 
@@ -195,7 +209,6 @@ Provider-level controls:
 
 ## Roadmap
 
-* Core features:
 * [x] Function-level metadata display
 * [x] LSP reference count support
 * [x] Git blame author display
@@ -203,12 +216,14 @@ Provider-level controls:
 * [x] Configurable styling and layout
 * [x] Debounce refresh for performance
 * [x] Extended LSP features (diagnostics)
-* [ ] Extended LSP features (definitions)
-* Other features:
 * [ ] Telescope integration for lens search
+* [ ] Keymaps?
 * [ ] Clickable lenses with `vim.ui.select` actions
-* [ ] Test coverage provider (future)
-* [ ] Custom format strings per provider
+* [ ] Test coverage provider
+* [ ] Method complexity collector
+* [ ] Class level lens
+* [ ] References - some LSP count self, some don't, address this
+* [ ] Custom providers (and not just collectors) or just a general purpose provider as well?
 
 ## Contribute
 

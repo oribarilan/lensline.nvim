@@ -1,13 +1,25 @@
 -- lsp references collector - non-blocking with background updates
 -- returns cached data immediately, triggers async update in background
 
+-- helper function to format references count
+local function format_references(count)
+    local config = require("lensline.config")
+    local opts = config.get()
+    
+    if opts.use_nerdfonts then
+        return " " .. count
+    else
+        return count .. " refs"
+    end
+end
+
 return function(lsp_context, function_info)
     local cache_key = "refs:" .. function_info.line .. ":" .. function_info.character
     local cached = lsp_context.cache_get(cache_key)
     
     -- if we have cached data, return it immediately
     if cached then
-        return "refs: %d", cached
+        return "%s", format_references(cached)
     end
     
     -- check basic requirements
@@ -60,5 +72,8 @@ return function(lsp_context, function_info)
     end)
     
     -- return placeholder for now
-    return "refs: %s", "..."
+    local config = require("lensline.config")
+    local opts = config.get()
+    local placeholder = opts.use_nerdfonts and "X ..." or "... refs"
+    return "%s", placeholder
 end

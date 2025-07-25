@@ -1,6 +1,7 @@
 local M = {}
 
 M.defaults = {
+    use_nerdfonts = true,   -- enable nerd font icons in built-in collectors
     providers = {
         lsp = {
             enabled = true,     -- enable lsp provider
