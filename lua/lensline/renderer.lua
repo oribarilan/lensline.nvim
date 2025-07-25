@@ -44,11 +44,25 @@ function M.render_lens(bufnr, line, text_parts, character)
         table.insert(virt_text, { prefix, highlight })
     end
     
-    for i, part in ipairs(text_parts) do
+    -- sort text_parts by order first, then extract text
+    local sorted_parts = {}
+    for _, part in ipairs(text_parts) do
+        if type(part) == "table" and part.text then
+            -- new format with order
+            table.insert(sorted_parts, part)
+        else
+            -- legacy format - treat as order 0 for backward compatibility
+            table.insert(sorted_parts, { text = part, order = 0 })
+        end
+    end
+    
+    table.sort(sorted_parts, function(a, b) return a.order < b.order end)
+    
+    for i, part in ipairs(sorted_parts) do
         if i > 1 and separator then
             table.insert(virt_text, { separator, highlight })
         end
-        table.insert(virt_text, { part, highlight })
+        table.insert(virt_text, { part.text, highlight })
     end
     
     vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line, 0, {
