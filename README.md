@@ -38,6 +38,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
   config = function()
     local lsp = require("lensline.providers.lsp")
     local diagnostics = require("lensline.providers.diagnostics")
+    local git = require("lensline.providers.git")
 
     require("lensline").setup({
       providers = {
@@ -54,6 +55,15 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
           enabled = true,
           collectors = {
             diagnostics.collectors.summary,  -- diagnostic summary per function
+          },
+        },
+        git = {
+          enabled = true,
+          performance = {
+            cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
+          },
+          collectors = {
+            git.collectors.last_author,  -- git blame info
           },
         },
       },
@@ -80,13 +90,59 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 - **Collectors** are functions that generate lens text using provider context
 - Built-in collectors handle common use cases, custom collectors enable unlimited extensibility
 
-### Built-in Providers & Collectors
+### Features (Built-in Providers & Collectors)
 
-* `lsp`: LSP-based information
-  - `references`: Reference counting with smart async updates
-* `diagnostics`: Diagnostic information
-  - `summary`: Errors, warnings, info, hints aggregated per function
-* `git`: Git-based information [planned]
+<details>
+<summary><strong>LSP Provider</strong> - LSP-based information</summary>
+
+**Collector Signature**: `function(lsp_context, function_info) -> format_string, value`
+
+**Context**: `lsp_context` contains:
+- `clients`: Array of LSP clients for the buffer
+- `uri`: Buffer URI
+- `bufnr`: Buffer number
+- `cache_get(key)`: Retrieve cached LSP data
+- `cache_set(key, value)`: Store LSP data in cache
+
+**Available Collectors**:
+- `references`: Reference counting with smart async updates
+  - Returns: `"refs: %s"`, `count` (e.g., "refs: 5")
+
+</details>
+
+<details>
+<summary><strong>Diagnostics Provider</strong> - Diagnostic information</summary>
+
+**Collector Signature**: `function(diagnostics_context, function_info) -> format_string, value`
+
+**Context**: `diagnostics_context` contains:
+- `diagnostics`: Array of all diagnostics for the buffer
+- `bufnr`: Buffer number
+- `cache_get(key)`: Retrieve cached diagnostic data
+- `cache_set(key, value)`: Store diagnostic data in cache
+
+**Available Collectors**:
+- `summary`: Errors, warnings, info, hints aggregated per function
+  - Returns: `"diag: %s"`, `"2 E 1 W"` (e.g., "diag: 2 E 1 W")
+
+</details>
+
+<details>
+<summary><strong>Git Provider</strong> - Git-based information</summary>
+
+**Collector Signature**: `function(git_context, function_info) -> format_string, value`
+
+**Context**: `git_context` contains:
+- `file_path`: Absolute path to the current file
+- `bufnr`: Buffer number
+- `cache_get(key)`: Retrieve cached git data
+- `cache_set(key, value)`: Store git data in cache
+
+**Available Collectors**:
+- `last_author`: Git blame information for each function
+  - Returns: `"git: %s"`, `"johndoe, 2d ago"` (e.g., "git: johndoe, 2d ago")
+
+</details>
 
 ### Customizing Collectors
 
@@ -141,7 +197,7 @@ Provider-level controls:
 * Core features:
 * [x] Function-level metadata display
 * [x] LSP reference count support
-* [ ] Git blame author display
+* [x] Git blame author display
 * [x] Custom provider API for extensibility
 * [x] Configurable styling and layout
 * [x] Debounce refresh for performance
@@ -220,10 +276,14 @@ lensline.nvim/
 │       │   │   ├── init.lua           -- LSP provider
 │       │   │   └── collectors/
 │       │   │       └── references.lua -- Reference counting collector
-│       │   └── diagnostics/
-│       │       ├── init.lua           -- Diagnostics provider
+│       │   ├── diagnostics/
+│       │   │   ├── init.lua           -- Diagnostics provider
+│       │   │   └── collectors/
+│       │   │       └── summary.lua    -- Function diagnostics collector
+│       │   └── git/
+│       │       ├── init.lua           -- Git provider
 │       │       └── collectors/
-│       │           └── summary.lua -- Function diagnostics collector
+│       │           └── last_author.lua -- Git blame collector
 │       └── utils.lua        -- Shared helper functions
 ├── README.md                -- Plugin documentation
 ├── LICENSE                  -- License file
