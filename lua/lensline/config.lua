@@ -24,7 +24,7 @@ M.defaults = {
         prefix = "┃ ",
     },
     refresh = {
-        events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
+        events = { "BufWritePost", "LspAttach", "DiagnosticChanged" },
         debounce_ms = 150,   -- global debounce for all providers
     },
     debug_mode = false,

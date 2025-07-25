@@ -58,12 +58,12 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
         },
       },
       style = {
-        separator = " • ",      -- separator between providers
+        separator = " • ",      -- separator between all lens parts
         highlight = "Comment",  -- highlight group for lens text
         prefix = "┃ ",         -- prefix before lens content
       },
       refresh = {
-        events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
+        events = { "BufWritePost", "LspAttach", "DiagnosticChanged" },
         debounce_ms = 300,      -- global debounce to trigger refresh
       },
       debug_mode = false,       -- enable debug output for development
@@ -127,7 +127,7 @@ Provider-level controls:
 
 ### Styling Options
 
-* `separator`: Delimiter between different providers
+* `separator`: Delimiter between all lens parts (providers and collectors)
 * `highlight`: Highlight group used for lens text
 * `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
 
