@@ -17,17 +17,15 @@ local function refresh_buffer(bufnr)
         return
     end
     
-    debug.log_context("Core", "collecting lens data for buffer " .. bufnr)
+    debug.log_context("Core", "using new lens manager for orchestration")
     
     -- clear cache for this buffer since content may have changed
     local lsp_provider = require("lensline.providers.lsp")
     lsp_provider.clear_cache(bufnr)
     
-    -- collect lens data and render it
-    providers.collect_lens_data(bufnr, function(lens_data)
-        debug.log_context("Core", "rendering " .. #lens_data .. " lenses for buffer " .. bufnr)
-        renderer.render_buffer_lenses(bufnr, lens_data)
-    end)
+    -- use new lens manager for orchestration instead of direct provider calls
+    local lens_manager = require("lensline.infrastructure.lens_manager")
+    lens_manager.refresh_buffer_lenses(bufnr)
 end
 
 local function get_debounced_refresh(bufnr)
