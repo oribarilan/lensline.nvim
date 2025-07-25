@@ -4,16 +4,18 @@ local M = {}
 
 M.providers = {
     lsp = require("lensline.providers.lsp"),
+    diagnostics = require("lensline.providers.diagnostics"),
 }
 
 function M.get_enabled_providers()
     local opts = config.get()
     local enabled = {}
     
-    -- check each provider type (tech-based: lsp, git, etc.)
-    for provider_type, provider_module in pairs(M.providers) do
-        local provider_config = opts.providers[provider_type]
-        if provider_config then
+    -- iterate through providers in the order they appear in config
+    -- to preserve user-specified rendering order
+    for provider_type, provider_config in pairs(opts.providers) do
+        local provider_module = M.providers[provider_type]
+        if provider_module and provider_config then
             -- check if provider is enabled (defaults to true if absent)
             local provider_enabled = provider_config.enabled
             if provider_enabled == nil then
@@ -30,32 +32,73 @@ function M.get_enabled_providers()
 end
 
 function M.collect_lens_data(bufnr, callback)
-    local enabled_providers = M.get_enabled_providers()
+    local opts = config.get()
     local all_lens_data = {}
-    local pending_providers = 0
     
-    -- count enabled providers
-    for name, provider in pairs(enabled_providers) do
-        pending_providers = pending_providers + 1
+    -- get providers in configuration order
+    local provider_order = {}
+    local enabled_providers = {}
+    
+    for provider_type, provider_config in pairs(opts.providers) do
+        local provider_module = M.providers[provider_type]
+        if provider_module and provider_config then
+            local provider_enabled = provider_config.enabled
+            if provider_enabled == nil then
+                provider_enabled = true
+            end
+            
+            if provider_enabled then
+                table.insert(provider_order, provider_type)
+                enabled_providers[provider_type] = provider_module
+            end
+        end
     end
     
-    if pending_providers == 0 then
+    if #provider_order == 0 then
         callback({})
         return
     end
     
+    local provider_results = {}
+    local pending_providers = #provider_order
+    
     -- collect data from each provider
-    for name, provider in pairs(enabled_providers) do
+    for _, provider_type in ipairs(provider_order) do
+        local provider = enabled_providers[provider_type]
         provider.get_lens_data(bufnr, function(lens_data)
-            for _, lens in ipairs(lens_data) do
-                table.insert(all_lens_data, lens)
-            end
+            provider_results[provider_type] = lens_data
             
             pending_providers = pending_providers - 1
             if pending_providers == 0 then
+                -- merge lens data preserving provider configuration order
+                local merged_lens_data = {}
+                local line_lens_map = {}
+                
+                -- process providers in configuration order
+                for _, provider_type in ipairs(provider_order) do
+                    local lens_data = provider_results[provider_type] or {}
+                    
+                    for _, lens in ipairs(lens_data) do
+                        local key = lens.line .. ":" .. (lens.character or 0)
+                        if not line_lens_map[key] then
+                            line_lens_map[key] = {
+                                line = lens.line,
+                                character = lens.character,
+                                text_parts = {}
+                            }
+                            table.insert(merged_lens_data, line_lens_map[key])
+                        end
+                        
+                        -- append text_parts from this provider
+                        for _, text_part in ipairs(lens.text_parts or {}) do
+                            table.insert(line_lens_map[key].text_parts, text_part)
+                        end
+                    end
+                end
+                
                 -- sort by line number before returning
-                table.sort(all_lens_data, function(a, b) return a.line < b.line end)
-                callback(all_lens_data)
+                table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                callback(merged_lens_data)
             end
         end)
     end

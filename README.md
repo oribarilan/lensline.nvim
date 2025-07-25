@@ -8,11 +8,12 @@
 
 Inline metadata for your code: references, Git blame, and more — right where it matters.
 
-## Planned v1 Features
+## Core Features
 
 * **Function-level info**: Display info above functions and methods
-* **LSP support**: Show reference counts using built-in LSP, if available
-* **Git integration**: Display last modified author using `git blame`, if available
+* **LSP**: Show reference counts using built-in LSP, if available
+* **Diagnostics**: Display diagnostics for functions and lines
+* **Git**: Display last author, if available
 * **Extensible providers**: Plug in your own data sources for any lens component imagined
 * **Highly configurable**: Customize style, layout, icons, and more
 
@@ -21,7 +22,7 @@ Inline metadata for your code: references, Git blame, and more — right where i
 ```lua
 {
   'oribarilan/lensline.nvim',
-  event = 'BufReadPre',
+  event = 'LspAttach',
   config = function()
     require("lensline").setup()
   end,
@@ -44,6 +45,9 @@ require("lensline").setup({
         cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
       },
     },
+    diagnostics = {
+      enabled = true,       -- enable diagnostics provider
+    },
   },
   style = {
     separator = " • ",
@@ -54,12 +58,13 @@ require("lensline").setup({
     events = { "BufWritePost", "CursorHold", "LspAttach", "InsertLeave", "TextChanged" },
     debounce_ms = 300,    -- global debounce to trigger refresh (caching used)
   },
-  debug_mode = false, -- Enable debug output
+  debug_mode = false, -- Enable debug output, use for development
 })
 ```
 
 ### Built-in Providers
 
+* `diagnostics`: Diagnostic information (errors, warnings, info, hints) aggregated per function
 * `lsp`: LSP-based information (references, definitions, etc.)
 * `git`: Git-based information (author, blame, etc.) [planned]
 
@@ -95,7 +100,8 @@ Provider-level controls:
 * [x] Custom provider API for extensibility
 * [x] Configurable styling and layout
 * [x] Debounce refresh for performance
-* [ ] Extended LSP features (e.g., diagnostics, definitions)
+* [x] Extended LSP features (diagnostics)
+* [ ] Extended LSP features (definitions)
 * Other features:
 * [ ] Telescope integration for lens search
 * [ ] Clickable lenses with `vim.ui.select` actions

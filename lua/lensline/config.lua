@@ -9,6 +9,9 @@ M.defaults = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
         },
+        diagnostics = {
+            enabled = true,     -- enable diagnostics provider (defaults to true if absent)
+        },
     },
     style = {
         separator = " • ",
