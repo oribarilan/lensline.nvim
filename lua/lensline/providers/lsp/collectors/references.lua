@@ -65,9 +65,8 @@ return function(lsp_context, function_info)
             -- cache the result for next time
             lsp_context.cache_set(cache_key, total_count, 30000)
             
-            -- trigger a refresh so the updated count shows up
-            local setup = require("lensline.setup")
-            setup.refresh_current_buffer()
+            -- no need to trigger refresh here - cached data will be used on next natural refresh
+            -- this prevents circular refresh loops while still providing updated data
         end)
     end)
     
