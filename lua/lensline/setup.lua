@@ -130,6 +130,9 @@ function M.initialize()
     
     debug.log_context("Core", "initializing plugin with config: " .. vim.inspect(opts))
     
+    -- setup LSP log filtering (must be done before any LSP requests)
+    config.setup_lsp_handlers()
+    
     setup_autocommands()
     
     local current_buf = vim.api.nvim_get_current_buf()
@@ -155,6 +158,9 @@ end
 
 function M.disable()
     config.set_enabled(false)
+    
+    -- restore original LSP handlers
+    config.restore_lsp_handlers()
     
     if autocmd_group then
         vim.api.nvim_del_augroup_by_id(autocmd_group)

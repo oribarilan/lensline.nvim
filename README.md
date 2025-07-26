@@ -42,6 +42,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 
     require("lensline").setup({
       use_nerdfonts = true,     -- enable nerd font icons in built-in collectors
+      quiet_lsp = true,         -- suppress noisy LSP log messages (e.g., Pyright reference spam)
       providers = {
         lsp = {
           enabled = true,
@@ -301,6 +302,31 @@ require("lensline").setup({
 ### Known Issues
 
 * **C# Reference Counts**: May show +1 due to LSP server differences in handling `includeDeclaration`
+* **Pyright Log Spam**: When querying references, Pyright emits "Finding references..." progress messages that can clutter the UI. The plugin automatically suppresses these by default with `quiet_lsp = true`.
+
+### LSP Log Filtering
+
+The `quiet_lsp` option (enabled by default) filters out noisy LSP log messages that can spam the user interface:
+
+```lua
+require("lensline").setup({
+  quiet_lsp = true,  -- suppress known noisy LSP messages (default: enabled)
+})
+```
+
+**What it filters:**
+- Pyright: "Finding references..." messages during reference queries
+- Extensible to other LSP servers if they become problematic
+
+**Why it's needed:**
+- Some LSP servers emit informational logs that cannot be disabled server-side
+- These logs appear every time the plugin queries for references, creating UI spam
+- Client-side filtering provides a clean solution without affecting other LSP functionality
+
+**Default behavior:**
+- Filtering is enabled by default, even if `quiet_lsp` is not specified in your config
+- Only explicitly setting `quiet_lsp = false` will disable the filtering
+- This ensures a clean experience out of the box
 
 ### File Structure
 
