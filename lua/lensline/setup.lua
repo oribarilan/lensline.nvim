@@ -35,10 +35,12 @@ local function refresh_buffer(bufnr)
 end
 
 local function debounced_refresh_current()
-    -- Stop any existing timer
+    -- Stop any existing timer safely
     if global_refresh_timer then
-        global_refresh_timer:stop()
-        global_refresh_timer:close()
+        if not global_refresh_timer:is_closing() then
+            global_refresh_timer:stop()
+            global_refresh_timer:close()
+        end
         global_refresh_timer = nil
     end
     
@@ -108,10 +110,12 @@ local function setup_autocommands()
     vim.api.nvim_create_autocmd("VimLeavePre", {
         group = autocmd_group,
         callback = function()
-            -- Stop global timer on vim exit
+            -- Stop global timer on vim exit safely
             if global_refresh_timer then
-                global_refresh_timer:stop()
-                global_refresh_timer:close()
+                if not global_refresh_timer:is_closing() then
+                    global_refresh_timer:stop()
+                    global_refresh_timer:close()
+                end
                 global_refresh_timer = nil
             end
         end,
@@ -157,10 +161,12 @@ function M.disable()
         autocmd_group = nil
     end
     
-    -- Stop global timer
+    -- Stop global timer safely
     if global_refresh_timer then
-        global_refresh_timer:stop()
-        global_refresh_timer:close()
+        if not global_refresh_timer:is_closing() then
+            global_refresh_timer:stop()
+            global_refresh_timer:close()
+        end
         global_refresh_timer = nil
     end
     
