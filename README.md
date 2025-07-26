@@ -42,10 +42,10 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 
     require("lensline").setup({
       use_nerdfonts = true,     -- enable nerd font icons in built-in collectors
-      quiet_lsp = true,         -- suppress noisy LSP log messages (e.g., Pyright reference spam)
       providers = {
         lsp = {
           enabled = true,
+          silent_progress = true,  -- silently suppress LSP progress spam (default: true)
           performance = {
             cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
           },
@@ -302,7 +302,7 @@ require("lensline").setup({
 ### Known Issues
 
 * **C# Reference Counts**: May show +1 due to LSP server differences in handling `includeDeclaration`
-* **Pyright Log Spam**: When querying references, Pyright emits "Finding references..." progress messages that can clutter the UI. The plugin automatically suppresses these by default with `quiet_lsp = true`.
+* **Pyright Log Spam**: When querying references, Pyright emits "Finding references..." progress messages that can clutter the UI (especially with noice.nvim/fidget.nvim). The plugin automatically suppresses these by default with `providers.lsp.silent_progress = true`. This only affects known spammy progress messages and has no impact on other LSPs or other Pyright functionality (diagnostics, hover, completion, etc.).
 
 ### LSP Log Filtering
 

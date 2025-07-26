@@ -2,10 +2,12 @@ local M = {}
 
 M.defaults = {
     use_nerdfonts = true,   -- enable nerd font icons in built-in collectors
-    quiet_lsp = true,       -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     providers = {
         lsp = {
             enabled = true,     -- enable lsp provider
+            silent_progress = true,  -- silently suppress LSP progress spam (e.g., Pyright "Finding references")
+                                    -- only affects known spammy progress messages surfaced by noice.nvim/fidget.nvim
+                                    -- has no effect on other LSPs or other Pyright events (diagnostics, hover, etc.)
             performance = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
@@ -67,7 +69,10 @@ local suppressed_tokens = {}  -- Track tokens for "Finding references" operation
 
 function M.setup_lsp_handlers()
     local opts = M.get()
-    if opts.quiet_lsp == false then
+    local lsp_config = opts.providers.lsp
+    
+    -- Check if LSP silent_progress is disabled
+    if lsp_config.silent_progress == false then
         return
     end
     
@@ -90,14 +95,12 @@ function M.setup_lsp_handlers()
             -- Track "Finding references" operations by their token
             if kind == "begin" and title == "Finding references" then
                 suppressed_tokens[token] = true
-                debug.log_context("LSP Filter", string.format("SUPPRESSING begin: %s (token: %s)", title, token or "unknown"))
                 return  -- 🧹 Suppress begin event
             end
             
             -- Suppress end events for tracked "Finding references" operations
             if kind == "end" and suppressed_tokens[token] then
                 suppressed_tokens[token] = nil  -- Clean up
-                debug.log_context("LSP Filter", string.format("SUPPRESSING end: (token: %s)", token or "unknown"))
                 return  -- 🧹 Suppress corresponding end event
             end
         end
@@ -108,7 +111,7 @@ function M.setup_lsp_handlers()
         end
     end
     
-    debug.log_context("LSP Filter", "Surgical LSP filtering enabled - suppressing only 'Finding references' progress")
+    debug.log_context("LSP Filter", "LSP silent_progress enabled - suppressing Pyright 'Finding references' spam")
 end
 
 function M.restore_lsp_handlers()
