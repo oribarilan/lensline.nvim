@@ -22,11 +22,11 @@
 
 ### User Experience Issues
 
-- [ ] **Fix pyright spamming experience in python ref search**
+- [x] **Fix pyright spamming experience in python ref search**
   - Address excessive pyright notifications during reference searches in Python files
   - Implement better handling or filtering of pyright LSP responses
 
-- [ ] **Improve initial reference count loading performance**
+- [x] **Improve initial reference count loading performance**
   - Replace slow `?` placeholder updates with immediate force updates on file open
   - Consider implementing force update on first nvim file open or every file open
   - Optimize initial display to avoid long loading times for reference counts
@@ -53,6 +53,7 @@
 - [ ] **Remove debug functions from production API** in [`lua/lensline/init.lua:44-83`](lua/lensline/init.lua:44-83)
   - Move `M.debug_lsp()` and `M.test_manual_references()` to debug module
   - Keep functions available but not exposed in main API
+  - Add a snippet in the README on adding a LenslineDebug command that will do what this command does now (so that non contributors will not see LenslineDebug)
 
 ## ⚠️ Code Quality Issues (Low Priority)
 
