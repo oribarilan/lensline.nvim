@@ -73,6 +73,6 @@ return function(lsp_context, function_info)
     -- return placeholder for now
     local config = require("lensline.config")
     local opts = config.get()
-    local placeholder = opts.use_nerdfonts and "X ..." or "... refs"
+    local placeholder = opts.use_nerdfonts and " ?" or "? refs"
     return "%s", placeholder
 end
