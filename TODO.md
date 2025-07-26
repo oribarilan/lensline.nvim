@@ -11,7 +11,7 @@
   - ✅ Reduced code complexity from ~40 lines to ~15 lines
   - Prevents memory leaks and improves performance
 
-- [ ] **Fix circular refresh loop** in [`lua/lensline/providers/lsp/collectors/references.lua:70`](lua/lensline/providers/lsp/collectors/references.lua:70)
+- [x] **Fix circular refresh loop** in [`lua/lensline/providers/lsp/collectors/references.lua:70`](lua/lensline/providers/lsp/collectors/references.lua:70)
   - Remove direct call to `setup.refresh_current_buffer()` from collector
   - Implement event-based update mechanism instead
 
