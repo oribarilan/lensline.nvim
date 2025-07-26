@@ -63,63 +63,26 @@ function M.set_enabled(enabled)
     M._enabled = enabled
 end
 
--- LSP message filtering - surgical "Finding references" suppression
-local original_progress_handler = nil
-local suppressed_tokens = {}  -- Track tokens for "Finding references" operations
-
+-- LSP progress filtering setup
 function M.setup_lsp_handlers()
     local opts = M.get()
     local lsp_config = opts.providers.lsp
     
-    -- Check if LSP silent_progress is disabled
-    if lsp_config.silent_progress == false then
-        return
+    -- Check if LSP silent_progress is enabled (default: true)
+    if lsp_config.silent_progress ~= false then
+        local silent_progress = require("lensline.silent_progress")
+        silent_progress.setup()
     end
-    
-    local debug = require("lensline.debug")
-    
-    -- Store original handler if we haven't already
-    if not original_progress_handler then
-        original_progress_handler = vim.lsp.handlers["$/progress"]
-    end
-    
-    -- Surgical filtering: suppress entire "Finding references" progress cycles
-    vim.lsp.handlers["$/progress"] = function(err, result, ctx, config)
-        local client = vim.lsp.get_client_by_id(ctx.client_id)
-        
-        if client and client.name == "pyright" and result and result.value then
-            local token = result.token
-            local kind = result.value.kind
-            local title = result.value.title
-            
-            -- Track "Finding references" operations by their token
-            if kind == "begin" and title == "Finding references" then
-                suppressed_tokens[token] = true
-                return  -- 🧹 Suppress begin event
-            end
-            
-            -- Suppress end events for tracked "Finding references" operations
-            if kind == "end" and suppressed_tokens[token] then
-                suppressed_tokens[token] = nil  -- Clean up
-                return  -- 🧹 Suppress corresponding end event
-            end
-        end
-        
-        -- Allow all other progress messages through
-        if original_progress_handler then
-            return original_progress_handler(err, result, ctx, config)
-        end
-    end
-    
-    debug.log_context("LSP Filter", "LSP silent_progress enabled - suppressing Pyright 'Finding references' spam")
 end
 
 function M.restore_lsp_handlers()
-    -- Restore original progress handler when disabling
-    if original_progress_handler then
-        vim.lsp.handlers["$/progress"] = original_progress_handler
-        original_progress_handler = nil
-    end
+    local silent_progress = require("lensline.silent_progress")
+    silent_progress.teardown()
+end
+
+function M.clear_suppressed_tokens()
+    local silent_progress = require("lensline.silent_progress")
+    silent_progress.clear_tokens()
 end
 
 return M

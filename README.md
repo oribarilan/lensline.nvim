@@ -335,8 +335,10 @@ lensline.nvim/
 ├── lua/
 │   └── lensline/
 │       ├── init.lua         -- Plugin entry point
+│       ├── config.lua       -- Configuration management
 │       ├── setup.lua        -- Setup logic and orchestration
 │       ├── renderer.lua     -- Virtual text rendering and extmark management
+│       ├── silent_progress.lua -- LSP progress spam filtering
 │       ├── core/
 │       │   ├── function_discovery.lua -- Shared function discovery
 │       │   └── lens_manager.lua       -- Orchestration layer

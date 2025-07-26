@@ -97,6 +97,9 @@ local function setup_autocommands()
             debug.log_context("Core", "lsp detach detected, clearing cache for buffer " .. event.buf)
             local lsp_provider = require("lensline.providers.lsp")
             lsp_provider.clear_cache(event.buf)
+            
+            -- Clear suppressed tokens to prevent memory leaks when LSP restarts
+            config.clear_suppressed_tokens()
         end,
     })
     
