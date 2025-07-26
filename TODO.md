@@ -20,6 +20,17 @@
   - Ensure callback is always called even if some providers fail
   - Add timeout mechanism for slow providers
 
+### User Experience Issues
+
+- [ ] **Fix pyright spamming experience in python ref search**
+  - Address excessive pyright notifications during reference searches in Python files
+  - Implement better handling or filtering of pyright LSP responses
+
+- [ ] **Improve initial reference count loading performance**
+  - Replace slow `?` placeholder updates with immediate force updates on file open
+  - Consider implementing force update on first nvim file open or every file open
+  - Optimize initial display to avoid long loading times for reference counts
+
 ## 🔧 Technical Debt (Medium Priority)
 
 ### Architecture and Code Organization
