@@ -207,7 +207,35 @@ Provider-level controls:
 * `events`: List of autocommands to trigger refresh
 * `debounce_ms`: Global debounce for all providers (single UI update)
 
-## Roadmap
+## Commands
+
+### `:LenslineToggle`
+
+Toggle the entire lensline functionality on and off. When disabled, ALL extension functionality is turned off and no resources are used for collecting lens attributes.
+
+```vim
+:LenslineToggle
+```
+
+You can also control this programmatically:
+
+```lua
+local lensline = require("lensline")
+
+-- check current state
+if lensline.is_enabled() then
+  print("Lensline is enabled")
+end
+
+-- manually enable/disable
+lensline.enable()
+lensline.disable()
+
+-- toggle
+lensline.toggle()
+```
+
+## Potential Features
 
 * [x] Function-level metadata display
 * [x] LSP reference count support
@@ -216,8 +244,8 @@ Provider-level controls:
 * [x] Configurable styling and layout
 * [x] Debounce refresh for performance
 * [x] Extended LSP features (diagnostics)
+* [x] Toggle command (`:LenslineToggle`)
 * [ ] Telescope integration for lens search
-* [ ] Keymaps?
 * [ ] Clickable lenses with `vim.ui.select` actions
 * [ ] Test coverage provider
 * [ ] Method complexity collector
