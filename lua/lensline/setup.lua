@@ -12,6 +12,12 @@ local refresh_timers = {}
 local function refresh_buffer(bufnr)
     debug.log_context("Core", "refresh_buffer called for buffer " .. bufnr)
     
+    -- check if plugin is enabled
+    if not config.is_enabled() then
+        debug.log_context("Core", "plugin is disabled, skipping refresh")
+        return
+    end
+    
     if not utils.is_valid_buffer(bufnr) then
         debug.log_context("Core", "buffer " .. bufnr .. " is not valid for refresh", "WARN")
         return
@@ -124,7 +130,14 @@ function M.refresh_current_buffer()
     on_buffer_event(bufnr)
 end
 
+function M.enable()
+    config.set_enabled(true)
+    M.initialize()
+end
+
 function M.disable()
+    config.set_enabled(false)
+    
     if autocmd_group then
         vim.api.nvim_del_augroup_by_id(autocmd_group)
         autocmd_group = nil

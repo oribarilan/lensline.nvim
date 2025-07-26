@@ -6,10 +6,35 @@ local setup = require("lensline.setup")
 function M.setup(opts)
     config.setup(opts or {})
     setup.initialize()
+    
+    -- create the toggle command
+    vim.api.nvim_create_user_command("LenslineToggle", function()
+        M.toggle()
+    end, {
+        desc = "Toggle lensline functionality on/off"
+    })
+end
+
+function M.enable()
+    setup.enable()
 end
 
 function M.disable()
     setup.disable()
+end
+
+function M.toggle()
+    if config.is_enabled() then
+        M.disable()
+        vim.notify("Lensline disabled", vim.log.levels.INFO)
+    else
+        M.enable()
+        vim.notify("Lensline enabled", vim.log.levels.INFO)
+    end
+end
+
+function M.is_enabled()
+    return config.is_enabled()
 end
 
 function M.refresh()
