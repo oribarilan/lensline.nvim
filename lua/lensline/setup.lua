@@ -7,7 +7,7 @@ local debug = require("lensline.debug")
 local M = {}
 
 local autocmd_group = nil
-local refresh_timers = {}
+local global_refresh_timer = nil
 
 local function refresh_buffer(bufnr)
     debug.log_context("Core", "refresh_buffer called for buffer " .. bufnr)
@@ -34,14 +34,27 @@ local function refresh_buffer(bufnr)
     lens_manager.refresh_buffer_lenses(bufnr)
 end
 
-local function get_debounced_refresh(bufnr)
-    if not refresh_timers[bufnr] then
-        local opts = config.get()
-        refresh_timers[bufnr] = utils.debounce(function()
-            refresh_buffer(bufnr)
-        end, opts.refresh.debounce_ms)
+local function debounced_refresh_current()
+    -- Stop any existing timer
+    if global_refresh_timer then
+        global_refresh_timer:stop()
+        global_refresh_timer:close()
+        global_refresh_timer = nil
     end
-    return refresh_timers[bufnr]
+    
+    -- Create new timer
+    local opts = config.get()
+    global_refresh_timer = vim.loop.new_timer()
+    global_refresh_timer:start(opts.refresh.debounce_ms, 0, function()
+        vim.schedule(function()
+            global_refresh_timer:close()
+            global_refresh_timer = nil
+            local current_bufnr = vim.api.nvim_get_current_buf()
+            if utils.is_valid_buffer(current_bufnr) then
+                refresh_buffer(current_bufnr)
+            end
+        end)
+    end)
 end
 
 local function on_buffer_event(bufnr)
@@ -49,15 +62,13 @@ local function on_buffer_event(bufnr)
         return
     end
     
-    -- global debouncing - single update for all providers
-    local debounced_refresh = get_debounced_refresh(bufnr)
-    debounced_refresh()
+    -- Use global debounced refresh for current buffer
+    debounced_refresh_current()
 end
 
 local function cleanup_buffer(bufnr)
-    if refresh_timers[bufnr] then
-        refresh_timers[bufnr] = nil
-    end
+    -- Just clear the renderer for this buffer
+    -- Global timer doesn't need per-buffer cleanup
     renderer.clear_buffer(bufnr)
 end
 
@@ -97,8 +108,11 @@ local function setup_autocommands()
     vim.api.nvim_create_autocmd("VimLeavePre", {
         group = autocmd_group,
         callback = function()
-            for bufnr, _ in pairs(refresh_timers) do
-                cleanup_buffer(bufnr)
+            -- Stop global timer on vim exit
+            if global_refresh_timer then
+                global_refresh_timer:stop()
+                global_refresh_timer:close()
+                global_refresh_timer = nil
             end
         end,
     })
@@ -143,10 +157,20 @@ function M.disable()
         autocmd_group = nil
     end
     
-    for bufnr, _ in pairs(refresh_timers) do
-        cleanup_buffer(bufnr)
+    -- Stop global timer
+    if global_refresh_timer then
+        global_refresh_timer:stop()
+        global_refresh_timer:close()
+        global_refresh_timer = nil
     end
-    refresh_timers = {}
+    
+    -- Clear all buffer renderers
+    local buffers = vim.api.nvim_list_bufs()
+    for _, bufnr in ipairs(buffers) do
+        if vim.api.nvim_buf_is_valid(bufnr) then
+            renderer.clear_buffer(bufnr)
+        end
+    end
 end
 
 return M

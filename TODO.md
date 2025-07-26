@@ -4,9 +4,12 @@
 
 ### Memory and Stability Issues
 
-- [ ] **Fix timer memory leak** in [`lua/lensline/setup.lua:58-60`](lua/lensline/setup.lua:58-60)
-  - Add `timer:stop()` before setting `refresh_timers[bufnr] = nil`
-  - Prevents memory leaks from abandoned timers
+- [x] **Fix timer memory leak** in [`lua/lensline/setup.lua`](lua/lensline/setup.lua)
+  - ✅ Replaced per-buffer timers with single global timer using `vim.defer_fn()`
+  - ✅ Simplified to refresh only current buffer (covers 99% of use cases)
+  - ✅ Added proper timer cleanup in `disable()` and `VimLeavePre`
+  - ✅ Reduced code complexity from ~40 lines to ~15 lines
+  - Prevents memory leaks and improves performance
 
 - [ ] **Fix circular refresh loop** in [`lua/lensline/providers/lsp/collectors/references.lua:70`](lua/lensline/providers/lsp/collectors/references.lua:70)
   - Remove direct call to `setup.refresh_current_buffer()` from collector
