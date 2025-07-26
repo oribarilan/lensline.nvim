@@ -34,7 +34,7 @@ M.defaults = {
         prefix = "┃ ",
     },
     refresh = {
-        events = { "BufWritePost", "LspAttach", "DiagnosticChanged" },
+        events = { "BufWritePost", "LspAttach", "DiagnosticChanged", "BufEnter" },
         debounce_ms = 150,   -- global debounce for all providers
     },
     debug_mode = false,

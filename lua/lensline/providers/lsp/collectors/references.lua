@@ -17,7 +17,7 @@ return function(lsp_context, function_info)
     local cache_key = "refs:" .. function_info.line .. ":" .. function_info.character
     local cached = lsp_context.cache_get(cache_key)
     
-    -- if we have cached data, return it immediately
+    -- if we have cached data, return it immediately (prevents infinite refresh loops)
     if cached then
         return "%s", format_references(cached)
     end
@@ -65,8 +65,12 @@ return function(lsp_context, function_info)
             -- cache the result for next time
             lsp_context.cache_set(cache_key, total_count, 30000)
             
-            -- no need to trigger refresh here - cached data will be used on next natural refresh
-            -- this prevents circular refresh loops while still providing updated data
+            -- trigger a refresh to show the updated count immediately
+            -- use vim.schedule to avoid potential issues with calling refresh during collection
+            vim.schedule(function()
+                local setup = require("lensline.setup")
+                setup.refresh_current_buffer()
+            end)
         end)
     end)
     
