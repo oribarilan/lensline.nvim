@@ -2,14 +2,8 @@
 
 A lightweight Neovim plugin that displays contextual information about functions using virtual text lenses.
 
-## Core Features
-
-* **Function-level info**: Display info above functions and methods
-* **LSP**: Show reference counts using built-in LSP, if available
-* **Diagnostics**: Display diagnostics for functions and lines
-* **Git**: Display last author, if available
-* **Extensible providers & collectors**: Plug in your own data sources using the provider-collector architecture
-* **Highly configurable**: Customize style, layout, icons, and more
+* **Batteries included** so you can just use it out of the box with ref count and last author (git blame) info
+* **Make it your own** with custom providers for your own data sources
 
 ## Install
 
@@ -36,38 +30,17 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
   'oribarilan/lensline.nvim',
   event = 'LspAttach',
   config = function()
-    local lsp = require("lensline.providers.lsp")
-    local diagnostics = require("lensline.providers.diagnostics")
-    local git = require("lensline.providers.git")
-
     require("lensline").setup({
-      use_nerdfonts = true,     -- enable nerd font icons in built-in collectors
+      use_nerdfonts = true,     -- enable nerd font icons in built-in providers
       providers = {  -- Array format: order determines display sequence
         {
-          type = "lsp",
-          enabled = true,
-          silent_progress = true,  -- silently suppress LSP progress spam (default: true)
-          performance = {
-            cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
-          },
-          collectors = {
-            lsp.collectors.references,  -- array order determines display order
-          },
+          name = "ref_count",
+          enabled = true,         -- show LSP reference counts
+          quiet_lsp = true,       -- suppress noisy LSP progress messages (default: true)
         },
         {
-          type = "diagnostics",
-          enabled = true,
-          -- collectors = {},  -- no default collectors, add manually if needed
-        },
-        {
-          type = "git",
-          enabled = true,
-          performance = {
-            cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
-          },
-          collectors = {
-            git.collectors.last_author,  -- array order determines display order
-          },
+          name = "last_author",
+          enabled = true,         -- show git blame info (latest author + time)
         },
       },
       style = {
@@ -75,23 +48,19 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
         highlight = "Comment",  -- highlight group for lens text
         prefix = "┃ ",         -- prefix before lens content
       },
-      refresh = {
-        events = { "BufWritePost", "LspAttach", "DiagnosticChanged" },
-        debounce_ms = 300,      -- global debounce to trigger refresh
-      },
       debug_mode = false,       -- enable debug output for development
     })
   end,
 }
 ```
 
-### Architecture: Providers and Collectors
+### Architecture: Simple Providers
 
-**lensline** uses a **Provider-Collector** architecture for extensibility:
+**lensline** uses a simple **Provider** architecture:
 
-- **Providers** manage domain-specific resources (LSP clients, diagnostics, git repos)
-- **Collectors** are functions that generate lens text using provider context
-- Built-in collectors handle common use cases, custom collectors enable unlimited extensibility
+- **Providers** are self-contained modules that handle specific data sources (LSP, git, etc.)
+- Each provider defines its own event triggers, debounce timing, and data collection logic
+- Providers return lens items with line numbers and formatted text for display
 
 ### Design Philosophy
 
@@ -104,113 +73,84 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 
 This design keeps the plugin lightweight while enabling unlimited customization. The collector-based approach scales better than trying to support everything through configuration.
 
-### Features (Built-in Providers & Collectors)
+### Built-in Providers
 
 <details>
-<summary><strong>LSP Provider</strong> - LSP-based information</summary>
+<summary><strong>ref_count Provider</strong> - LSP reference counting</summary>
 
-**Collector Signature**: `function(lsp_context, function_info) -> format_string, value`
+**Provider Name**: `ref_count`
 
-**Context**: `lsp_context` contains:
-- `clients`: Array of LSP clients for the buffer
-- `uri`: Buffer URI
-- `bufnr`: Buffer number
-- `cache_get(key)`: Retrieve cached LSP data
-- `cache_set(key, value)`: Store LSP data in cache
+**Events**: `LspAttach`, `BufWritePost`
 
-**Available Collectors**:
-- `references`: Reference counting with smart async updates
+**What it shows**: Number of references to functions/methods using LSP `textDocument/references`
+
+**Configuration**:
+- `enabled`: Enable/disable the provider (default: `true`)
+- `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occures with Pyright in combination with noice.nvim or fidget.nvim.
 
 </details>
 
 <details>
-<summary><strong>Diagnostics Provider</strong> - Diagnostic information</summary>
+<summary><strong>last_author Provider</strong> - Git blame information</summary>
 
-**Collector Signature**: `function(diagnostics_context, function_info) -> format_string, value`
+**Provider Name**: `last_author`
 
-**Context**: `diagnostics_context` contains:
-- `diagnostics`: Array of all diagnostics for the buffer
-- `bufnr`: Buffer number
-- `cache_get(key)`: Retrieve cached diagnostic data
-- `cache_set(key, value)`: Store diagnostic data in cache
+**Events**: `BufRead`, `BufWritePost`
 
-**Available Collectors**:
-- `summary`: Errors, warnings, info, hints aggregated per entity
+**What it shows**: Most recent git author and relative time for each function
 
 </details>
 
-<details>
-<summary><strong>Git Provider</strong> - Git-based information</summary>
+### Creating Custom Providers
 
-**Collector Signature**: `function(git_context, function_info) -> format_string, value`
-
-**Context**: `git_context` contains:
-- `file_path`: Absolute path to the current file
-- `bufnr`: Buffer number
-- `cache_get(key)`: Retrieve cached git data
-- `cache_set(key, value)`: Store git data in cache
-
-**Available Collectors**:
-- `last_author`: Git blame information for each entity
-
-</details>
-
-### Customizing Collectors
-
-You can override default collectors with custom functions:
+You can create custom providers by adding them to the provider registry. A provider is a Lua module that returns a table with the following structure:
 
 ```lua
-local lsp = require("lensline.providers.lsp")
+-- custom_provider.lua
+return {
+  name = "my_custom_provider",
+  event = { "BufWritePost" },  -- events that trigger this provider
+  debounce = 1000,             -- debounce delay in milliseconds
+  handler = function(bufnr, func_info, callback)
+    -- bufnr: buffer number
+    -- func_info: { line = number, name = string, character = number }
+    -- callback: function to call with result (for async) or nil (for sync)
+    
+    -- Your custom logic here
+    local custom_data = get_my_custom_data(func_info)
+    
+    -- For synchronous providers, return the lens item:
+    if not callback then
+      return {
+        line = func_info.line,
+        text = "💩 " .. custom_data
+      }
+    end
+    
+    -- For async providers, call the callback:
+    callback({
+      line = func_info.line,
+      text = "💩 " .. custom_data
+    })
+    return nil
+  end
+}
+```
+
+Then register it in your configuration by adding it to the providers registry:
+
+```lua
+-- Add your custom provider to the registry
+local providers = require("lensline.providers")
+providers.available_providers.my_custom_provider = require("path.to.custom_provider")
 
 require("lensline").setup({
   providers = {
-    {
-      type = "lsp",
-      collectors = {
-        -- use built-in collector
-        lsp.collectors.references,
-        
-        -- add custom collector
-        function(lsp_context, function_info)
-          local my_data = get_my_custom_data(function_info)
-          return "custom: %s", my_data
-        end
-      }
-    }
+    { name = "ref_count", enabled = true },
+    { name = "my_custom_provider", enabled = true },
   }
 })
 ```
-
-### Performance Controls
-
-Global performance controls:
-* `refresh.debounce_ms`: single debounce delay for all providers
-
-Per-provider performance controls under `performance` table:
-* `cache_ttl`: cache duration in milliseconds
-
-Provider-level controls:
-* `enabled`: enable/disable entire provider (defaults to true)
-* `collectors`: array of collector functions (uses provider defaults if not specified)
-
-### Styling Options
-
-* `use_nerdfonts`: Enable nerd font icons in built-in collectors (default: `true`)
-* `separator`: Delimiter between all lens parts (providers and collectors)
-* `highlight`: Highlight group used for lens text
-* `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
-* **Provider order**: Providers display in array order - first provider in array appears first in lens line
-
-**Nerd Font Icons**: When `use_nerdfonts = true`, built-in collectors display icons:
-- LSP collector: `X` (placeholder for your custom icon) before reference count
-- Diagnostics collector: `󰅚 󰀪 󰋽 󰌶` (error, warn, info, hint icons)
-- Git collector: No icons (clean author info)
-- Set `use_nerdfonts = false` to disable icons and use text patterns (`8 refs`, `E W I H`)
-
-### Refresh Options
-
-* `events`: List of autocommands to trigger refresh
-* `debounce_ms`: Global debounce for all providers (single UI update)
 
 ## Commands
 
@@ -247,16 +187,16 @@ lensline.toggle()
 * [x] Git blame author display
 * [x] Custom provider API for extensibility
 * [x] Configurable styling and layout
-* [x] Debounce refresh for performance
-* [x] Extended LSP features (diagnostics)
+* [x] Per-provider debounce timing
 * [x] Toggle command (`:LenslineToggle`)
+* [x] LSP progress message filtering
 * [ ] Telescope integration for lens search
 * [ ] Clickable lenses with `vim.ui.select` actions
 * [ ] Test coverage provider
-* [ ] Method complexity collector
+* [ ] Method complexity provider
 * [ ] Class level lens
+* [ ] Diagnostics provider (errors/warnings per function)
 * [ ] References - some LSP count self, some don't, address this
-* [ ] Custom providers (and not just collectors) or just a general purpose provider as well?
 
 ## Contribute
 
@@ -266,73 +206,24 @@ PRs, issues, and suggestions welcome.
 
 set `debug_mode = true` in your config to enable file-based debug logging. use `:LenslineDebug` to view the trace file with detailed lsp request/response info and function detection logs.
 
-```lua
-require("lensline").setup({
-  debug_mode = true  -- creates trace file in nvim cache dir
-})
-```
-
-### disabling providers
-
-to disable an entire provider, set `enabled = false`:
+Minimal plugin configuration for development, with lazy.nvim package manager:
 
 ```lua
-require("lensline").setup({
-  providers = {
-    {
-      type = "lsp",
-      enabled = false  -- disable entire lsp provider
-    }
-  }
-})
-```
-
-to customize collectors within a provider:
-
-```lua
-require("lensline").setup({
-  providers = {
-    {
-      type = "lsp",
-      collectors = {
-        -- only enable custom collectors, disable built-in defaults
-        function(lsp_context, function_info)
-          return "custom: %s", "data"
-        end
+return {
+  dir = '~/path/to/lensline.nvim', -- Path to your local lensline.nvim clone
+  dev = true, -- Enables development mode
+  event = 'BufReadPre',
+  config = function()
+    require("lensline").setup({
+      debug_mode = true,  -- enable debug logging
+      providers = {
+        { name = "ref_count", enabled = true },
+        { name = "last_author", enabled = true },
       }
-    }
-  }
-})
+    })
+  end,
+}
 ```
-
-### Known Issues
-
-* **C# Reference Counts**: May show +1 due to LSP server differences in handling `includeDeclaration`
-* **Pyright Log Spam**: When querying references, Pyright emits "Finding references..." progress messages that can clutter the UI (especially with noice.nvim/fidget.nvim). The plugin automatically suppresses these by default with `providers.lsp.silent_progress = true`. This only affects known spammy progress messages and has no impact on other LSPs or other Pyright functionality (diagnostics, hover, completion, etc.).
-
-### LSP Log Filtering
-
-The `quiet_lsp` option (enabled by default) filters out noisy LSP log messages that can spam the user interface:
-
-```lua
-require("lensline").setup({
-  quiet_lsp = true,  -- suppress known noisy LSP messages (default: enabled)
-})
-```
-
-**What it filters:**
-- Pyright: "Finding references..." messages during reference queries
-- Extensible to other LSP servers if they become problematic
-
-**Why it's needed:**
-- Some LSP servers emit informational logs that cannot be disabled server-side
-- These logs appear every time the plugin queries for references, creating UI spam
-- Client-side filtering provides a clean solution without affecting other LSP functionality
-
-**Default behavior:**
-- Filtering is enabled by default, even if `quiet_lsp` is not specified in your config
-- Only explicitly setting `quiet_lsp = false` will disable the filtering
-- This ensures a clean experience out of the box
 
 ### File Structure
 
@@ -344,25 +235,12 @@ lensline.nvim/
 │       ├── config.lua       -- Configuration management
 │       ├── setup.lua        -- Setup logic and orchestration
 │       ├── renderer.lua     -- Virtual text rendering and extmark management
-│       ├── silent_progress.lua -- LSP progress spam filtering
-│       ├── core/
-│       │   ├── function_discovery.lua -- Shared function discovery
-│       │   └── lens_manager.lua       -- Orchestration layer
-│       ├── providers/
-│       │   ├── init.lua     -- Provider coordination
-│       │   ├── lsp/
-│       │   │   ├── init.lua           -- LSP provider
-│       │   │   └── collectors/
-│       │   │       └── references.lua -- Reference counting collector
-│       │   ├── diagnostics/
-│       │   │   ├── init.lua           -- Diagnostics provider
-│       │   │   └── collectors/
-│       │   │       └── summary.lua    -- Function diagnostics collector
-│       │   └── git/
-│       │       ├── init.lua           -- Git provider
-│       │       └── collectors/
-│       │           └── last_author.lua -- Git blame collector
-│       └── utils.lua        -- Shared helper functions
+│       ├── debug.lua        -- Debug logging system
+│       ├── utils.lua        -- Shared helper functions
+│       └── providers/
+│           ├── init.lua     -- Provider coordination and registry
+│           ├── ref_count.lua -- LSP reference counting provider
+│           └── last_author.lua -- Git blame provider
 ├── README.md                -- Plugin documentation
 ├── LICENSE                  -- License file
 ```
