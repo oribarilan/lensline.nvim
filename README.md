@@ -50,7 +50,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
             cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
           },
           collectors = {
-            { collect = lsp.collectors.references, priority = 10 },  -- lsp reference counts
+            lsp.collectors.references,  -- lsp reference counts
           },
         },
         diagnostics = {
@@ -63,7 +63,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
             cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
           },
           collectors = {
-            { collect = git.collectors.last_author, priority = 30 },  -- git blame info
+            git.collectors.last_author,  -- git blame info
           },
         },
       },
@@ -154,7 +154,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 ### Customizing Collectors
 
-You can override default collectors with custom functions using three formats:
+You can override default collectors with custom functions:
 
 ```lua
 local lsp = require("lensline.providers.lsp")
@@ -163,23 +163,13 @@ require("lensline").setup({
   providers = {
     lsp = {
       collectors = {
-        -- object format: {collect = function, priority = number}
-        { collect = lsp.collectors.references, priority = 10 },
+        -- use built-in collector
+        lsp.collectors.references,
         
-        -- custom collector with priority
-        { collect = function(lsp_context, function_info)
+        -- add custom collector
+        function(lsp_context, function_info)
           local my_data = get_my_custom_data(function_info)
           return "custom: %s", my_data
-        end, priority = 5 },  -- priority 5 = appears before references (10)
-        
-        -- tuple format: {function, priority}
-        { function(lsp_context, function_info)
-          return "tuple: %s", "data"
-        end, 15 },
-        
-        -- plain function (gets lowest priority)
-        function(lsp_context, function_info)
-          return "legacy: %s", "data"  -- appears last
         end
       }
     }
@@ -205,7 +195,7 @@ Provider-level controls:
 * `separator`: Delimiter between all lens parts (providers and collectors)
 * `highlight`: Highlight group used for lens text
 * `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
-* **Display order**: Controlled by collector priorities (see Collector Priorities section)
+* **Provider order**: Providers display in the order defined in your config - `{ lsp = {...}, git = {...} }` shows as `lsp info • git info`
 
 **Nerd Font Icons**: When `use_nerdfonts = true`, built-in collectors display icons:
 - LSP collector: `X` (placeholder for your custom icon) before reference count
@@ -300,9 +290,9 @@ require("lensline").setup({
     lsp = {
       collectors = {
         -- only enable custom collectors, disable built-in defaults
-        { collect = function(lsp_context, function_info)
+        function(lsp_context, function_info)
           return "custom: %s", "data"
-        end, priority = 10 }
+        end
       }
     }
   }
@@ -338,36 +328,6 @@ require("lensline").setup({
 - Only explicitly setting `quiet_lsp = false` will disable the filtering
 - This ensures a clean experience out of the box
 
-### Collector Priorities
-
-Collectors within providers are sorted by priority to control display order across all providers. Lower numbers appear first.
-
-**Default Priorities:**
-- LSP references: `10`
-- Diagnostics summary: `20` (disabled by default)
-- Git last author: `30`
-
-**Collector Formats:**
-```lua
--- Object format: {collect = fn, priority = num}
-{ collect = my_function, priority = 15 }
-
--- Tuple format: {function, priority}
-{ my_function, 15 }
-
--- Plain function (gets lowest priority)
-my_function
-```
-
-**Cross-Provider Mixing:**
-Priorities work across all providers, so you can have:
-`LSP refs (10) → Custom collector (15) → Diagnostics (20) → Git author (30)`
-
-**Deterministic Fallback:**
-- Same priorities use original config order
-- Missing priorities default to last position
-- Ensures consistent display every time
-
 ### File Structure
 
 ```
@@ -396,8 +356,6 @@ lensline.nvim/
 │       │       ├── init.lua           -- Git provider
 │       │       └── collectors/
 │       │           └── last_author.lua -- Git blame collector
-│       ├── utils/
-│       │   └── collector.lua          -- Collector priority utilities
 │       └── utils.lua        -- Shared helper functions
 ├── README.md                -- Plugin documentation
 ├── LICENSE                  -- License file

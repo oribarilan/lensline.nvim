@@ -37,9 +37,16 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     local opts = config.get()
     local all_lens_data = {}
     
-    -- collect enabled providers (simple iteration, no complex ordering)
+    -- get providers in configuration order
+    -- Note: pairs() doesn't preserve order, so we use a fixed order that matches typical config
+    local provider_order = {}
     local enabled_providers = {}
-    for provider_type, provider_config in pairs(opts.providers) do
+    
+    -- Define the expected order (matching typical config definition order)
+    local known_provider_order = {"lsp", "diagnostics", "git"}
+    
+    for _, provider_type in ipairs(known_provider_order) do
+        local provider_config = opts.providers[provider_type]
         local provider_module = M.providers[provider_type]
         if provider_module and provider_config then
             local provider_enabled = provider_config.enabled
@@ -48,62 +55,35 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
             end
             
             if provider_enabled then
-                table.insert(enabled_providers, {
-                    type = provider_type,
-                    module = provider_module
-                })
+                table.insert(provider_order, provider_type)
+                enabled_providers[provider_type] = provider_module
             end
         end
     end
     
-    if #enabled_providers == 0 then
+    -- Handle any additional providers not in the known list (for extensibility)
+    for provider_type, provider_config in pairs(opts.providers) do
+        local provider_module = M.providers[provider_type]
+        if provider_module and provider_config and not enabled_providers[provider_type] then
+            local provider_enabled = provider_config.enabled
+            if provider_enabled == nil then
+                provider_enabled = true
+            end
+            
+            if provider_enabled then
+                table.insert(provider_order, provider_type)
+                enabled_providers[provider_type] = provider_module
+            end
+        end
+    end
+    
+    if #provider_order == 0 then
         callback({})
         return
     end
     
-    local pending_providers = #enabled_providers
+    local pending_providers = #provider_order
     local callback_called = false
-    local provider_timeouts = {}
-    
-    -- Helper function to handle provider completion
-    local function provider_completed(provider_type, provider_lens_data)
-        -- Clean up timeout for this provider
-        if provider_timeouts[provider_type] then
-            vim.fn.timer_stop(provider_timeouts[provider_type])
-            provider_timeouts[provider_type] = nil
-        end
-        
-        -- Merge lens data from this provider
-        if provider_lens_data then
-            for _, lens in ipairs(provider_lens_data) do
-                local key = lens.line .. ":" .. (lens.character or 0)
-                if not all_lens_data[key] then
-                    all_lens_data[key] = {
-                        line = lens.line,
-                        character = lens.character,
-                        text_parts = {}
-                    }
-                end
-                
-                -- append text_parts from this provider (collectors handle their own priority ordering)
-                for _, text_part in ipairs(lens.text_parts or {}) do
-                    table.insert(all_lens_data[key].text_parts, text_part)
-                end
-            end
-        end
-        
-        pending_providers = pending_providers - 1
-        if pending_providers == 0 and not callback_called then
-            callback_called = true
-            -- convert map back to array and sort
-            local merged_lens_data = {}
-            for _, lens in pairs(all_lens_data) do
-                table.insert(merged_lens_data, lens)
-            end
-            table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-            callback(merged_lens_data)
-        end
-    end
     
     -- Error handling: timeout ensures callback fires, pcall protects against provider crashes
     -- If providers hang or fail, we still return results (even if empty) within 3 seconds
@@ -116,26 +96,60 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     end, 3000)
     
     -- each provider gets the same function list from infrastructure
-    for _, provider_info in ipairs(enabled_providers) do
-        local provider_type = provider_info.type
-        local provider = provider_info.module
+    for order_index, provider_type in ipairs(provider_order) do
+        local provider = enabled_providers[provider_type]
         
-        -- Set up timeout for this specific provider
-        provider_timeouts[provider_type] = vim.fn.timer_start(3000, function()
-            vim.notify("Lensline: " .. provider_type .. " provider timed out", vim.log.levels.WARN)
-            provider_completed(provider_type, nil) -- Complete with no data
-        end)
-        
-        -- call provider method that accepts pre-discovered functions
-        local success, err = pcall(function()
-            provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
-                provider_completed(provider_type, provider_lens_data)
+        -- call new provider method that accepts pre-discovered functions
+        if provider.collect_data_for_functions then
+            local success, err = pcall(function()
+                provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
+                    -- merge lens data from this provider
+                    for _, lens in ipairs(provider_lens_data) do
+                        local key = lens.line .. ":" .. (lens.character or 0)
+                        if not all_lens_data[key] then
+                            all_lens_data[key] = {
+                                line = lens.line,
+                                character = lens.character,
+                                text_parts = {}
+                            }
+                        end
+                        
+                        -- append text_parts from this provider with order information
+                        for _, text_part in ipairs(lens.text_parts or {}) do
+                            table.insert(all_lens_data[key].text_parts, {
+                                text = text_part,
+                                order = order_index
+                            })
+                        end
+                    end
+                    
+                    pending_providers = pending_providers - 1
+                    if pending_providers == 0 and not callback_called then
+                        callback_called = true
+                        -- convert map back to array and sort
+                        local merged_lens_data = {}
+                        for _, lens in pairs(all_lens_data) do
+                            table.insert(merged_lens_data, lens)
+                        end
+                        table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                        callback(merged_lens_data)
+                    end
+                end)
             end)
-        end)
-        
-        if not success then
-            vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
-            provider_completed(provider_type, nil) -- Complete with no data
+            
+            if not success then
+                vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
+                pending_providers = pending_providers - 1
+                if pending_providers == 0 and not callback_called then
+                    callback_called = true
+                    local merged_lens_data = {}
+                    for _, lens in pairs(all_lens_data) do
+                        table.insert(merged_lens_data, lens)
+                    end
+                    table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                    callback(merged_lens_data)
+                end
+            end
         end
     end
 end

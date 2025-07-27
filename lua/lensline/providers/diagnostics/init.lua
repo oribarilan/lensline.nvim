@@ -33,8 +33,6 @@ end
 -- export collectors for user import
 M.collectors = load_built_in_collectors()
 
-local collector_utils = require("lensline.utils.collector")
-
 -- ========================================
 -- DEFAULT COLLECTORS FOR DIAGNOSTICS PROVIDER
 -- ========================================
@@ -43,7 +41,6 @@ local collector_utils = require("lensline.utils.collector")
 -- to customize: set providers.diagnostics.collectors = { your_functions } in setup()
 M.default_collectors = {
     -- diagnostic summary removed from defaults - users can add it manually if needed
-    -- { collect = M.collectors.summary, priority = 20 },  -- diagnostic summary for each function
     -- add new built-in collectors here as they're created
 }
 
@@ -90,8 +87,6 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     
     -- get collectors from config or use defaults
     local collectors = diagnostics_config.collectors or M.default_collectors
-    -- sort collectors by priority
-    local sorted_collectors = collector_utils.sort_collectors(collectors)
     local context = M.create_context(bufnr)
     
     local lens_data = {}
@@ -100,13 +95,10 @@ function M.collect_data_for_functions(bufnr, functions, callback)
         local text_parts = {}
         
         -- run all collectors for this function
-        for _, collector in ipairs(sorted_collectors) do
-            local format, value = collector.collect(context, func)
+        for _, collector_fn in ipairs(collectors) do
+            local format, value = collector_fn(context, func)
             if format and value then
-                table.insert(text_parts, {
-                    text = string.format(format, value),
-                    order = collector.priority
-                })
+                table.insert(text_parts, string.format(format, value))
             end
         end
         
