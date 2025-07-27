@@ -17,6 +17,9 @@ function M.initialize()
   debug.log_context("Core", "initializing plugin with new provider architecture")
   debug.log_context("Core", "config: " .. vim.inspect(opts))
   
+  -- Setup LSP handlers for noise suppression
+  config.setup_lsp_handlers()
+  
   -- Setup core autocommands for cleanup
   M.setup_core_autocommands()
   
@@ -84,6 +87,9 @@ function M.disable()
   config.set_enabled(false)
   
   debug.log_context("Core", "disabling lensline")
+  
+  -- Restore LSP handlers
+  config.restore_lsp_handlers()
   
   -- Cleanup autocommands
   if autocmd_group then

@@ -5,7 +5,7 @@ local M = {}
 
 -- Available providers following the new architecture
 M.available_providers = {
-  lsp_references = require("lensline.providers.lsp"),
+  ref_count = require("lensline.providers.ref_count"),
 }
 
 -- Global debounce timers for each provider

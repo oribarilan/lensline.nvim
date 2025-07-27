@@ -1,9 +1,9 @@
 local utils = require("lensline.utils")
 
--- LSP References Provider
+-- Reference Count Provider
 -- Shows reference count for functions/methods using LSP
 return {
-  name = "lsp_references",
+  name = "ref_count",
   event = { "LspAttach", "BufWritePost" },
   debounce = 1000,
   handler = function(bufnr, start_line, end_line, callback)
