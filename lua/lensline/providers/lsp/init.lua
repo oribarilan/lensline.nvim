@@ -70,10 +70,17 @@ function M.create_context(bufnr)
         clients = utils.get_lsp_clients(bufnr),
         uri = vim.uri_from_bufnr(bufnr),
         bufnr = bufnr,
-        cache_get = function(key) 
+        cache_get = function(key)
             local opts = config.get()
-            local lsp_config = opts.providers.lsp
-            local cache_ttl = (lsp_config.performance and lsp_config.performance.cache_ttl) or 30000
+            -- Find lsp config in array format
+            local lsp_config = nil
+            for _, provider_config in ipairs(opts.providers) do
+                if provider_config.type == "lsp" then
+                    lsp_config = provider_config
+                    break
+                end
+            end
+            local cache_ttl = (lsp_config and lsp_config.performance and lsp_config.performance.cache_ttl) or 30000
             
             local entry = reference_cache[key]
             if is_cache_valid(entry, cache_ttl) then
@@ -96,10 +103,18 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("LSP", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local lsp_config = opts.providers.lsp
+    
+    -- Find lsp config in array format
+    local lsp_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "lsp" then
+            lsp_config = provider_config
+            break
+        end
+    end
     
     -- check if lsp provider is enabled
-    local provider_enabled = lsp_config.enabled
+    local provider_enabled = lsp_config and lsp_config.enabled
     if provider_enabled == nil then
         provider_enabled = true
     end

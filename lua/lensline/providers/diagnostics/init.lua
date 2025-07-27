@@ -65,7 +65,15 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("Diagnostics", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local diagnostics_config = opts.providers.diagnostics
+    
+    -- Find diagnostics config in array format
+    local diagnostics_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "diagnostics" then
+            diagnostics_config = provider_config
+            break
+        end
+    end
     
     -- check if diagnostics provider is enabled (defaults to true)
     local provider_enabled = true

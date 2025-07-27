@@ -70,8 +70,15 @@ function M.create_context(bufnr)
         bufnr = bufnr,
         cache_get = function(key)
             local opts = config.get()
-            local git_config = opts.providers.git
-            local cache_ttl = (git_config.performance and git_config.performance.cache_ttl) or 300000 -- 5 minutes default
+            -- Find git config in array format
+            local git_config = nil
+            for _, provider_config in ipairs(opts.providers) do
+                if provider_config.type == "git" then
+                    git_config = provider_config
+                    break
+                end
+            end
+            local cache_ttl = (git_config and git_config.performance and git_config.performance.cache_ttl) or 300000 -- 5 minutes default
             
             local entry = git_cache[key]
             if is_cache_valid(entry, cache_ttl) then
@@ -94,7 +101,15 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("Git", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local git_config = opts.providers.git
+    
+    -- Find git config in array format
+    local git_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "git" then
+            git_config = provider_config
+            break
+        end
+    end
     
     -- check if git provider is enabled
     local provider_enabled = git_config and git_config.enabled

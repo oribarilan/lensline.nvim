@@ -12,9 +12,9 @@ function M.get_enabled_providers()
     local opts = config.get()
     local enabled = {}
     
-    -- iterate through providers in the order they appear in config
-    -- to preserve user-specified rendering order
-    for provider_type, provider_config in pairs(opts.providers) do
+    -- iterate through providers in array order
+    for _, provider_config in ipairs(opts.providers) do
+        local provider_type = provider_config.type
         local provider_module = M.providers[provider_type]
         if provider_module and provider_config then
             -- check if provider is enabled (defaults to true if absent)
@@ -37,16 +37,10 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     local opts = config.get()
     local all_lens_data = {}
     
-    -- get providers in configuration order
-    -- Note: pairs() doesn't preserve order, so we use a fixed order that matches typical config
-    local provider_order = {}
+    -- collect enabled providers in order (array format only)
     local enabled_providers = {}
-    
-    -- Define the expected order (matching typical config definition order)
-    local known_provider_order = {"lsp", "diagnostics", "git"}
-    
-    for _, provider_type in ipairs(known_provider_order) do
-        local provider_config = opts.providers[provider_type]
+    for _, provider_config in ipairs(opts.providers) do
+        local provider_type = provider_config.type
         local provider_module = M.providers[provider_type]
         if provider_module and provider_config then
             local provider_enabled = provider_config.enabled
@@ -55,34 +49,21 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
             end
             
             if provider_enabled then
-                table.insert(provider_order, provider_type)
-                enabled_providers[provider_type] = provider_module
+                table.insert(enabled_providers, {
+                    type = provider_type,
+                    module = provider_module,
+                    config = provider_config
+                })
             end
         end
     end
     
-    -- Handle any additional providers not in the known list (for extensibility)
-    for provider_type, provider_config in pairs(opts.providers) do
-        local provider_module = M.providers[provider_type]
-        if provider_module and provider_config and not enabled_providers[provider_type] then
-            local provider_enabled = provider_config.enabled
-            if provider_enabled == nil then
-                provider_enabled = true
-            end
-            
-            if provider_enabled then
-                table.insert(provider_order, provider_type)
-                enabled_providers[provider_type] = provider_module
-            end
-        end
-    end
-    
-    if #provider_order == 0 then
+    if #enabled_providers == 0 then
         callback({})
         return
     end
     
-    local pending_providers = #provider_order
+    local pending_providers = #enabled_providers
     local callback_called = false
     
     -- Error handling: timeout ensures callback fires, pcall protects against provider crashes
@@ -96,13 +77,14 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     end, 3000)
     
     -- each provider gets the same function list from infrastructure
-    for order_index, provider_type in ipairs(provider_order) do
-        local provider = enabled_providers[provider_type]
+    for order_index, provider_info in ipairs(enabled_providers) do
+        local provider_type = provider_info.type
+        local provider = provider_info.module
+        local provider_config = provider_info.config
         
-        -- call new provider method that accepts pre-discovered functions
-        if provider.collect_data_for_functions then
-            local success, err = pcall(function()
-                provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
+        -- call provider method that accepts pre-discovered functions
+        local success, err = pcall(function()
+            provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
                     -- merge lens data from this provider
                     for _, lens in ipairs(provider_lens_data) do
                         local key = lens.line .. ":" .. (lens.character or 0)
@@ -135,20 +117,19 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                         callback(merged_lens_data)
                     end
                 end)
-            end)
+        end)
             
-            if not success then
-                vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
-                pending_providers = pending_providers - 1
-                if pending_providers == 0 and not callback_called then
-                    callback_called = true
-                    local merged_lens_data = {}
-                    for _, lens in pairs(all_lens_data) do
-                        table.insert(merged_lens_data, lens)
-                    end
-                    table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-                    callback(merged_lens_data)
+        if not success then
+            vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
+            pending_providers = pending_providers - 1
+            if pending_providers == 0 and not callback_called then
+                callback_called = true
+                local merged_lens_data = {}
+                for _, lens in pairs(all_lens_data) do
+                    table.insert(merged_lens_data, lens)
                 end
+                table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                callback(merged_lens_data)
             end
         end
     end
