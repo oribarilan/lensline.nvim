@@ -1,138 +1,248 @@
 local config = require("lensline.config")
+local utils = require("lensline.utils")
 
 local M = {}
 
-M.providers = {
-    lsp = require("lensline.providers.lsp"),  -- now points to new lsp/ directory
-    diagnostics = require("lensline.providers.diagnostics"),
-    git = require("lensline.providers.git"),
+-- Available providers following the new architecture
+M.available_providers = {
+  lsp_references = require("lensline.providers.lsp"),
 }
 
+-- Global debounce timers for each provider
+local debounce_timers = {}
+
+-- Event listeners setup
+local event_listeners = {}
+
+-- Get enabled providers from config
 function M.get_enabled_providers()
-    local opts = config.get()
-    local enabled = {}
+  local debug = require("lensline.debug")
+  local opts = config.get()
+  local enabled = {}
+  
+  debug.log_context("Providers", "getting enabled providers from config")
+  debug.log_context("Providers", "available providers: " .. vim.inspect(vim.tbl_keys(M.available_providers)))
+  
+  for _, provider_config in ipairs(opts.providers) do
+    local provider_name = provider_config.name
+    local provider_module = M.available_providers[provider_name]
     
-    -- iterate through providers in array order
-    for _, provider_config in ipairs(opts.providers) do
-        local provider_type = provider_config.type
-        local provider_module = M.providers[provider_type]
-        if provider_module and provider_config then
-            -- check if provider is enabled (defaults to true if absent)
-            local provider_enabled = provider_config.enabled
-            if provider_enabled == nil then
-                provider_enabled = true  -- default to true if not specified
-            end
-            
-            if provider_enabled then
-                enabled[provider_type] = provider_module
-            end
-        end
+    debug.log_context("Providers", "checking provider: " .. provider_name)
+    debug.log_context("Providers", "provider_module found: " .. tostring(provider_module ~= nil))
+    debug.log_context("Providers", "enabled: " .. tostring(provider_config.enabled ~= false))
+    
+    if provider_module and provider_config.enabled ~= false then
+      enabled[provider_name] = {
+        module = provider_module,
+        config = provider_config
+      }
+      debug.log_context("Providers", "enabled provider: " .. provider_name)
     end
-    
-    return enabled
+  end
+  
+  debug.log_context("Providers", "total enabled providers: " .. vim.tbl_count(enabled))
+  return enabled
 end
 
--- coordinates with infrastructure-discovered functions for provider collection
-function M.collect_lens_data_with_functions(bufnr, functions, callback)
-    local opts = config.get()
-    local all_lens_data = {}
+-- Setup event listeners for all enabled providers
+function M.setup_event_listeners()
+  local enabled_providers = M.get_enabled_providers()
+  
+  -- Clear existing listeners
+  for _, group in pairs(event_listeners) do
+    if group then
+      vim.api.nvim_del_augroup_by_id(group)
+    end
+  end
+  event_listeners = {}
+  
+  -- Collect all unique events
+  local all_events = {}
+  for name, provider_info in pairs(enabled_providers) do
+    for _, event in ipairs(provider_info.module.event) do
+      if not all_events[event] then
+        all_events[event] = {}
+      end
+      table.insert(all_events[event], {
+        name = name,
+        provider = provider_info.module,
+        config = provider_info.config
+      })
+    end
+  end
+  
+  -- Setup listeners for each unique event
+  for event, providers in pairs(all_events) do
+    local group_name = "lensline_" .. event:lower()
+    local group_id = vim.api.nvim_create_augroup(group_name, { clear = true })
+    event_listeners[event] = group_id
     
-    -- collect enabled providers in order (array format only)
-    local enabled_providers = {}
-    for _, provider_config in ipairs(opts.providers) do
-        local provider_type = provider_config.type
-        local provider_module = M.providers[provider_type]
-        if provider_module and provider_config then
-            local provider_enabled = provider_config.enabled
-            if provider_enabled == nil then
-                provider_enabled = true
-            end
-            
-            if provider_enabled then
-                table.insert(enabled_providers, {
-                    type = provider_type,
-                    module = provider_module,
-                    config = provider_config
-                })
-            end
+    vim.api.nvim_create_autocmd(event, {
+      group = group_id,
+      callback = function(args)
+        for _, provider_info in ipairs(providers) do
+          M.trigger_provider(args.buf, provider_info.name, provider_info.provider, provider_info.config)
         end
+      end,
+    })
+  end
+end
+
+-- Trigger a specific provider with debouncing
+function M.trigger_provider(bufnr, provider_name, provider_module, provider_config)
+  if not utils.is_valid_buffer(bufnr) then
+    return
+  end
+  
+  local debounce_key = provider_name .. "_" .. bufnr
+  local debounce_delay = provider_module.debounce or 100
+  
+  -- Cancel existing timer
+  if debounce_timers[debounce_key] then
+    debounce_timers[debounce_key]:stop()
+  end
+  
+  -- Create new debounced execution
+  debounce_timers[debounce_key] = vim.loop.new_timer()
+  debounce_timers[debounce_key]:start(debounce_delay, 0, function()
+    vim.schedule(function()
+      M.execute_provider(bufnr, provider_module, provider_config)
+    end)
+  end)
+end
+
+-- Execute a provider and render results
+function M.execute_provider(bufnr, provider_module, provider_config)
+  local debug = require("lensline.debug")
+  
+  debug.log_context("Providers", "executing provider " .. provider_module.name .. " for buffer " .. bufnr)
+  
+  if not utils.is_valid_buffer(bufnr) then
+    debug.log_context("Providers", "buffer " .. bufnr .. " is not valid", "WARN")
+    return
+  end
+  
+  local start_line, end_line
+  
+  -- Calculate visible range if provider requests it
+  if provider_module.only_visible then
+    local win = vim.fn.bufwinid(bufnr)
+    if win == -1 then
+      debug.log_context("Providers", "buffer " .. bufnr .. " not visible in any window")
+      return -- Buffer not visible
     end
     
-    if #enabled_providers == 0 then
-        callback({})
-        return
+    start_line = vim.fn.line("w0", win)
+    end_line = vim.fn.line("w$", win)
+    
+    -- Apply padding
+    local padding = provider_module.visible_padding or 50
+    start_line = math.max(1, start_line - padding)
+    end_line = end_line + padding
+    
+    debug.log_context("Providers", "using visible range: " .. start_line .. "-" .. end_line)
+  else
+    start_line = 1
+    end_line = vim.api.nvim_buf_line_count(bufnr)
+    debug.log_context("Providers", "using full buffer range: " .. start_line .. "-" .. end_line)
+  end
+  
+  -- Execute provider handler
+  debug.log_context("Providers", "calling provider handler for " .. provider_module.name)
+  local success, lens_items = pcall(provider_module.handler, bufnr, start_line, end_line)
+  
+  if success and lens_items then
+    debug.log_context("Providers", "provider " .. provider_module.name .. " returned " .. #lens_items .. " lens items")
+    -- Render the results
+    local renderer = require("lensline.renderer")
+    renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+  else
+    debug.log_context("Providers", "provider " .. provider_module.name .. " failed: " .. tostring(lens_items), "ERROR")
+    vim.notify("Lensline: Provider " .. provider_module.name .. " failed: " .. tostring(lens_items), vim.log.levels.ERROR)
+  end
+end
+
+-- Collect all lens data from enabled providers (used by main renderer)
+function M.collect_all_lens_data(bufnr, callback)
+  local enabled_providers = M.get_enabled_providers()
+  local all_lens_data = {}
+  local pending_providers = vim.tbl_count(enabled_providers)
+  
+  if pending_providers == 0 then
+    callback({})
+    return
+  end
+  
+  local callback_called = false
+  
+  -- Timeout safety
+  vim.defer_fn(function()
+    if not callback_called then
+      callback_called = true
+      callback(all_lens_data)
+    end
+  end, 2000)
+  
+  for name, provider_info in pairs(enabled_providers) do
+    M.execute_provider_async(bufnr, provider_info.module, provider_info.config, function(lens_items)
+      if lens_items then
+        for _, item in ipairs(lens_items) do
+          table.insert(all_lens_data, item)
+        end
+      end
+      
+      pending_providers = pending_providers - 1
+      if pending_providers == 0 and not callback_called then
+        callback_called = true
+        -- Sort by line number
+        table.sort(all_lens_data, function(a, b) return a.line < b.line end)
+        callback(all_lens_data)
+      end
+    end)
+  end
+end
+
+-- Async version of provider execution
+function M.execute_provider_async(bufnr, provider_module, provider_config, callback)
+  vim.schedule(function()
+    local success, lens_items = pcall(function()
+      return M.execute_provider_sync(bufnr, provider_module, provider_config)
+    end)
+    
+    if success then
+      callback(lens_items)
+    else
+      callback({})
+    end
+  end)
+end
+
+-- Synchronous provider execution (returns lens items)
+function M.execute_provider_sync(bufnr, provider_module, provider_config)
+  if not utils.is_valid_buffer(bufnr) then
+    return {}
+  end
+  
+  local start_line, end_line
+  
+  if provider_module.only_visible then
+    local win = vim.fn.bufwinid(bufnr)
+    if win == -1 then
+      return {}
     end
     
-    local pending_providers = #enabled_providers
-    local callback_called = false
+    start_line = vim.fn.line("w0", win)
+    end_line = vim.fn.line("w$", win)
     
-    -- Error handling: timeout ensures callback fires, pcall protects against provider crashes
-    -- If providers hang or fail, we still return results (even if empty) within 3 seconds
-    vim.defer_fn(function()
-        if not callback_called then
-            callback_called = true
-            vim.notify("Lensline: Provider collection timed out", vim.log.levels.WARN)
-            callback({}) -- Return empty result
-        end
-    end, 3000)
-    
-    -- each provider gets the same function list from infrastructure
-    for order_index, provider_info in ipairs(enabled_providers) do
-        local provider_type = provider_info.type
-        local provider = provider_info.module
-        local provider_config = provider_info.config
-        
-        -- call provider method that accepts pre-discovered functions
-        local success, err = pcall(function()
-            provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
-                    -- merge lens data from this provider
-                    for _, lens in ipairs(provider_lens_data) do
-                        local key = lens.line .. ":" .. (lens.character or 0)
-                        if not all_lens_data[key] then
-                            all_lens_data[key] = {
-                                line = lens.line,
-                                character = lens.character,
-                                text_parts = {}
-                            }
-                        end
-                        
-                        -- append text_parts from this provider with order information
-                        for _, text_part in ipairs(lens.text_parts or {}) do
-                            table.insert(all_lens_data[key].text_parts, {
-                                text = text_part,
-                                order = order_index
-                            })
-                        end
-                    end
-                    
-                    pending_providers = pending_providers - 1
-                    if pending_providers == 0 and not callback_called then
-                        callback_called = true
-                        -- convert map back to array and sort
-                        local merged_lens_data = {}
-                        for _, lens in pairs(all_lens_data) do
-                            table.insert(merged_lens_data, lens)
-                        end
-                        table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-                        callback(merged_lens_data)
-                    end
-                end)
-        end)
-            
-        if not success then
-            vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
-            pending_providers = pending_providers - 1
-            if pending_providers == 0 and not callback_called then
-                callback_called = true
-                local merged_lens_data = {}
-                for _, lens in pairs(all_lens_data) do
-                    table.insert(merged_lens_data, lens)
-                end
-                table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-                callback(merged_lens_data)
-            end
-        end
-    end
+    local padding = provider_module.visible_padding or 50
+    start_line = math.max(1, start_line - padding)
+    end_line = end_line + padding
+  else
+    start_line = 1
+    end_line = vim.api.nvim_buf_line_count(bufnr)
+  end
+  
+  return provider_module.handler(bufnr, start_line, end_line) or {}
 end
 
 return M

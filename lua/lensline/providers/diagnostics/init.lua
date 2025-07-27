@@ -1,3 +1,6 @@
+-- DEPRECATED: This diagnostics provider is deprecated and kept as dead code for reference.
+-- The new architecture uses a simpler provider structure.
+--
 -- diagnostics provider - focuses only on domain-specific context (diagnostics data)
 -- no more function discovery - that's handled by infrastructure now
 
