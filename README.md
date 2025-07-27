@@ -1,5 +1,7 @@
 # lensline.nvim
 
+[![Neovim](https://img.shields.io/badge/Neovim%200.8+-green.svg?style=for-the-badge&logo=neovim)](https://neovim.io)
+
 A lightweight Neovim plugin that displays contextual information about functions using virtual text lenses.
 
 * **Batteries included** so you can just use it out of the box with ref count and last author (git blame) info
@@ -202,11 +204,11 @@ lensline.toggle()
 
 PRs, issues, and suggestions welcome.
 
-### debugging
+For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
-set `debug_mode = true` in your config to enable file-based debug logging. use `:LenslineDebug` to view the trace file with detailed lsp request/response info and function detection logs.
+### Quick Development Setup
 
-Minimal plugin configuration for development, with lazy.nvim package manager:
+Set `debug_mode = true` in your config to enable file-based debug logging:
 
 ```lua
 return {
@@ -221,6 +223,17 @@ return {
         { name = "last_author", enabled = true },
       }
     })
+    
+    -- Add debug command for easy access to logs
+    vim.api.nvim_create_user_command('LenslineDebug', function()
+      local debug = require('lensline.debug')
+      local debug_file = debug.get_debug_file()
+      if debug_file and vim.loop.fs_stat(debug_file) then
+        vim.cmd('edit ' .. debug_file)
+      else
+        print('No debug file found. Enable debug_mode in your config.')
+      end
+    end, {})
   end,
 }
 ```
