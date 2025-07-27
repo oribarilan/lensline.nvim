@@ -8,6 +8,10 @@ M.defaults = {
       enabled = true,     -- enable reference count provider
       quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
+    {
+      name = "last_author",
+      enabled = true,    -- disable by default (git operations can be slow)
+    },
   },
   style = {
     separator = " • ",
