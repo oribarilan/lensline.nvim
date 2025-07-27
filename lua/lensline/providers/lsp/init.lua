@@ -53,6 +53,8 @@ end
 -- export collectors for user import
 M.collectors = load_built_in_collectors()
 
+local collector_utils = require("lensline.utils.collector")
+
 -- ========================================
 -- DEFAULT COLLECTORS FOR LSP PROVIDER
 -- ========================================
@@ -60,7 +62,7 @@ M.collectors = load_built_in_collectors()
 -- to see all available collectors: require("lensline.providers.lsp").collectors
 -- to customize: set providers.lsp.collectors = { your_functions } in setup()
 M.default_collectors = {
-    M.collectors.references,  -- lsp reference counting with smart async updates
+    { collect = M.collectors.references, priority = 10 },  -- lsp reference counting with smart async updates
     -- add new built-in collectors here as they're created
 }
 
@@ -112,6 +114,8 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     
     -- get collectors from config or use defaults
     local collectors = lsp_config.collectors or M.default_collectors
+    -- sort collectors by priority
+    local sorted_collectors = collector_utils.sort_collectors(collectors)
     local context = M.create_context(bufnr)
     
     if not utils.is_valid_buffer(bufnr) then
@@ -126,10 +130,13 @@ function M.collect_data_for_functions(bufnr, functions, callback)
         local text_parts = {}
         
         -- run all collectors for this function (simple sync approach)
-        for _, collector_fn in ipairs(collectors) do
-            local format, value = collector_fn(context, func)
+        for _, collector in ipairs(sorted_collectors) do
+            local format, value = collector.collect(context, func)
             if format and value then
-                table.insert(text_parts, string.format(format, value))
+                table.insert(text_parts, {
+                    text = string.format(format, value),
+                    order = collector.priority
+                })
             end
         end
         
