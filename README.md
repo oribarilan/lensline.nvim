@@ -45,6 +45,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
       providers = {
         lsp = {
           enabled = true,
+          silent_progress = true,  -- silently suppress LSP progress spam (default: true)
           performance = {
             cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
           },
@@ -301,6 +302,31 @@ require("lensline").setup({
 ### Known Issues
 
 * **C# Reference Counts**: May show +1 due to LSP server differences in handling `includeDeclaration`
+* **Pyright Log Spam**: When querying references, Pyright emits "Finding references..." progress messages that can clutter the UI (especially with noice.nvim/fidget.nvim). The plugin automatically suppresses these by default with `providers.lsp.silent_progress = true`. This only affects known spammy progress messages and has no impact on other LSPs or other Pyright functionality (diagnostics, hover, completion, etc.).
+
+### LSP Log Filtering
+
+The `quiet_lsp` option (enabled by default) filters out noisy LSP log messages that can spam the user interface:
+
+```lua
+require("lensline").setup({
+  quiet_lsp = true,  -- suppress known noisy LSP messages (default: enabled)
+})
+```
+
+**What it filters:**
+- Pyright: "Finding references..." messages during reference queries
+- Extensible to other LSP servers if they become problematic
+
+**Why it's needed:**
+- Some LSP servers emit informational logs that cannot be disabled server-side
+- These logs appear every time the plugin queries for references, creating UI spam
+- Client-side filtering provides a clean solution without affecting other LSP functionality
+
+**Default behavior:**
+- Filtering is enabled by default, even if `quiet_lsp` is not specified in your config
+- Only explicitly setting `quiet_lsp = false` will disable the filtering
+- This ensures a clean experience out of the box
 
 ### File Structure
 
@@ -309,8 +335,10 @@ lensline.nvim/
 ├── lua/
 │   └── lensline/
 │       ├── init.lua         -- Plugin entry point
+│       ├── config.lua       -- Configuration management
 │       ├── setup.lua        -- Setup logic and orchestration
 │       ├── renderer.lua     -- Virtual text rendering and extmark management
+│       ├── silent_progress.lua -- LSP progress spam filtering
 │       ├── core/
 │       │   ├── function_discovery.lua -- Shared function discovery
 │       │   └── lens_manager.lua       -- Orchestration layer

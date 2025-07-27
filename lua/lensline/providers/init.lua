@@ -91,6 +91,17 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
     end
     
     local pending_providers = #provider_order
+    local callback_called = false
+    
+    -- Error handling: timeout ensures callback fires, pcall protects against provider crashes
+    -- If providers hang or fail, we still return results (even if empty) within 3 seconds
+    vim.defer_fn(function()
+        if not callback_called then
+            callback_called = true
+            vim.notify("Lensline: Provider collection timed out", vim.log.levels.WARN)
+            callback({}) -- Return empty result
+        end
+    end, 3000)
     
     -- each provider gets the same function list from infrastructure
     for order_index, provider_type in ipairs(provider_order) do
@@ -98,30 +109,47 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
         
         -- call new provider method that accepts pre-discovered functions
         if provider.collect_data_for_functions then
-            provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
-                -- merge lens data from this provider
-                for _, lens in ipairs(provider_lens_data) do
-                    local key = lens.line .. ":" .. (lens.character or 0)
-                    if not all_lens_data[key] then
-                        all_lens_data[key] = {
-                            line = lens.line,
-                            character = lens.character,
-                            text_parts = {}
-                        }
+            local success, err = pcall(function()
+                provider.collect_data_for_functions(bufnr, functions, function(provider_lens_data)
+                    -- merge lens data from this provider
+                    for _, lens in ipairs(provider_lens_data) do
+                        local key = lens.line .. ":" .. (lens.character or 0)
+                        if not all_lens_data[key] then
+                            all_lens_data[key] = {
+                                line = lens.line,
+                                character = lens.character,
+                                text_parts = {}
+                            }
+                        end
+                        
+                        -- append text_parts from this provider with order information
+                        for _, text_part in ipairs(lens.text_parts or {}) do
+                            table.insert(all_lens_data[key].text_parts, {
+                                text = text_part,
+                                order = order_index
+                            })
+                        end
                     end
                     
-                    -- append text_parts from this provider with order information
-                    for _, text_part in ipairs(lens.text_parts or {}) do
-                        table.insert(all_lens_data[key].text_parts, {
-                            text = text_part,
-                            order = order_index
-                        })
+                    pending_providers = pending_providers - 1
+                    if pending_providers == 0 and not callback_called then
+                        callback_called = true
+                        -- convert map back to array and sort
+                        local merged_lens_data = {}
+                        for _, lens in pairs(all_lens_data) do
+                            table.insert(merged_lens_data, lens)
+                        end
+                        table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                        callback(merged_lens_data)
                     end
-                end
-                
+                end)
+            end)
+            
+            if not success then
+                vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
                 pending_providers = pending_providers - 1
-                if pending_providers == 0 then
-                    -- convert map back to array and sort
+                if pending_providers == 0 and not callback_called then
+                    callback_called = true
                     local merged_lens_data = {}
                     for _, lens in pairs(all_lens_data) do
                         table.insert(merged_lens_data, lens)
@@ -129,30 +157,47 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                     table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
                     callback(merged_lens_data)
                 end
-            end)
+            end
         else
             -- fallback to old method for backward compatibility during transition
-            provider.get_lens_data(bufnr, function(provider_lens_data)
-                for _, lens in ipairs(provider_lens_data) do
-                    local key = lens.line .. ":" .. (lens.character or 0)
-                    if not all_lens_data[key] then
-                        all_lens_data[key] = {
-                            line = lens.line,
-                            character = lens.character,
-                            text_parts = {}
-                        }
+            local success, err = pcall(function()
+                provider.get_lens_data(bufnr, function(provider_lens_data)
+                    for _, lens in ipairs(provider_lens_data) do
+                        local key = lens.line .. ":" .. (lens.character or 0)
+                        if not all_lens_data[key] then
+                            all_lens_data[key] = {
+                                line = lens.line,
+                                character = lens.character,
+                                text_parts = {}
+                            }
+                        end
+                        
+                        for _, text_part in ipairs(lens.text_parts or {}) do
+                            table.insert(all_lens_data[key].text_parts, {
+                                text = text_part,
+                                order = order_index
+                            })
+                        end
                     end
                     
-                    for _, text_part in ipairs(lens.text_parts or {}) do
-                        table.insert(all_lens_data[key].text_parts, {
-                            text = text_part,
-                            order = order_index
-                        })
+                    pending_providers = pending_providers - 1
+                    if pending_providers == 0 and not callback_called then
+                        callback_called = true
+                        local merged_lens_data = {}
+                        for _, lens in pairs(all_lens_data) do
+                            table.insert(merged_lens_data, lens)
+                        end
+                        table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
+                        callback(merged_lens_data)
                     end
-                end
-                
+                end)
+            end)
+            
+            if not success then
+                vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
                 pending_providers = pending_providers - 1
-                if pending_providers == 0 then
+                if pending_providers == 0 and not callback_called then
+                    callback_called = true
                     local merged_lens_data = {}
                     for _, lens in pairs(all_lens_data) do
                         table.insert(merged_lens_data, lens)
@@ -160,7 +205,7 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                     table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
                     callback(merged_lens_data)
                 end
-            end)
+            end
         end
     end
 end

@@ -5,6 +5,9 @@ M.defaults = {
     providers = {
         lsp = {
             enabled = true,     -- enable lsp provider
+            silent_progress = true,  -- silently suppress LSP progress spam (e.g., Pyright "Finding references")
+                                    -- only affects known spammy progress messages surfaced by noice.nvim/fidget.nvim
+                                    -- has no effect on other LSPs or other Pyright events (diagnostics, hover, etc.)
             performance = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
@@ -34,7 +37,7 @@ M.defaults = {
         prefix = "┃ ",
     },
     refresh = {
-        events = { "BufWritePost", "LspAttach", "DiagnosticChanged" },
+        events = { "BufWritePost", "LspAttach", "DiagnosticChanged", "BufEnter" },
         debounce_ms = 150,   -- global debounce for all providers
     },
     debug_mode = false,
@@ -58,6 +61,28 @@ end
 
 function M.set_enabled(enabled)
     M._enabled = enabled
+end
+
+-- LSP progress filtering setup
+function M.setup_lsp_handlers()
+    local opts = M.get()
+    local lsp_config = opts.providers.lsp
+    
+    -- Check if LSP silent_progress is enabled (default: true)
+    if lsp_config.silent_progress ~= false then
+        local silent_progress = require("lensline.silent_progress")
+        silent_progress.setup()
+    end
+end
+
+function M.restore_lsp_handlers()
+    local silent_progress = require("lensline.silent_progress")
+    silent_progress.teardown()
+end
+
+function M.clear_suppressed_tokens()
+    local silent_progress = require("lensline.silent_progress")
+    silent_progress.clear_tokens()
 end
 
 return M

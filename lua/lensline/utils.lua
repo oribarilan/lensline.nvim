@@ -10,7 +10,7 @@ function M.debounce(fn, delay)
                 fn(unpack(args))
             end)
         end)
-    end
+    end, timer  -- Return timer for proper cleanup
 end
 
 function M.is_valid_buffer(bufnr)

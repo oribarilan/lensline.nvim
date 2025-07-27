@@ -17,7 +17,7 @@ return function(lsp_context, function_info)
     local cache_key = "refs:" .. function_info.line .. ":" .. function_info.character
     local cached = lsp_context.cache_get(cache_key)
     
-    -- if we have cached data, return it immediately
+    -- if we have cached data, return it immediately (prevents infinite refresh loops)
     if cached then
         return "%s", format_references(cached)
     end
@@ -65,15 +65,18 @@ return function(lsp_context, function_info)
             -- cache the result for next time
             lsp_context.cache_set(cache_key, total_count, 30000)
             
-            -- trigger a refresh so the updated count shows up
-            local setup = require("lensline.setup")
-            setup.refresh_current_buffer()
+            -- trigger a refresh to show the updated count immediately
+            -- use vim.schedule to avoid potential issues with calling refresh during collection
+            vim.schedule(function()
+                local setup = require("lensline.setup")
+                setup.refresh_current_buffer()
+            end)
         end)
     end)
     
     -- return placeholder for now
     local config = require("lensline.config")
     local opts = config.get()
-    local placeholder = opts.use_nerdfonts and "X ..." or "... refs"
+    local placeholder = opts.use_nerdfonts and " ?" or "? refs"
     return "%s", placeholder
 end
