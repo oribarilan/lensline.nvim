@@ -150,54 +150,6 @@ function M.collect_lens_data_with_functions(bufnr, functions, callback)
                     callback(merged_lens_data)
                 end
             end
-        else
-            -- fallback to old method for backward compatibility during transition
-            local success, err = pcall(function()
-                provider.get_lens_data(bufnr, function(provider_lens_data)
-                    for _, lens in ipairs(provider_lens_data) do
-                        local key = lens.line .. ":" .. (lens.character or 0)
-                        if not all_lens_data[key] then
-                            all_lens_data[key] = {
-                                line = lens.line,
-                                character = lens.character,
-                                text_parts = {}
-                            }
-                        end
-                        
-                        for _, text_part in ipairs(lens.text_parts or {}) do
-                            table.insert(all_lens_data[key].text_parts, {
-                                text = text_part,
-                                order = order_index
-                            })
-                        end
-                    end
-                    
-                    pending_providers = pending_providers - 1
-                    if pending_providers == 0 and not callback_called then
-                        callback_called = true
-                        local merged_lens_data = {}
-                        for _, lens in pairs(all_lens_data) do
-                            table.insert(merged_lens_data, lens)
-                        end
-                        table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-                        callback(merged_lens_data)
-                    end
-                end)
-            end)
-            
-            if not success then
-                vim.notify("Lensline: " .. provider_type .. " provider failed: " .. tostring(err), vim.log.levels.ERROR)
-                pending_providers = pending_providers - 1
-                if pending_providers == 0 and not callback_called then
-                    callback_called = true
-                    local merged_lens_data = {}
-                    for _, lens in pairs(all_lens_data) do
-                        table.insert(merged_lens_data, lens)
-                    end
-                    table.sort(merged_lens_data, function(a, b) return a.line < b.line end)
-                    callback(merged_lens_data)
-                end
-            end
         end
     end
 end
