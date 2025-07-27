@@ -143,15 +143,25 @@ function M.render_combined_lenses(bufnr)
   local prefix = opts.style.prefix or ""
   local separator = opts.style.separator or " • "
   
-  -- Combine all lens items from all providers by line
+  -- Combine all lens items from all providers by line, respecting config order
   local combined_lines = {}
   debug.log_context("Renderer", "M.provider_lens_data[bufnr] is nil: " .. tostring(M.provider_lens_data[bufnr] == nil))
   debug.log_context("Renderer", "raw M.provider_lens_data[bufnr]: " .. vim.inspect(M.provider_lens_data[bufnr]))
   local data_to_iterate = M.provider_lens_data[bufnr] or {}
   debug.log_context("Renderer", "about to iterate over: " .. vim.inspect(data_to_iterate))
-  debug.log_context("Renderer", "pairs() will iterate over " .. vim.tbl_count(data_to_iterate) .. " providers")
   
-  for provider_name, lens_items in pairs(data_to_iterate) do
+  -- Get provider order from config to preserve display sequence
+  local provider_order = {}
+  for _, provider_config in ipairs(opts.providers) do
+    if provider_config.enabled ~= false and data_to_iterate[provider_config.name] then
+      table.insert(provider_order, provider_config.name)
+    end
+  end
+  debug.log_context("Renderer", "provider order from config: " .. vim.inspect(provider_order))
+  
+  -- Process providers in config order
+  for _, provider_name in ipairs(provider_order) do
+    local lens_items = data_to_iterate[provider_name]
     debug.log_context("Renderer", "processing provider " .. provider_name .. " with " .. (lens_items and #lens_items or 0) .. " items")
     if lens_items and type(lens_items) == "table" then
       for i, item in ipairs(lens_items) do
