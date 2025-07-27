@@ -4,26 +4,17 @@
 local utils = require("lensline.utils")
 local config = require("lensline.config")
 local debug = require("lensline.debug")
+local cache_service = require("lensline.cache")
 
 local M = {}
 
--- simple cache for reference counts (keeping existing cache logic for now)
-local reference_cache = {}
+-- create isolated cache instance for LSP provider
+local lsp_cache = cache_service.create_cache("lsp", 15000) -- 15 second default TTL (balanced for active development)
 
 -- helper function to create cache key
 local function get_cache_key(bufnr, line, character)
     local uri = vim.uri_from_bufnr(bufnr)
     return uri .. ":" .. line .. ":" .. character
-end
-
--- helper function to check if cache entry is valid
-local function is_cache_valid(entry, timeout_ms)
-    if not entry then
-        return false
-    end
-    local current_time = vim.fn.reltime()
-    local elapsed_ms = vim.fn.reltimestr(vim.fn.reltime(entry.timestamp, current_time)) * 1000
-    return elapsed_ms < timeout_ms
 end
 
 -- auto-discover built-in collectors from collectors/ directory
@@ -70,22 +61,22 @@ function M.create_context(bufnr)
         clients = utils.get_lsp_clients(bufnr),
         uri = vim.uri_from_bufnr(bufnr),
         bufnr = bufnr,
-        cache_get = function(key) 
+        cache_get = function(key)
             local opts = config.get()
-            local lsp_config = opts.providers.lsp
-            local cache_ttl = (lsp_config.performance and lsp_config.performance.cache_ttl) or 30000
-            
-            local entry = reference_cache[key]
-            if is_cache_valid(entry, cache_ttl) then
-                return entry.count
+            -- Find lsp config in array format
+            local lsp_config = nil
+            for _, provider_config in ipairs(opts.providers) do
+                if provider_config.type == "lsp" then
+                    lsp_config = provider_config
+                    break
+                end
             end
-            return nil
+            local cache_ttl = (lsp_config and lsp_config.performance and lsp_config.performance.cache_ttl) or 15000 -- 15s default balances freshness vs performance
+            
+            return lsp_cache.get(key, cache_ttl)
         end,
-        cache_set = function(key, value, ttl) 
-            reference_cache[key] = {
-                count = value,
-                timestamp = vim.fn.reltime()
-            }
+        cache_set = function(key, value, ttl)
+            lsp_cache.set(key, value, ttl)
         end,
         -- lsp-specific context only, no function discovery
     }
@@ -96,10 +87,18 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("LSP", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local lsp_config = opts.providers.lsp
+    
+    -- Find lsp config in array format
+    local lsp_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "lsp" then
+            lsp_config = provider_config
+            break
+        end
+    end
     
     -- check if lsp provider is enabled
-    local provider_enabled = lsp_config.enabled
+    local provider_enabled = lsp_config and lsp_config.enabled
     if provider_enabled == nil then
         provider_enabled = true
     end
@@ -148,21 +147,23 @@ end
 -- function to clear cache for a specific buffer when file is modified
 function M.clear_cache(bufnr)
     local uri = vim.uri_from_bufnr(bufnr)
-    local to_remove = {}
+    local pattern = "^" .. vim.pesc(uri) .. ":"
     
-    for key, _ in pairs(reference_cache) do
-        if key:match("^" .. vim.pesc(uri) .. ":") then
-            table.insert(to_remove, key)
-        end
-    end
+    local cleared_count = lsp_cache.clear(pattern)
     
-    for _, key in ipairs(to_remove) do
-        reference_cache[key] = nil
+    if cleared_count > 0 then
+        debug.log_context("LSP", "cleared " .. cleared_count .. " cache entries for buffer " .. bufnr)
     end
-    
-    if #to_remove > 0 then
-        debug.log_context("LSP", "cleared " .. #to_remove .. " cache entries for buffer " .. bufnr)
-    end
+end
+
+-- function to cleanup expired cache entries (memory management)
+function M.cleanup_cache()
+    return lsp_cache.cleanup()
+end
+
+-- function to get cache statistics (useful for debugging)
+function M.cache_stats()
+    return lsp_cache.stats()
 end
 
 return M

@@ -26,14 +26,5 @@ function M.get_lsp_clients(bufnr)
     end
 end
 
-function M.format_reference_count(count)
-    if count == 0 then
-        return "no references"
-    elseif count == 1 then
-        return "1 reference"
-    else
-        return count .. " references"
-    end
-end
 
 return M

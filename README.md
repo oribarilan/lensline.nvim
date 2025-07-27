@@ -42,28 +42,31 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 
     require("lensline").setup({
       use_nerdfonts = true,     -- enable nerd font icons in built-in collectors
-      providers = {
-        lsp = {
+      providers = {  -- Array format: order determines display sequence
+        {
+          type = "lsp",
           enabled = true,
           silent_progress = true,  -- silently suppress LSP progress spam (default: true)
           performance = {
             cache_ttl = 30000,  -- cache time-to-live in milliseconds (30 seconds)
           },
           collectors = {
-            lsp.collectors.references,  -- lsp reference counts
+            lsp.collectors.references,  -- array order determines display order
           },
         },
-        diagnostics = {
+        {
+          type = "diagnostics",
           enabled = true,
           -- collectors = {},  -- no default collectors, add manually if needed
         },
-        git = {
+        {
+          type = "git",
           enabled = true,
           performance = {
             cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
           },
           collectors = {
-            git.collectors.last_author,  -- git blame info
+            git.collectors.last_author,  -- array order determines display order
           },
         },
       },
@@ -161,7 +164,8 @@ local lsp = require("lensline.providers.lsp")
 
 require("lensline").setup({
   providers = {
-    lsp = {
+    {
+      type = "lsp",
       collectors = {
         -- use built-in collector
         lsp.collectors.references,
@@ -195,7 +199,7 @@ Provider-level controls:
 * `separator`: Delimiter between all lens parts (providers and collectors)
 * `highlight`: Highlight group used for lens text
 * `prefix`: Optional prefix before lens content (e.g., "┃ ", ">> ")
-* **Provider order**: Providers display in the order defined in your config - `{ lsp = {...}, git = {...} }` shows as `lsp info • git info`
+* **Provider order**: Providers display in array order - first provider in array appears first in lens line
 
 **Nerd Font Icons**: When `use_nerdfonts = true`, built-in collectors display icons:
 - LSP collector: `X` (placeholder for your custom icon) before reference count
@@ -275,7 +279,8 @@ to disable an entire provider, set `enabled = false`:
 ```lua
 require("lensline").setup({
   providers = {
-    lsp = {
+    {
+      type = "lsp",
       enabled = false  -- disable entire lsp provider
     }
   }
@@ -287,7 +292,8 @@ to customize collectors within a provider:
 ```lua
 require("lensline").setup({
   providers = {
-    lsp = {
+    {
+      type = "lsp",
       collectors = {
         -- only enable custom collectors, disable built-in defaults
         function(lsp_context, function_info)

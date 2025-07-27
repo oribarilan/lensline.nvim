@@ -2,8 +2,9 @@ local M = {}
 
 M.defaults = {
     use_nerdfonts = true,   -- enable nerd font icons in built-in collectors
-    providers = {
-        lsp = {
+    providers = {  -- Array format: order determines display sequence
+        {
+            type = "lsp",
             enabled = true,     -- enable lsp provider
             silent_progress = true,  -- silently suppress LSP progress spam (e.g., Pyright "Finding references")
                                     -- only affects known spammy progress messages surfaced by noice.nvim/fidget.nvim
@@ -11,24 +12,21 @@ M.defaults = {
             performance = {
                 cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
             },
-            -- collectors: uses default_collectors from providers/lsp/init.lua unless overridden
-            -- to see defaults: require("lensline.providers.lsp").default_collectors
-            -- to customize: set providers.lsp.collectors = { your_functions }
-            -- see test_collector_config.lua for examples
+            -- collectors: array of functions, order determines display order
+            -- collectors = { function1, function2, function3 }
         },
-        diagnostics = {
+        {
+            type = "diagnostics",
             enabled = true,     -- enable diagnostics provider
-            -- collectors: uses default_collectors from providers/diagnostics/init.lua unless overridden
-            -- to see defaults: require("lensline.providers.diagnostics").default_collectors
+            -- collectors: array of functions, order determines display order
         },
-        git = {
+        {
+            type = "git",
             enabled = true,     -- enable git provider
             performance = {
                 cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
             },
-            -- collectors: uses default_collectors from providers/git/init.lua unless overridden
-            -- to see defaults: require("lensline.providers.git").default_collectors
-            -- to customize: set providers.git.collectors = { your_functions }
+            -- collectors: array of functions, order determines display order
         },
     },
     style = {
@@ -66,10 +64,18 @@ end
 -- LSP progress filtering setup
 function M.setup_lsp_handlers()
     local opts = M.get()
-    local lsp_config = opts.providers.lsp
+    
+    -- Find LSP config in array format
+    local lsp_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "lsp" then
+            lsp_config = provider_config
+            break
+        end
+    end
     
     -- Check if LSP silent_progress is enabled (default: true)
-    if lsp_config.silent_progress ~= false then
+    if lsp_config and lsp_config.silent_progress ~= false then
         local silent_progress = require("lensline.silent_progress")
         silent_progress.setup()
     end

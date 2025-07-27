@@ -4,26 +4,17 @@
 local utils = require("lensline.utils")
 local config = require("lensline.config")
 local debug = require("lensline.debug")
+local cache_service = require("lensline.cache")
 
 local M = {}
 
--- simple cache for git blame information
-local git_cache = {}
+-- create isolated cache instance for Git provider
+local git_cache = cache_service.create_cache("git", 300000) -- 5 minute default TTL
 
 -- helper function to create cache key
 local function get_cache_key(bufnr, line)
     local file_path = vim.api.nvim_buf_get_name(bufnr)
     return file_path .. ":" .. line
-end
-
--- helper function to check if cache entry is valid
-local function is_cache_valid(entry, timeout_ms)
-    if not entry then
-        return false
-    end
-    local current_time = vim.fn.reltime()
-    local elapsed_ms = vim.fn.reltimestr(vim.fn.reltime(entry.timestamp, current_time)) * 1000
-    return elapsed_ms < timeout_ms
 end
 
 -- auto-discover built-in collectors from collectors/ directory
@@ -70,20 +61,20 @@ function M.create_context(bufnr)
         bufnr = bufnr,
         cache_get = function(key)
             local opts = config.get()
-            local git_config = opts.providers.git
-            local cache_ttl = (git_config.performance and git_config.performance.cache_ttl) or 300000 -- 5 minutes default
-            
-            local entry = git_cache[key]
-            if is_cache_valid(entry, cache_ttl) then
-                return entry.data
+            -- Find git config in array format
+            local git_config = nil
+            for _, provider_config in ipairs(opts.providers) do
+                if provider_config.type == "git" then
+                    git_config = provider_config
+                    break
+                end
             end
-            return nil
+            local cache_ttl = (git_config and git_config.performance and git_config.performance.cache_ttl) or 300000 -- 5 minutes default
+            
+            return git_cache.get(key, cache_ttl)
         end,
-        cache_set = function(key, value, ttl) 
-            git_cache[key] = {
-                data = value,
-                timestamp = vim.fn.reltime()
-            }
+        cache_set = function(key, value, ttl)
+            git_cache.set(key, value, ttl)
         end,
         -- git-specific context only, no function discovery
     }
@@ -94,7 +85,15 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("Git", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local git_config = opts.providers.git
+    
+    -- Find git config in array format
+    local git_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "git" then
+            git_config = provider_config
+            break
+        end
+    end
     
     -- check if git provider is enabled
     local provider_enabled = git_config and git_config.enabled
@@ -155,21 +154,23 @@ end
 -- function to clear cache for a specific buffer when file is modified
 function M.clear_cache(bufnr)
     local file_path = vim.api.nvim_buf_get_name(bufnr)
-    local to_remove = {}
+    local pattern = "^" .. vim.pesc(file_path) .. ":"
     
-    for key, _ in pairs(git_cache) do
-        if key:match("^" .. vim.pesc(file_path) .. ":") then
-            table.insert(to_remove, key)
-        end
-    end
+    local cleared_count = git_cache.clear(pattern)
     
-    for _, key in ipairs(to_remove) do
-        git_cache[key] = nil
+    if cleared_count > 0 then
+        debug.log_context("Git", "cleared " .. cleared_count .. " cache entries for buffer " .. bufnr)
     end
-    
-    if #to_remove > 0 then
-        debug.log_context("Git", "cleared " .. #to_remove .. " cache entries for buffer " .. bufnr)
-    end
+end
+
+-- function to cleanup expired cache entries (memory management)
+function M.cleanup_cache()
+    return git_cache.cleanup()
+end
+
+-- function to get cache statistics (useful for debugging)
+function M.cache_stats()
+    return git_cache.stats()
 end
 
 return M

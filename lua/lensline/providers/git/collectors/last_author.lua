@@ -26,6 +26,24 @@ local function format_relative_time(timestamp)
     end
 end
 
+-- helper function to get current git user name
+local function get_current_git_user()
+    local handle = io.popen("git config user.name 2>/dev/null")
+    if not handle then
+        return nil
+    end
+    
+    local user_name = handle:read("*l")
+    handle:close()
+    
+    -- trim whitespace and return
+    if user_name and user_name ~= "" then
+        return user_name:match("^%s*(.-)%s*$")
+    end
+    
+    return nil
+end
+
 -- helper function to get git blame for a specific line
 local function get_git_blame(file_path, line_number)
     local cmd = string.format("git blame -L %d,%d --porcelain %s", line_number, line_number, vim.fn.shellescape(file_path))
@@ -119,7 +137,21 @@ return function(git_context, function_info)
         return nil, nil
     end
     
-    -- format the output
+    -- check if this is an uncommitted change
+    if blame_info.author == "Not Committed Yet" then
+        local current_user = get_current_git_user()
+        if current_user then
+            local result = current_user .. ", uncommitted"
+            -- don't cache uncommitted changes since they change frequently
+            return "%s", result
+        else
+            -- fallback if we can't get current user
+            local result = "uncommitted"
+            return "%s", result
+        end
+    end
+    
+    -- format the output for committed changes
     local author_name = blame_info.author
     -- simplify author name if it's an email
     if author_name:match("<.+>") then
@@ -138,7 +170,7 @@ return function(git_context, function_info)
     local relative_time = format_relative_time(blame_info.timestamp)
     local result = author_name .. ", " .. relative_time
     
-    -- cache the result
+    -- cache the result for committed changes
     git_context.cache_set(cache_key, result)
     
     return "%s", result

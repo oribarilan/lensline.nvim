@@ -4,8 +4,12 @@
 local utils = require("lensline.utils")
 local config = require("lensline.config")
 local debug = require("lensline.debug")
+local cache_service = require("lensline.cache")
 
 local M = {}
+
+-- create optional cache instance for Diagnostics provider (disabled by default since diagnostics are fast)
+local diagnostics_cache = nil
 
 -- auto-discover built-in collectors from collectors/ directory
 local function load_built_in_collectors()
@@ -46,15 +50,37 @@ M.default_collectors = {
 
 -- provider context creation (domain-specific only)
 function M.create_context(bufnr)
+    -- Initialize cache if enabled in config
+    local opts = config.get()
+    local diagnostics_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "diagnostics" then
+            diagnostics_config = provider_config
+            break
+        end
+    end
+    
+    -- Enable cache if explicitly requested in config
+    local cache_enabled = diagnostics_config and diagnostics_config.performance and diagnostics_config.performance.enable_cache
+    if cache_enabled and not diagnostics_cache then
+        local cache_ttl = (diagnostics_config.performance and diagnostics_config.performance.cache_ttl) or 5000 -- 5 second default
+        diagnostics_cache = cache_service.create_cache("diagnostics", cache_ttl)
+    end
+    
     return {
         diagnostics = vim.diagnostic.get(bufnr),
         bufnr = bufnr,
-        cache_get = function(key) 
-            -- diagnostics don't need much caching since they're already fast
+        cache_get = function(key)
+            if diagnostics_cache then
+                local cache_ttl = (diagnostics_config and diagnostics_config.performance and diagnostics_config.performance.cache_ttl) or 5000
+                return diagnostics_cache.get(key, cache_ttl)
+            end
             return nil
         end,
-        cache_set = function(key, value, ttl) 
-            -- no-op for now
+        cache_set = function(key, value, ttl)
+            if diagnostics_cache then
+                diagnostics_cache.set(key, value, ttl)
+            end
         end,
         -- diagnostics-specific context only, no function discovery
     }
@@ -65,7 +91,15 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     debug.log_context("Diagnostics", "collect_data_for_functions called for " .. #functions .. " functions")
     
     local opts = config.get()
-    local diagnostics_config = opts.providers.diagnostics
+    
+    -- Find diagnostics config in array format
+    local diagnostics_config = nil
+    for _, provider_config in ipairs(opts.providers) do
+        if provider_config.type == "diagnostics" then
+            diagnostics_config = provider_config
+            break
+        end
+    end
     
     -- check if diagnostics provider is enabled (defaults to true)
     local provider_enabled = true
@@ -113,6 +147,38 @@ function M.collect_data_for_functions(bufnr, functions, callback)
     
     debug.log_context("Diagnostics", "found diagnostics for " .. #lens_data .. " functions")
     callback(lens_data)
+end
+
+-- function to clear cache for a specific buffer when file is modified
+function M.clear_cache(bufnr)
+    if not diagnostics_cache then
+        return
+    end
+    
+    local file_path = vim.api.nvim_buf_get_name(bufnr)
+    local pattern = "^" .. vim.pesc(file_path) .. ":"
+    
+    local cleared_count = diagnostics_cache.clear(pattern)
+    
+    if cleared_count > 0 then
+        debug.log_context("Diagnostics", "cleared " .. cleared_count .. " cache entries for buffer " .. bufnr)
+    end
+end
+
+-- function to cleanup expired cache entries (memory management)
+function M.cleanup_cache()
+    if diagnostics_cache then
+        return diagnostics_cache.cleanup()
+    end
+    return 0
+end
+
+-- function to get cache statistics (useful for debugging)
+function M.cache_stats()
+    if diagnostics_cache then
+        return diagnostics_cache.stats()
+    end
+    return { name = "diagnostics", total_entries = 0, expired_entries = 0, valid_entries = 0, default_ttl = 0, enabled = false }
 end
 
 return M
