@@ -117,35 +117,10 @@ local function estimate_function_end(bufnr, start_line, debug)
   return end_line
 end
 
--- Helper function to get last author for a function synchronously
-local function get_function_last_author_sync(filename, git_root, func, debug, bufnr)
-  local function_start = func.line
-  local function_end = func.end_line
-  
-  -- If end_line is not provided, estimate it
-  if not function_end then
-    function_end = estimate_function_end(bufnr, function_start, debug)
-  end
-  
-  local lines_range = ("%d,%d"):format(function_start, function_end)
-  
-  debug.log_context("LastAuthor", "sync blame request for lines " .. lines_range)
-  
-  local blame_cmd = { "git", "-C", git_root, "blame", "--line-porcelain", "-L", lines_range, filename }
-  local blame_output = vim.fn.systemlist(blame_cmd)
-  
-  if vim.v.shell_error ~= 0 then
-    debug.log_context("LastAuthor", "git blame command failed: " .. vim.v.shell_error)
-    return nil
-  end
-  
-  return parse_blame_output(blame_output, debug)
-end
-
 -- Helper function to get last author for a function asynchronously
-local function get_function_last_author_async(filename, git_root, func, callback, debug, bufnr)
-  local function_start = func.line
-  local function_end = func.end_line
+local function get_function_last_author_async(filename, git_root, func_info, callback, debug, bufnr)
+  local function_start = func_info.line
+  local function_end = func_info.end_line
   
   -- If end_line is not provided, estimate it
   if not function_end then
@@ -181,7 +156,14 @@ local function get_function_last_author_async(filename, git_root, func, callback
       end
       
       local author_info = parse_blame_output(blame_output, debug)
-      callback(author_info)
+      if author_info then
+        callback({
+          line = func_info.line,
+          text = author_info
+        })
+      else
+        callback(nil)
+      end
     end)
   end)
   
@@ -208,23 +190,56 @@ local function get_function_last_author_async(filename, git_root, func, callback
   end)
 end
 
+-- Helper function to get last author for a function synchronously
+local function get_function_last_author_sync(filename, git_root, func_info, debug, bufnr)
+  local function_start = func_info.line
+  local function_end = func_info.end_line
+  
+  -- If end_line is not provided, estimate it
+  if not function_end then
+    function_end = estimate_function_end(bufnr, function_start, debug)
+  end
+  
+  local lines_range = ("%d,%d"):format(function_start, function_end)
+  
+  debug.log_context("LastAuthor", "sync blame request for lines " .. lines_range)
+  
+  local blame_cmd = { "git", "-C", git_root, "blame", "--line-porcelain", "-L", lines_range, filename }
+  local blame_output = vim.fn.systemlist(blame_cmd)
+  
+  if vim.v.shell_error ~= 0 then
+    debug.log_context("LastAuthor", "git blame command failed: " .. vim.v.shell_error)
+    return nil
+  end
+  
+  local author_info = parse_blame_output(blame_output, debug)
+  if author_info then
+    return {
+      line = func_info.line,
+      text = author_info
+    }
+  end
+  
+  return nil
+end
+
 -- Last Author Provider
 -- Shows the most recent Git author and date for functions/methods
 return {
   name = "last_author",
   event = { "BufRead", "BufWritePost" },
   debounce = 500,
-  handler = function(bufnr, start_line, end_line, callback)
+  handler = function(bufnr, func_info, callback)
     local debug = require("lensline.debug")
     
-    debug.log_context("LastAuthor", "handler called for buffer " .. bufnr .. " range " .. start_line .. "-" .. end_line)
+    debug.log_context("LastAuthor", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Get the file path and validate it
     local filename = vim.api.nvim_buf_get_name(bufnr)
     if filename == "" or not vim.loop.fs_stat(filename) then
       debug.log_context("LastAuthor", "invalid or unsaved file: " .. (filename or "empty"))
-      if callback then callback({}) end
-      return {}
+      if callback then callback(nil) end
+      return nil
     end
     
     debug.log_context("LastAuthor", "processing file: " .. filename)
@@ -237,81 +252,23 @@ return {
     
     if vim.v.shell_error ~= 0 or not git_root or git_root == "" then
       debug.log_context("LastAuthor", "not in git repository or git command failed")
-      if callback then callback({}) end
-      return {}
+      if callback then callback(nil) end
+      return nil
     end
     
     debug.log_context("LastAuthor", "git root: " .. git_root)
     
-    -- Find functions in the range using utility function
-    local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
-    debug.log_context("LastAuthor", "found " .. (functions and #functions or 0) .. " functions")
-    
-    if not functions or #functions == 0 then
-      debug.log_context("LastAuthor", "no functions found in range")
-      if callback then callback({}) end
-      return {}
-    end
-    
-    local lens_items = {}
-    local pending_requests = #functions
-    
-    -- If no callback provided, fall back to synchronous mode (for compatibility)
+    -- If no callback provided, run synchronously
     if not callback then
       debug.log_context("LastAuthor", "running in synchronous mode")
-      for _, func in ipairs(functions) do
-        local author_info = get_function_last_author_sync(filename, git_root, func, debug, bufnr)
-        if author_info then
-          table.insert(lens_items, {
-            line = func.line,
-            text = author_info
-          })
-        end
-      end
-      return lens_items
+      return get_function_last_author_sync(filename, git_root, func_info, debug, bufnr)
     end
     
-    -- Async mode with callback
-    debug.log_context("LastAuthor", "running in async mode for " .. #functions .. " functions")
-    local completed = false
+    -- Run asynchronously
+    debug.log_context("LastAuthor", "running in async mode for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
+    get_function_last_author_async(filename, git_root, func_info, callback, debug, bufnr)
     
-    -- Timeout safety net
-    vim.defer_fn(function()
-      if not completed then
-        completed = true
-        debug.log_context("LastAuthor", "async requests timed out after 5 seconds, calling callback with " .. #lens_items .. " items")
-        callback(lens_items)
-      end
-    end, 5000)
-    
-    for _, func in ipairs(functions) do
-      debug.log_context("LastAuthor", "processing function '" .. (func.name or "unknown") .. "' at line " .. func.line)
-      
-      get_function_last_author_async(filename, git_root, func, function(author_info)
-        if completed then
-          return -- Already timed out
-        end
-        
-        if author_info then
-          debug.log_context("LastAuthor", "got author info for " .. (func.name or "unknown") .. ": " .. author_info)
-          table.insert(lens_items, {
-            line = func.line,
-            text = author_info
-          })
-        else
-          debug.log_context("LastAuthor", "no author info for " .. (func.name or "unknown"))
-        end
-        
-        pending_requests = pending_requests - 1
-        if pending_requests == 0 and not completed then
-          completed = true
-          debug.log_context("LastAuthor", "all async requests completed, calling callback with " .. #lens_items .. " items")
-          callback(lens_items)
-        end
-      end, debug, bufnr)
-    end
-    
-    -- Return empty initially for async mode
-    return {}
+    -- Return nil for async mode (result will come via callback)
+    return nil
   end
 }

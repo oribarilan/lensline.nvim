@@ -123,38 +123,71 @@ function M.execute_provider(bufnr, provider_module, provider_config)
     return
   end
   
-  -- Always process the entire file for better performance
+  -- Find functions once for all providers
   local start_line = 1
   local end_line = vim.api.nvim_buf_line_count(bufnr)
-  debug.log_context("Providers", "using full buffer range: " .. start_line .. "-" .. end_line)
+  local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
   
-  -- Execute provider handler with async callback support
-  debug.log_context("Providers", "calling provider handler for " .. provider_module.name)
+  debug.log_context("Providers", "found " .. (functions and #functions or 0) .. " functions for provider " .. provider_module.name)
   
-  local function render_callback(lens_items)
-    if lens_items and #lens_items > 0 then
-      debug.log_context("Providers", "provider " .. provider_module.name .. " async callback returned " .. #lens_items .. " lens items")
+  if not functions or #functions == 0 then
+    debug.log_context("Providers", "no functions found, skipping provider " .. provider_module.name)
+    return
+  end
+  
+  local lens_items = {}
+  local pending_functions = #functions
+  local completed = false
+  
+  -- Timeout safety net for async providers
+  local timeout_timer = vim.loop.new_timer()
+  timeout_timer:start(5000, 0, function()
+    timeout_timer:close()
+    if not completed then
+      completed = true
+      debug.log_context("Providers", "provider " .. provider_module.name .. " timed out, rendering " .. #lens_items .. " items")
+      vim.schedule(function()
+        local renderer = require("lensline.renderer")
+        renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+      end)
+    end
+  end)
+  
+  local function handle_function_result(lens_item)
+    if completed then return end
+    
+    if lens_item then
+      table.insert(lens_items, lens_item)
+      debug.log_context("Providers", "provider " .. provider_module.name .. " returned lens item for line " .. lens_item.line)
+    end
+    
+    pending_functions = pending_functions - 1
+    if pending_functions == 0 and not completed then
+      completed = true
+      timeout_timer:close()
+      debug.log_context("Providers", "provider " .. provider_module.name .. " completed all functions, rendering " .. #lens_items .. " items")
       local renderer = require("lensline.renderer")
       renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
-    else
-      debug.log_context("Providers", "provider " .. provider_module.name .. " async callback returned no items")
     end
   end
   
-  local success, lens_items = pcall(provider_module.handler, bufnr, start_line, end_line, render_callback)
-  
-  if success then
-    -- For sync providers, lens_items will be returned immediately
-    if lens_items and #lens_items > 0 then
-      debug.log_context("Providers", "provider " .. provider_module.name .. " returned " .. #lens_items .. " lens items synchronously")
-      local renderer = require("lensline.renderer")
-      renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+  -- Call provider once per function
+  for _, func_info in ipairs(functions) do
+    debug.log_context("Providers", "calling provider " .. provider_module.name .. " for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
+    
+    local success, result = pcall(provider_module.handler, bufnr, func_info, handle_function_result)
+    
+    if success then
+      -- If provider returns result synchronously, handle it immediately
+      if result then
+        handle_function_result(result)
+      end
+      -- If result is nil, provider will call handle_function_result asynchronously
     else
-      debug.log_context("Providers", "provider " .. provider_module.name .. " will provide results asynchronously")
+      debug.log_context("Providers", "provider " .. provider_module.name .. " failed for function at line " .. func_info.line .. ": " .. tostring(result), "ERROR")
+      -- Still count this as processed to avoid hanging
+      handle_function_result(nil)
     end
-  else
-    debug.log_context("Providers", "provider " .. provider_module.name .. " failed: " .. tostring(lens_items), "ERROR")
-    vim.notify("Lensline: Provider " .. provider_module.name .. " failed: " .. tostring(lens_items), vim.log.levels.ERROR)
   end
 end
 
@@ -219,12 +252,26 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
     return {}
   end
   
-  -- Always process the entire file
+  -- Find functions once
   local start_line = 1
   local end_line = vim.api.nvim_buf_line_count(bufnr)
+  local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
   
-  -- For sync execution, don't pass callback and expect immediate return
-  return provider_module.handler(bufnr, start_line, end_line) or {}
+  if not functions or #functions == 0 then
+    return {}
+  end
+  
+  local lens_items = {}
+  
+  -- Call provider for each function synchronously
+  for _, func_info in ipairs(functions) do
+    local success, result = pcall(provider_module.handler, bufnr, func_info)
+    if success and result then
+      table.insert(lens_items, result)
+    end
+  end
+  
+  return lens_items
 end
 
 return M
