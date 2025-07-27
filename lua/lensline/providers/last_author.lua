@@ -66,10 +66,67 @@ local function parse_blame_output(blame_output, debug)
   end
 end
 
+-- Helper function to estimate function end line when not provided
+local function estimate_function_end(bufnr, start_line, debug)
+  local total_lines = vim.api.nvim_buf_line_count(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, math.min(start_line + 50, total_lines), false)
+  
+  local end_line = start_line
+  local indent_level = nil
+  
+  for i, line in ipairs(lines) do
+    local current_line = start_line + i - 1
+    
+    -- Skip empty lines
+    if line:match("^%s*$") then
+      goto continue
+    end
+    
+    -- Get indentation of current line
+    local current_indent = #line:match("^%s*")
+    
+    -- Set base indentation from first non-empty line (function declaration)
+    if indent_level == nil then
+      indent_level = current_indent
+      goto continue
+    end
+    
+    -- If we find a line with same or less indentation than function declaration, it's likely the end
+    if current_indent <= indent_level and i > 1 then
+      -- Make sure it's not just a continuation of the function signature
+      if not line:match("^%s*[%w_(),:%s]*:?%s*$") then
+        end_line = current_line - 1
+        break
+      end
+    end
+    
+    -- Update end_line to include function body
+    if current_indent > indent_level then
+      end_line = current_line
+    end
+    
+    ::continue::
+  end
+  
+  -- Add a safety margin if we reached the scan limit
+  if end_line == start_line + #lines - 1 and end_line < total_lines then
+    end_line = math.min(start_line + 20, total_lines)  -- Conservative default
+  end
+  
+  debug.log_context("LastAuthor", "estimated function end for line " .. start_line .. ": " .. end_line)
+  return end_line
+end
+
 -- Helper function to get last author for a function synchronously
-local function get_function_last_author_sync(filename, git_root, func, debug)
+local function get_function_last_author_sync(filename, git_root, func, debug, bufnr)
   local function_start = func.line
-  local function_end = func.end_line or func.line
+  local function_end = func.end_line
+  
+  -- If end_line is not provided, estimate it
+  if not function_end then
+    function_end = estimate_function_end(bufnr, function_start, debug)
+  end
+  
   local lines_range = ("%d,%d"):format(function_start, function_end)
   
   debug.log_context("LastAuthor", "sync blame request for lines " .. lines_range)
@@ -86,9 +143,15 @@ local function get_function_last_author_sync(filename, git_root, func, debug)
 end
 
 -- Helper function to get last author for a function asynchronously
-local function get_function_last_author_async(filename, git_root, func, callback, debug)
+local function get_function_last_author_async(filename, git_root, func, callback, debug, bufnr)
   local function_start = func.line
-  local function_end = func.end_line or func.line
+  local function_end = func.end_line
+  
+  -- If end_line is not provided, estimate it
+  if not function_end then
+    function_end = estimate_function_end(bufnr, function_start, debug)
+  end
+  
   local lines_range = ("%d,%d"):format(function_start, function_end)
   
   debug.log_context("LastAuthor", "async blame request for lines " .. lines_range)
@@ -197,7 +260,7 @@ return {
     if not callback then
       debug.log_context("LastAuthor", "running in synchronous mode")
       for _, func in ipairs(functions) do
-        local author_info = get_function_last_author_sync(filename, git_root, func, debug)
+        local author_info = get_function_last_author_sync(filename, git_root, func, debug, bufnr)
         if author_info then
           table.insert(lens_items, {
             line = func.line,
@@ -245,7 +308,7 @@ return {
           debug.log_context("LastAuthor", "all async requests completed, calling callback with " .. #lens_items .. " items")
           callback(lens_items)
         end
-      end, debug)
+      end, debug, bufnr)
     end
     
     -- Return empty initially for async mode

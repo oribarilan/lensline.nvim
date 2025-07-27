@@ -85,22 +85,26 @@ function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
     
     if symbol_kinds[symbol.kind] then
       local line_num
+      local end_line_num
       local character
       
       -- Handle both DocumentSymbol and SymbolInformation formats
       if symbol.range then
         -- DocumentSymbol format
         line_num = symbol.range.start.line + 1 -- Convert to 1-indexed
+        end_line_num = symbol.range["end"].line + 1 -- Convert to 1-indexed
         character = symbol.range.start.character
       elseif symbol.location then
         -- SymbolInformation format
         line_num = symbol.location.range.start.line + 1
+        end_line_num = symbol.location.range["end"].line + 1
         character = symbol.location.range.start.character
       end
       
       if line_num and line_num >= start_line and line_num <= end_line then
         table.insert(functions, {
           line = line_num,
+          end_line = end_line_num,
           character = character,
           name = symbol.name,
           kind = symbol.kind
