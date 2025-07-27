@@ -1,5 +1,32 @@
 local utils = require("lensline.utils")
 
+-- Helper function to format time as natural relative text (1h ago, 2d ago, etc.)
+local function format_relative_time(timestamp)
+  local now = os.time()
+  local diff = now - timestamp
+  
+  -- Less than 1 hour -> 1h ago
+  if diff < 3600 then
+    return "1h ago"
+  end
+  
+  -- 1-23 hours -> Xh ago (rounded)
+  if diff < 86400 then -- 24 hours
+    local hours = math.floor(diff / 3600)
+    return hours .. "h ago"
+  end
+  
+  -- 1-364 days -> Xd ago (rounded)
+  if diff < 31536000 then -- 365 days
+    local days = math.floor(diff / 86400)
+    return days .. "d ago"
+  end
+  
+  -- 1+ years -> Xy ago (rounded)
+  local years = math.floor(diff / 31536000)
+  return years .. "y ago"
+end
+
 -- Helper function to parse git blame --line-porcelain output to find the latest author
 local function parse_blame_output(blame_output, debug)
   local latest_author, latest_time = nil, 0
@@ -29,8 +56,8 @@ local function parse_blame_output(blame_output, debug)
   end
   
   if latest_author and latest_time > 0 then
-    local date = os.date("%Y-%m-%d", latest_time)
-    local result = latest_author .. " (" .. date .. ")"
+    local relative_time = format_relative_time(latest_time)
+    local result = latest_author .. " (" .. relative_time .. ")"
     debug.log_context("LastAuthor", "final result: " .. result)
     return "󰊢 " .. result
   else
