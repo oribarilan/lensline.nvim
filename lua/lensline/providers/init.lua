@@ -32,15 +32,7 @@ function M.get_enabled_providers()
     return enabled
 end
 
--- legacy function - kept temporarily for any old references
--- the new architecture uses collect_lens_data_with_functions
-function M.collect_lens_data(bufnr, callback)
-    -- fallback to old behavior if needed, but shouldn't be called
-    callback({})
-end
-
--- new function that coordinates with infrastructure-discovered functions
--- this replaces the old collect_lens_data for the new architecture
+-- coordinates with infrastructure-discovered functions for provider collection
 function M.collect_lens_data_with_functions(bufnr, functions, callback)
     local opts = config.get()
     local all_lens_data = {}
