@@ -41,14 +41,14 @@ function M.setup_core_autocommands()
     end,
   })
   
-  -- Window events for visibility optimization
-  vim.api.nvim_create_autocmd({ "WinScrolled", "WinEnter" }, {
+  -- Window events for initial setup
+  vim.api.nvim_create_autocmd("WinEnter", {
     group = autocmd_group,
     callback = function(event)
-      -- Trigger refresh for visible-only providers when scrolling
       local bufnr = vim.api.nvim_get_current_buf()
       if utils.is_valid_buffer(bufnr) then
-        M.refresh_buffer_visible_providers(bufnr)
+        -- Only trigger on window enter, not scroll
+        M.refresh_current_buffer()
       end
     end,
   })
@@ -56,15 +56,6 @@ function M.setup_core_autocommands()
   debug.log_context("Core", "core autocommands initialized")
 end
 
-function M.refresh_buffer_visible_providers(bufnr)
-  local enabled_providers = providers.get_enabled_providers()
-  
-  for name, provider_info in pairs(enabled_providers) do
-    if provider_info.module.only_visible then
-      providers.trigger_provider(bufnr, name, provider_info.module, provider_info.config)
-    end
-  end
-end
 
 function M.refresh_current_buffer()
   local bufnr = vim.api.nvim_get_current_buf()

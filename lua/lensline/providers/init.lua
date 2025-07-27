@@ -122,40 +122,35 @@ function M.execute_provider(bufnr, provider_module, provider_config)
     return
   end
   
-  local start_line, end_line
+  -- Always process the entire file for better performance
+  local start_line = 1
+  local end_line = vim.api.nvim_buf_line_count(bufnr)
+  debug.log_context("Providers", "using full buffer range: " .. start_line .. "-" .. end_line)
   
-  -- Calculate visible range if provider requests it
-  if provider_module.only_visible then
-    local win = vim.fn.bufwinid(bufnr)
-    if win == -1 then
-      debug.log_context("Providers", "buffer " .. bufnr .. " not visible in any window")
-      return -- Buffer not visible
+  -- Execute provider handler with async callback support
+  debug.log_context("Providers", "calling provider handler for " .. provider_module.name)
+  
+  local function render_callback(lens_items)
+    if lens_items and #lens_items > 0 then
+      debug.log_context("Providers", "provider " .. provider_module.name .. " async callback returned " .. #lens_items .. " lens items")
+      local renderer = require("lensline.renderer")
+      renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+    else
+      debug.log_context("Providers", "provider " .. provider_module.name .. " async callback returned no items")
     end
-    
-    start_line = vim.fn.line("w0", win)
-    end_line = vim.fn.line("w$", win)
-    
-    -- Apply padding
-    local padding = provider_module.visible_padding or 50
-    start_line = math.max(1, start_line - padding)
-    end_line = end_line + padding
-    
-    debug.log_context("Providers", "using visible range: " .. start_line .. "-" .. end_line)
-  else
-    start_line = 1
-    end_line = vim.api.nvim_buf_line_count(bufnr)
-    debug.log_context("Providers", "using full buffer range: " .. start_line .. "-" .. end_line)
   end
   
-  -- Execute provider handler
-  debug.log_context("Providers", "calling provider handler for " .. provider_module.name)
-  local success, lens_items = pcall(provider_module.handler, bufnr, start_line, end_line)
+  local success, lens_items = pcall(provider_module.handler, bufnr, start_line, end_line, render_callback)
   
-  if success and lens_items then
-    debug.log_context("Providers", "provider " .. provider_module.name .. " returned " .. #lens_items .. " lens items")
-    -- Render the results
-    local renderer = require("lensline.renderer")
-    renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+  if success then
+    -- For sync providers, lens_items will be returned immediately
+    if lens_items and #lens_items > 0 then
+      debug.log_context("Providers", "provider " .. provider_module.name .. " returned " .. #lens_items .. " lens items synchronously")
+      local renderer = require("lensline.renderer")
+      renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
+    else
+      debug.log_context("Providers", "provider " .. provider_module.name .. " will provide results asynchronously")
+    end
   else
     debug.log_context("Providers", "provider " .. provider_module.name .. " failed: " .. tostring(lens_items), "ERROR")
     vim.notify("Lensline: Provider " .. provider_module.name .. " failed: " .. tostring(lens_items), vim.log.levels.ERROR)
@@ -223,25 +218,11 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
     return {}
   end
   
-  local start_line, end_line
+  -- Always process the entire file
+  local start_line = 1
+  local end_line = vim.api.nvim_buf_line_count(bufnr)
   
-  if provider_module.only_visible then
-    local win = vim.fn.bufwinid(bufnr)
-    if win == -1 then
-      return {}
-    end
-    
-    start_line = vim.fn.line("w0", win)
-    end_line = vim.fn.line("w$", win)
-    
-    local padding = provider_module.visible_padding or 50
-    start_line = math.max(1, start_line - padding)
-    end_line = end_line + padding
-  else
-    start_line = 1
-    end_line = vim.api.nvim_buf_line_count(bufnr)
-  end
-  
+  -- For sync execution, don't pass callback and expect immediate return
   return provider_module.handler(bufnr, start_line, end_line) or {}
 end
 
