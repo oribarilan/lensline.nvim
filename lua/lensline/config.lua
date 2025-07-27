@@ -9,23 +9,22 @@ M.defaults = {
             silent_progress = true,  -- silently suppress LSP progress spam (e.g., Pyright "Finding references")
                                     -- only affects known spammy progress messages surfaced by noice.nvim/fidget.nvim
                                     -- has no effect on other LSPs or other Pyright events (diagnostics, hover, etc.)
-            performance = {
-                cache_ttl = 30000,   -- cache time-to-live in milliseconds (30 seconds)
-            },
+            -- Event-based refresh: no TTL needed, cache invalidated on text changes
+            debounce = 250,     -- debounce delay in ms for LSP refresh events
             -- collectors: array of functions, order determines display order
             -- collectors = { function1, function2, function3 }
         },
         {
             type = "diagnostics",
             enabled = true,     -- enable diagnostics provider
+            -- Event-based refresh: no debounce needed, driven by LSP diagnostics events
             -- collectors: array of functions, order determines display order
         },
         {
             type = "git",
             enabled = true,     -- enable git provider
-            performance = {
-                cache_ttl = 300000,  -- cache time-to-live in milliseconds (5 minutes)
-            },
+            -- Event-based refresh: no TTL needed, cache invalidated on file write/read
+            debounce = 500,     -- debounce delay in ms for git refresh events
             -- collectors: array of functions, order determines display order
         },
     },
@@ -35,8 +34,9 @@ M.defaults = {
         prefix = "┃ ",
     },
     refresh = {
-        events = { "BufWritePost", "LspAttach", "DiagnosticChanged", "BufEnter" },
-        debounce_ms = 150,   -- global debounce for all providers
+        -- Event-based refresh: providers handle their own events
+        -- Legacy events removed - providers register their own autocommands
+        -- No global debounce - each provider manages its own debouncing
     },
     debug_mode = false,
 }

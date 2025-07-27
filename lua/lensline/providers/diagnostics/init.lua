@@ -5,11 +5,12 @@ local utils = require("lensline.utils")
 local config = require("lensline.config")
 local debug = require("lensline.debug")
 local cache_service = require("lensline.cache")
+local debounce = require("lensline.debounce")
 
-local M = {}
+local M = { id = "diagnostics" }
 
--- create optional cache instance for Diagnostics provider (disabled by default since diagnostics are fast)
-local diagnostics_cache = nil
+-- Use new cache interface
+local cache = cache_service.cache
 
 -- auto-discover built-in collectors from collectors/ directory
 local function load_built_in_collectors()
@@ -50,37 +51,19 @@ M.default_collectors = {
 
 -- provider context creation (domain-specific only)
 function M.create_context(bufnr)
-    -- Initialize cache if enabled in config
-    local opts = config.get()
-    local diagnostics_config = nil
-    for _, provider_config in ipairs(opts.providers) do
-        if provider_config.type == "diagnostics" then
-            diagnostics_config = provider_config
-            break
-        end
-    end
-    
-    -- Enable cache if explicitly requested in config
-    local cache_enabled = diagnostics_config and diagnostics_config.performance and diagnostics_config.performance.enable_cache
-    if cache_enabled and not diagnostics_cache then
-        local cache_ttl = (diagnostics_config.performance and diagnostics_config.performance.cache_ttl) or 5000 -- 5 second default
-        diagnostics_cache = cache_service.create_cache("diagnostics", cache_ttl)
-    end
-    
     return {
         diagnostics = vim.diagnostic.get(bufnr),
         bufnr = bufnr,
         cache_get = function(key)
-            if diagnostics_cache then
-                local cache_ttl = (diagnostics_config and diagnostics_config.performance and diagnostics_config.performance.cache_ttl) or 5000
-                return diagnostics_cache.get(key, cache_ttl)
+            local diag_data = cache.get("diagnostics", bufnr, "changedtick")
+            if diag_data then
+                return diag_data.diagnostics
             end
             return nil
         end,
-        cache_set = function(key, value, ttl)
-            if diagnostics_cache then
-                diagnostics_cache.set(key, value, ttl)
-            end
+        cache_set = function(key, value)
+            -- Individual cache entries are not used in new system
+            debug.log_context("Diagnostics", "Individual cache_set is deprecated in event-based system", "WARN")
         end,
         -- diagnostics-specific context only, no function discovery
     }
@@ -151,34 +134,104 @@ end
 
 -- function to clear cache for a specific buffer when file is modified
 function M.clear_cache(bufnr)
-    if not diagnostics_cache then
-        return
-    end
-    
-    local file_path = vim.api.nvim_buf_get_name(bufnr)
-    local pattern = "^" .. vim.pesc(file_path) .. ":"
-    
-    local cleared_count = diagnostics_cache.clear(pattern)
+    local cleared_count = cache.invalidate("diagnostics", bufnr)
     
     if cleared_count > 0 then
         debug.log_context("Diagnostics", "cleared " .. cleared_count .. " cache entries for buffer " .. bufnr)
     end
 end
 
--- function to cleanup expired cache entries (memory management)
+-- function to cleanup expired cache entries (no-op in event-based system)
 function M.cleanup_cache()
-    if diagnostics_cache then
-        return diagnostics_cache.cleanup()
-    end
+    debug.log_context("Diagnostics", "cleanup called - no expired entries in event-based system")
     return 0
 end
 
 -- function to get cache statistics (useful for debugging)
 function M.cache_stats()
-    if diagnostics_cache then
-        return diagnostics_cache.stats()
+    return {
+        name = "diagnostics",
+        provider = "event-based",
+        ttl = "none"
+    }
+end
+
+-- Event-based refresh system setup (called once during plugin initialization)
+M.setup = function(config_opts)
+    debug.log_context("Diagnostics", "setting up event-based refresh system")
+    
+    -- Set up LSP diagnostic handler to trigger refresh on diagnostics updates
+    local original_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
+    
+    vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
+        -- Call original handler first
+        if original_handler then
+            original_handler(err, result, ctx, config)
+        else
+            vim.lsp.diagnostic.on_publish_diagnostics(err, result, ctx, config)
+        end
+        
+        -- Trigger our refresh (no debounce needed for push-based diagnostics)
+        if result and result.uri then
+            local bufnr = vim.uri_to_bufnr(result.uri)
+            if vim.api.nvim_buf_is_valid(bufnr) then
+                M.refresh(bufnr, config_opts)
+            end
+        end
     end
-    return { name = "diagnostics", total_entries = 0, expired_entries = 0, valid_entries = 0, default_ttl = 0, enabled = false }
+    
+    debug.log_context("Diagnostics", "diagnostics provider event-based refresh system initialized")
+end
+
+-- Event-based refresh method (called when diagnostics data changes)
+M.refresh = function(bufnr, config_opts)
+    if not utils.is_valid_buffer(bufnr) then
+        return
+    end
+    
+    debug.log_context("Diagnostics", string.format("refreshing diagnostics data for buffer %s", bufnr))
+    
+    -- No debounce needed for diagnostics as they are push-based from LSP
+    -- Get current changedtick to use as cache key
+    local changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
+    
+    -- Invalidate old cache
+    cache.invalidate("diagnostics", bufnr)
+    
+    -- Get fresh diagnostics data
+    local diagnostics_data = {
+        changedtick = changedtick,
+        diagnostics = vim.diagnostic.get(bufnr),
+        timestamp = vim.fn.reltime()
+    }
+    
+    -- Cache the new diagnostics data using the "changedtick" key as per design doc
+    cache.set("diagnostics", bufnr, "changedtick", diagnostics_data)
+    
+    debug.log_context("Diagnostics", string.format("cached new diagnostics data for buffer %s, changedtick %s", bufnr, changedtick))
+    
+    -- Note: Don't trigger immediate lens refresh - the delayed renderer will handle it
+    -- This maintains consistency with other providers and prevents multiple rapid refreshes
+end
+
+-- Update the context creation to use new cache interface
+function M.create_context(bufnr)
+    return {
+        diagnostics = vim.diagnostic.get(bufnr),
+        bufnr = bufnr,
+        cache_get = function(key)
+            local diag_data = cache.get("diagnostics", bufnr, "changedtick")
+            if diag_data then
+                return diag_data.diagnostics
+            end
+            return nil
+        end,
+        cache_set = function(key, value)
+            -- Individual cache entries are not used in new system
+            -- All diagnostics data is stored under "changedtick" key
+            debug.log_context("Diagnostics", "Individual cache_set is deprecated in event-based system", "WARN")
+        end,
+    }
 end
 
 return M
