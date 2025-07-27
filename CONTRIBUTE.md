@@ -15,23 +15,12 @@ return {
   event = 'BufReadPre',
   config = function()
     require("lensline").setup({
-      debug_mode = true,  -- enable debug logging
+      debug_mode = true,  -- enable debug logging and LenslineDebug command
       providers = {
         { name = "ref_count", enabled = true },
         { name = "last_author", enabled = true },
       }
     })
-    
-    -- Add debug command for easy access to logs
-    vim.api.nvim_create_user_command('LenslineDebug', function()
-      local debug = require('lensline.debug')
-      local debug_file = debug.get_debug_file()
-      if debug_file and vim.loop.fs_stat(debug_file) then
-        vim.cmd('edit ' .. debug_file)
-      else
-        print('No debug file found. Enable debug_mode in your config.')
-      end
-    end, {})
   end,
 }
 ```
