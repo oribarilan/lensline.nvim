@@ -26,29 +26,48 @@ function M.get_lsp_clients(bufnr)
     end
 end
 
+-- Check if any LSP client supports a specific method for the buffer
+function M.has_lsp_capability(bufnr, method)
+    local clients = M.get_lsp_clients(bufnr)
+    if not clients or #clients == 0 then
+        return false
+    end
+    
+    for _, client in ipairs(clients) do
+        -- Check if client supports the method
+        if client.server_capabilities then
+            -- Only check the methods we actually use in this plugin
+            local capability_map = {
+                ["textDocument/references"] = "referencesProvider",
+                ["textDocument/documentSymbol"] = "documentSymbolProvider",
+            }
+            
+            local capability_key = capability_map[method]
+            if capability_key and client.server_capabilities[capability_key] then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
 
--- Language-agnostic function discovery using LSP document symbols
+
+-- LSP-only function discovery using document symbols
 function M.find_functions_in_range(bufnr, start_line, end_line)
-  -- First try LSP document symbols (most reliable)
-  local lsp_functions = M.find_functions_via_lsp(bufnr, start_line, end_line)
-  if #lsp_functions > 0 then
-    return lsp_functions
-  end
-  
-  -- Fallback to treesitter with language-agnostic queries
-  local ts_functions = M.find_functions_via_treesitter(bufnr, start_line, end_line)
-  if #ts_functions > 0 then
-    return ts_functions
-  end
-  
-  -- Final fallback to regex patterns
-  return M.find_functions_generic(bufnr, start_line, end_line)
+  -- Only use LSP document symbols - no fallbacks
+  return M.find_functions_via_lsp(bufnr, start_line, end_line)
 end
 
 -- Use LSP document symbols to find functions (most reliable approach)
 function M.find_functions_via_lsp(bufnr, start_line, end_line)
   local clients = M.get_lsp_clients(bufnr)
   if not clients or #clients == 0 then
+    return {}
+  end
+  
+  -- Check if any LSP client supports document symbols
+  if not M.has_lsp_capability(bufnr, "textDocument/documentSymbol") then
     return {}
   end
   

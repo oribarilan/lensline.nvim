@@ -40,6 +40,13 @@ return {
       return nil
     end
 
+    -- Check if any LSP client supports references
+    if not utils.has_lsp_capability(bufnr, "textDocument/references") then
+      debug.log_context("LSP", "no LSP client supports textDocument/references")
+      if callback then callback(nil) end
+      return nil
+    end
+
     local char_pos = func_info.character or 0
     
     -- If we have a function name, try to find its exact position in the line
