@@ -88,9 +88,11 @@ return {
       debug.log_context("LSP", "total references for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line .. ": " .. ref_count)
       
       -- Return lens item
+      local opts = config.get()
+      local icon = opts.style.use_nerdfont and "󰌹 " or ""
       return {
         line = func_info.line,
-        text = "󰌹 " .. ref_count
+        text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
       }
     end
     
@@ -109,9 +111,11 @@ return {
       end
       
       -- Create and return lens item via callback
+      local opts = config.get()
+      local icon = opts.style.use_nerdfont and "󰌹 " or ""
       callback({
         line = func_info.line,
-        text = "󰌹 " .. ref_count
+        text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
       })
     end)
     

@@ -7,10 +7,10 @@ local function get_diagnostic_icons()
     local opts = config.get()
     
     return {
-        [vim.diagnostic.severity.ERROR] = opts.use_nerdfonts and "" or "E",
-        [vim.diagnostic.severity.WARN] = opts.use_nerdfonts and "" or "W",
-        [vim.diagnostic.severity.INFO] = opts.use_nerdfonts and "" or "I",
-        [vim.diagnostic.severity.HINT] = opts.use_nerdfonts and "" or "H",
+        [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
+        [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
+        [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
+        [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
     }
 end
 
