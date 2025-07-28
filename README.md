@@ -5,11 +5,14 @@
 
 [![Neovim](https://img.shields.io/badge/Neovim%200.8+-green.svg?style=for-the-badge&logo=neovim)](https://neovim.io)
 <p>
+<a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
+    <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
+</a>
 <a href="https://github.com/LazyVim/LazyVim/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/oribarilan/lensline.nvim?style=for-the-badge&logo=starship&color=ee999f&logoColor=D9E0EE&labelColor=302D41" />
+    <img alt="License" src="https://img.shields.io/github/license/oribarilan/lensline.nvim?style=for-the-badge&logo=googledocs&color=ee999f&logoColor=D9E0EE&labelColor=302D41" />
 </a>
 <a href="https://github.com/oribarilan/lensline.nvim">
-    <img alt="Repo Size" src="https://img.shields.io/github/repo-size/oribarilan/lensline.nvim?color=%23DDB6F2&label=SIZE&logo=codesandbox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41"/>
+    <img alt="Repo Size" src="https://img.shields.io/github/repo-size/oribarilan/lensline.nvim?color=%23DDB6F2&label=SIZE&logo=hackthebox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41"/>
 </a>
 </p>
 
@@ -33,6 +36,17 @@ A lightweight plugin that displays fully customizeable contextual information ab
 
 ## Install
 It is suggested to either use the latest release tag or the release branch 0.1.x. (which will contain the latest matching version).
+
+<a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
+    <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
+</a>
+
+or
+
+<a href="https://github.com/<user>/<repo>/actions">
+  <img alt="Branch 0.1.x"
+       src="https://img.shields.io/github/check-runs/<user>/<repo>/0.1.x?style=for-the-badge&logo=github&logoColor=D9E0EE&color=C9CBFF&labelColor=302D41" />
+</a>
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
