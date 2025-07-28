@@ -9,6 +9,11 @@ M.defaults = {
       quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
     {
+      name = "diag_summary",
+      enabled = false,    -- disabled by default - enable explicitly to use
+      min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
+    },
+    {
       name = "last_author",
       enabled = true,    -- disable by default (git operations can be slow)
     },

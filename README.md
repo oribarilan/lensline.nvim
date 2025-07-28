@@ -37,16 +37,26 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
       providers = {  -- Array format: order determines display sequence
         {
           name = "ref_count",
-          enabled = true,         -- show LSP reference counts
-          quiet_lsp = true,       -- suppress noisy LSP progress messages (default: true)
+          enabled = true,     -- enable reference count provider
+          quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
+        },
+        {
+          name = "diag_summary",
+          enabled = false,    -- disabled by default - enable explicitly to use
+          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
         {
           name = "last_author",
-          enabled = true,         -- show git blame info (latest author + time)
+          enabled = true,    -- enabled by default (git operations can be slow)
+        },
+        {
+          name = "complexity",
+          enabled = false,    -- disabled by default - enable explicitly to use
+          min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
         },
       },
       style = {
-        separator = " • ",      -- separator between all lens parts
+        separator = " • ",      -- separator between all lens attributes
         highlight = "Comment",  -- highlight group for lens text
         prefix = "┃ ",         -- prefix before lens content
       },
@@ -100,6 +110,36 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **Events**: `BufRead`, `BufWritePost`
 
 **What it shows**: Most recent git author and relative time for each function
+
+</details>
+
+<details>
+<summary><strong>diag_summary Provider</strong> - Diagnostic aggregation</summary>
+
+**Provider Name**: `diag_summary`
+
+**Events**: `DiagnosticChanged`, `BufEnter`
+
+**What it shows**: Aggregated diagnostic counts per function (errors, warnings, info, hints)
+
+**Display Format**:
+- With nerdfonts: `1 2 3 4` (using diagnostic icons)
+- Without nerdfonts: `1E 2W 3I 4H` (E=Error, W=Warning, I=Info, H=Hint)
+
+**Configuration**:
+- `enabled`: Enable/disable the provider (default: `false` - disabled by default)
+- `min_level`: Minimum diagnostic severity to display (default: `"WARN"`)
+  - Valid values: `"ERROR"`, `"WARN"`, `"INFO"`, `"HINT"`
+  - Can also use numeric values: `vim.diagnostic.severity.ERROR`, etc.
+
+**Example Configuration**:
+```lua
+{
+  name = "diag_summary",
+  enabled = true,      -- Must be explicitly enabled
+  min_level = "ERROR", -- Only show errors
+}
+```
 
 </details>
 
