@@ -24,6 +24,13 @@ A lightweight plugin that displays fully customizeable contextual information ab
 
 ![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
 
+## Why use lensline?
+
+- **🔍 Glanceable insights**: See meaningful context (like refs, authorship, code complexity, diagnostics and more) directly above your functions without leaving the buffer
+- **🧘 Zero-interaction UX**: No toggles, no keystrokes. Info appears automatically as you scroll and code
+- **🧩 Modular & customizable**: Every lens is independent and pluggable, with full control over layout, styling, and behavior
+- **🥷 Minimal and unobtrusive**: Designed to blend into your editing flow without stealing focus. Distraction-free.
+
 ## Install
 It is suggested to either use the latest release tag or the release branch 0.1.x. (which will contain the latest matching version).
 
@@ -264,3 +271,9 @@ lensline.toggle()
 PRs, issues, and suggestions welcome.
 
 For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
+
+## Thanks
+
+- Thanks to [lazy.nvim](https://github.com/folke/lazy.nvim) & [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for inspiration on a (hopefully) good README.md
+
+- Thanks to whoever invented the code-lens feature
