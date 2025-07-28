@@ -7,6 +7,7 @@ local M = {}
 M.available_providers = {
   ref_count = require("lensline.providers.ref_count"),
   last_author = require("lensline.providers.last_author"),
+  complexity = require("lensline.providers.complexity"),
 }
 
 -- Global debounce timers for each provider

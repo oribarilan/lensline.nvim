@@ -103,6 +103,45 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 </details>
 
+<details>
+<summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
+
+**Provider Name**: `complexity`
+
+**Events**: `BufWritePost`, `TextChanged`
+
+**What it shows**: Function complexity indicators using research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
+
+**Display Format**: `Cx: S/M/L/XL` where:
+- **S** (Small) - Simple sequential functions
+- **M** (Medium) - Functions with basic branching
+- **L** (Large) - Functions with significant complexity
+- **XL** (Extra Large) - Highly complex functions
+
+**Configuration**:
+- `enabled`: Enable/disable the provider (default: `false`)
+- `min_level`: Minimum complexity level to display (default: `"L"`) - filters out noise from simple functions
+
+**Example**:
+```lua
+{
+  name = "complexity",
+  enabled = true,
+  min_level = "L",  -- only show L and XL complexity (default)
+}
+```
+
+To show all complexity levels including simple functions:
+```lua
+{
+  name = "complexity",
+  enabled = true,
+  min_level = "S",  -- show all: S, M, L, XL
+}
+```
+
+</details>
+
 ### Creating Custom Providers
 
 You can create custom providers by adding them to the provider registry. A provider is a Lua module that returns a table with the following structure:
@@ -188,14 +227,13 @@ lensline.toggle()
 * [x] LSP reference count support
 * [x] Git blame author display
 * [x] Custom provider API for extensibility
-* [x] Configurable styling and layout
+* [x] Configurable layout style
 * [x] Per-provider debounce timing
 * [x] Toggle command (`:LenslineToggle`)
 * [x] LSP progress message filtering
-* [ ] Telescope integration for lens search
 * [ ] Clickable lenses with `vim.ui.select` actions
 * [ ] Test coverage provider
-* [ ] Method complexity provider
+* [x] Method complexity provider (research-based scoring with configurable filtering)
 * [ ] Class level lens
 * [ ] Diagnostics provider (errors/warnings per function)
 * [ ] References - some LSP count self, some don't, address this

@@ -12,6 +12,11 @@ M.defaults = {
       name = "last_author",
       enabled = true,    -- disable by default (git operations can be slow)
     },
+    {
+      name = "complexity",
+      enabled = false,    -- disabled by default - enable explicitly to use
+      min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
+    },
   },
   style = {
     separator = " • ",
