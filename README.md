@@ -35,7 +35,10 @@ A lightweight plugin that displays fully customizeable contextual information ab
 - **🥷 Minimal and unobtrusive**: Designed to blend into your editing flow without stealing focus. Distraction-free.
 
 ## Install
-It is suggested to either use the latest release tag or the release branch 0.1.x. (which will contain the latest matching version).
+
+⚠️currently only tag is supported, do not use branch-based installation⚠️
+
+It is suggested to either use the latest release tag or the release branch `release/0.1.x`. (which will contain the latest matching version).
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -43,9 +46,8 @@ It is suggested to either use the latest release tag or the release branch 0.1.x
 
 or
 
-<a href="https://github.com/<user>/<repo>/actions">
-  <img alt="Branch 0.1.x"
-       src="https://img.shields.io/github/check-runs/<user>/<repo>/0.1.x?style=for-the-badge&logo=github&logoColor=D9E0EE&color=C9CBFF&labelColor=302D41" />
+<a href="https://github.com/oribarilan/lensline.nvim/tree/release/0.1.x">
+  <img alt="Branch release/0.1.x" src="https://img.shields.io/static/v1?label=Branch&message=release/0.1.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
 </a>
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
