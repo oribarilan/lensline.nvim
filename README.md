@@ -1,19 +1,38 @@
+<div align="center">
+
 # lensline.nvim
+##### A status bar for your functions
 
 [![Neovim](https://img.shields.io/badge/Neovim%200.8+-green.svg?style=for-the-badge&logo=neovim)](https://neovim.io)
+<p>
+<a href="https://github.com/LazyVim/LazyVim/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/oribarilan/lensline.nvim?style=for-the-badge&logo=starship&color=ee999f&logoColor=D9E0EE&labelColor=302D41" />
+</a>
+<a href="https://github.com/oribarilan/lensline.nvim">
+    <img alt="Repo Size" src="https://img.shields.io/github/repo-size/oribarilan/lensline.nvim?color=%23DDB6F2&label=SIZE&logo=codesandbox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41"/>
+</a>
+</p>
 
-A lightweight Neovim plugin that displays contextual information about functions using virtual text lenses.
+<p>
+    <img height="150" alt="lensline ape" src="https://github.com/user-attachments/assets/79904cf2-0c2b-4767-813c-3a36f7199ee0" />
+</p>
 
-* **Batteries included** so you can just use it out of the box with ref count and last author (git blame) info
-* **Make it your own** with custom providers for your own data sources
+</div>
+
+# What is lensline?
+A lightweight plugin that displays fully customizeable contextual information about functions. 
+
+![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
 
 ## Install
+It is suggested to either use the latest release tag or the release branch 0.1.x. (which will contain the latest matching version).
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
   'oribarilan/lensline.nvim',
+  tag = '0.1.0', -- or: branch = '0.1.x' 
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -21,9 +40,37 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 }
 ```
 
+Or with any other package manager:
+
+<details>
+<summary><strong>vim-plug</strong></summary>
+
+```vim
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.0' } 
+``` 
+
+or
+
+```vim
+Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
+```
+
+</details>
+
+<details>
+<summary><strong>packer.nvim</strong></summary>
+
+```lua
+use {
+    'oribarilan/lensline.nvim',
+    tag = '0.1.0', -- or: branch = '0.1.x'
+}
+```
+</details>
+
 ## Configure
 
-lensline.nvim works out of the box with sane defaults. You can customize what data is shown, how it looks, and when it's refreshed.
+lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers. 
 
 ### Default Configuration
 
@@ -66,24 +113,14 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
 }
 ```
 
-### Architecture: Simple Providers
-
-**lensline** uses a simple **Provider** architecture:
-
-- **Providers** are self-contained modules that handle specific data sources (LSP, git, etc.)
-- Each provider defines its own event triggers, debounce timing, and data collection logic
-- Providers return lens items with line numbers and formatted text for display
-
 ### Design Philosophy
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
-- **Opinionated defaults**: Built-in collectors provide commonly-used functionality inspired by popular IDEs (VSCode, IntelliJ) - reference counts, diagnostic summaries, git blame info
-- **Extension over configuration**: Rather than adding endless config options for styling and filtering, lensline encourages writing custom collectors for specific needs
-- **Clean collector API**: Simple function signature makes it easy to create custom collectors that integrate seamlessly with the existing system
-- **No configuration bloat**: Instead of complex nested options, customization happens through code - more powerful and maintainable
+- **Opinionated defaults**: Built-in providers to commonly-used functionality inspired by popular IDEs (VSCode, IntelliJ) - reference counts & git blame info
+- **Extension over configuration**: Provider expose a minimal set of configs. For customization, lensline encourages writing custom providers
 
-This design keeps the plugin lightweight while enabling unlimited customization. The collector-based approach scales better than trying to support everything through configuration.
+This design keeps the plugin lightweight while enabling unlimited customization. The provider based approach scales better than trying to support everything through configuration.
 
 ### Built-in Providers
 
@@ -182,56 +219,9 @@ To show all complexity levels including simple functions:
 
 </details>
 
-### Creating Custom Providers
+### Custom Providers
 
-You can create custom providers by adding them to the provider registry. A provider is a Lua module that returns a table with the following structure:
-
-```lua
--- custom_provider.lua
-return {
-  name = "my_custom_provider",
-  event = { "BufWritePost" },  -- events that trigger this provider
-  debounce = 1000,             -- debounce delay in milliseconds
-  handler = function(bufnr, func_info, callback)
-    -- bufnr: buffer number
-    -- func_info: { line = number, name = string, character = number }
-    -- callback: function to call with result (for async) or nil (for sync)
-    
-    -- Your custom logic here
-    local custom_data = get_my_custom_data(func_info)
-    
-    -- For synchronous providers, return the lens item:
-    if not callback then
-      return {
-        line = func_info.line,
-        text = "💩 " .. custom_data
-      }
-    end
-    
-    -- For async providers, call the callback:
-    callback({
-      line = func_info.line,
-      text = "💩 " .. custom_data
-    })
-    return nil
-  end
-}
-```
-
-Then register it in your configuration by adding it to the providers registry:
-
-```lua
--- Add your custom provider to the registry
-local providers = require("lensline.providers")
-providers.available_providers.my_custom_provider = require("path.to.custom_provider")
-
-require("lensline").setup({
-  providers = {
-    { name = "ref_count", enabled = true },
-    { name = "my_custom_provider", enabled = true },
-  }
-})
-```
+lensline supports custom providers for unlimited extensibility. You can create your own provider, or contribute additional built-in ones. Please see [providers.md](providers.md) for detailed guidelines on writing custom providers.
 
 ## Commands
 
@@ -261,19 +251,10 @@ lensline.disable()
 lensline.toggle()
 ```
 
-## Potential Features
+## Potential Features 
 
-* [x] Function-level metadata display
-* [x] LSP reference count support
-* [x] Git blame author display
-* [x] Custom provider API for extensibility
-* [x] Configurable layout style
-* [x] Per-provider debounce timing
-* [x] Toggle command (`:LenslineToggle`)
-* [x] LSP progress message filtering
 * [ ] Clickable lenses with `vim.ui.select` actions
 * [ ] Test coverage provider
-* [x] Method complexity provider (research-based scoring with configurable filtering)
 * [ ] Class level lens
 * [ ] Diagnostics provider (errors/warnings per function)
 * [ ] References - some LSP count self, some don't, address this
@@ -283,55 +264,3 @@ lensline.toggle()
 PRs, issues, and suggestions welcome.
 
 For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
-
-### Quick Development Setup
-
-Set `debug_mode = true` in your config to enable file-based debug logging:
-
-```lua
-return {
-  dir = '~/path/to/lensline.nvim', -- Path to your local lensline.nvim clone
-  dev = true, -- Enables development mode
-  event = 'BufReadPre',
-  config = function()
-    require("lensline").setup({
-      debug_mode = true,  -- enable debug logging
-      providers = {
-        { name = "ref_count", enabled = true },
-        { name = "last_author", enabled = true },
-      }
-    })
-    
-    -- Add debug command for easy access to logs
-    vim.api.nvim_create_user_command('LenslineDebug', function()
-      local debug = require('lensline.debug')
-      local debug_file = debug.get_debug_file()
-      if debug_file and vim.loop.fs_stat(debug_file) then
-        vim.cmd('edit ' .. debug_file)
-      else
-        print('No debug file found. Enable debug_mode in your config.')
-      end
-    end, {})
-  end,
-}
-```
-
-### File Structure
-
-```
-lensline.nvim/
-├── lua/
-│   └── lensline/
-│       ├── init.lua         -- Plugin entry point
-│       ├── config.lua       -- Configuration management
-│       ├── setup.lua        -- Setup logic and orchestration
-│       ├── renderer.lua     -- Virtual text rendering and extmark management
-│       ├── debug.lua        -- Debug logging system
-│       ├── utils.lua        -- Shared helper functions
-│       └── providers/
-│           ├── init.lua     -- Provider coordination and registry
-│           ├── ref_count.lua -- LSP reference counting provider
-│           └── last_author.lua -- Git blame provider
-├── README.md                -- Plugin documentation
-├── LICENSE                  -- License file
-```

@@ -1,13 +1,14 @@
 local utils = require("lensline.utils")
 
--- Helper function to format time as natural relative text (1h ago, 2d ago, etc.)
+-- Helper function to format time as natural relative text (10min ago, 2h ago, 3d ago, etc.)
 local function format_relative_time(timestamp)
   local now = os.time()
   local diff = now - timestamp
   
-  -- Less than 1 hour -> 1h ago
+  -- Less than 1 hour -> Xmin ago (rounded up, minimum 1min)
   if diff < 3600 then
-    return "1h ago"
+    local minutes = math.max(1, math.ceil(diff / 60))
+    return minutes .. "min ago"
   end
   
   -- 1-23 hours -> Xh ago (rounded)
@@ -56,6 +57,11 @@ local function parse_blame_output(blame_output, debug)
   end
   
   if latest_author and latest_time > 0 then
+    -- Handle uncommitted changes with special author name
+    if latest_author == "Not Committed Yet" then
+      latest_author = "uncommitted"
+    end
+    
     local relative_time = format_relative_time(latest_time)
     local config = require("lensline.config")
     local opts = config.get()
