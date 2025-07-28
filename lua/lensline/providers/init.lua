@@ -275,4 +275,39 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
   return lens_items
 end
 
+-- Cleanup function for debounce timers
+function M.cleanup_debounce_timers()
+  local debug = require("lensline.debug")
+  debug.log_context("Providers", "cleaning up debounce timers")
+  
+  for key, timer in pairs(debounce_timers) do
+    if timer and not timer:is_closing() then
+      timer:stop()
+      timer:close()
+      debug.log_context("Providers", "cleaned up timer: " .. key)
+    end
+  end
+  debounce_timers = {}
+end
+
+-- Cleanup function for event listeners
+function M.cleanup_event_listeners()
+  local debug = require("lensline.debug")
+  debug.log_context("Providers", "cleaning up event listeners")
+  
+  for event, group_id in pairs(event_listeners) do
+    if group_id then
+      vim.api.nvim_del_augroup_by_id(group_id)
+      debug.log_context("Providers", "cleaned up event listener: " .. event)
+    end
+  end
+  event_listeners = {}
+end
+
+-- Main cleanup function called during disable
+function M.cleanup()
+  M.cleanup_debounce_timers()
+  M.cleanup_event_listeners()
+end
+
 return M
