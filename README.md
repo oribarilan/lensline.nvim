@@ -36,8 +36,6 @@ A lightweight plugin that displays fully customizeable contextual information ab
 
 ## Install
 
-⚠️currently only tag is supported, do not use branch-based installation⚠️
-
 It is suggested to either use the latest release tag or the release branch `release/0.1.x`. (which will contain the latest matching version).
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
@@ -55,7 +53,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.0', -- or: branch = '0.1.x' 
+  tag = '0.1.1', -- or: branch = '0.1.x' 
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -69,7 +67,7 @@ Or with any other package manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.0' } 
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.1' } 
 ``` 
 
 or
@@ -86,7 +84,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.0', -- or: branch = '0.1.x'
+    tag = '0.1.1', -- or: branch = '0.1.x'
 }
 ```
 </details>
