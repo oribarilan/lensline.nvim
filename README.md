@@ -279,6 +279,7 @@ lensline.toggle()
 * [ ] Class level lens
 * [ ] Diagnostics provider (errors/warnings per function)
 * [ ] References - some LSP count self, some don't, address this
+* [ ] Configuration for enabled or disabled file names/extensions
 
 ## Contribute
 
