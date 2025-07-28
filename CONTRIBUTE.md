@@ -48,3 +48,10 @@ lensline.nvim/
 ├── LICENSE                  -- MIT license
 └── TODO.md                  -- Development roadmap
 ```
+
+## Release Process
+
+1. **Update Version**: Increment the version in `README.md` in the `install` section.
+2. **Merge**: Merge changes into the main branch.
+3. **Merge to release branch**: Merge the main branch into the `release/0.1.x` branch.
+4. **Tag Release**: Create a new tag for the release (e.g., `0.1.0`) on the `release/0.1.x` branch.
