@@ -87,13 +87,21 @@ return {
       
       debug.log_context("LSP", "total references for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line .. ": " .. ref_count)
       
-      -- Return lens item
+      -- Create lens item
       local opts = config.get()
       local icon = opts.style.use_nerdfont and "󰌹 " or ""
-      return {
+      local result = {
         line = func_info.line,
         text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
       }
+      
+      -- Handle both sync and async modes
+      if callback then
+        callback(result)
+        return nil
+      else
+        return result
+      end
     end
     
     -- Run asynchronously
@@ -113,13 +121,11 @@ return {
       -- Create and return lens item via callback
       local opts = config.get()
       local icon = opts.style.use_nerdfont and "󰌹 " or ""
-      callback({
+      local result = {
         line = func_info.line,
         text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
-      })
+      }
+      callback(result)
     end)
-    
-    -- Return nil for async mode (result will come via callback)
-    return nil
   end
 }

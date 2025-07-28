@@ -222,14 +222,15 @@ local function get_function_last_author_sync(filename, git_root, func_info, debu
   end
   
   local author_info = parse_blame_output(blame_output, debug)
+  local result = nil
   if author_info then
-    return {
+    result = {
       line = func_info.line,
       text = author_info
     }
   end
   
-  return nil
+  return result
 end
 
 -- Last Author Provider
@@ -296,8 +297,6 @@ return {
     -- Run asynchronously
     debug.log_context("LastAuthor", "running in async mode for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     get_function_last_author_async(filename, git_root, func_info, callback, debug, bufnr)
-    
-    -- Return nil for async mode (result will come via callback)
-    return nil
+    return nil  -- Must return nil for async mode
   end
 }
