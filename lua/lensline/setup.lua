@@ -88,6 +88,9 @@ function M.disable()
   
   debug.log_context("Core", "disabling lensline")
   
+  -- Cleanup provider resources (debounce timers and event listeners)
+  providers.cleanup()
+  
   -- Restore LSP handlers
   config.restore_lsp_handlers()
   
