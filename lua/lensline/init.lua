@@ -14,18 +14,20 @@ function M.setup(opts)
         desc = "Toggle lensline functionality on/off"
     })
     
-    -- create debug command to view debug logs
-    vim.api.nvim_create_user_command("LenslineDebug", function()
-        local debug = require("lensline.debug")
-        local debug_file = debug.get_debug_file()
-        if debug_file and vim.fn.filereadable(debug_file) == 1 then
-            vim.cmd("tabnew " .. debug_file)
-        else
-            vim.notify("No debug file found. Make sure debug_mode = true in your config.", vim.log.levels.WARN)
-        end
-    end, {
-        desc = "Open lensline debug log file"
-    })
+    -- create debug command to view debug logs (only if debug_mode is enabled)
+    if config.get().debug_mode then
+        vim.api.nvim_create_user_command("LenslineDebug", function()
+            local debug = require("lensline.debug")
+            local debug_file = debug.get_debug_file()
+            if debug_file and vim.fn.filereadable(debug_file) == 1 then
+                vim.cmd("tabnew " .. debug_file)
+            else
+                vim.notify("No debug file found. Make sure debug_mode = true in your config.", vim.log.levels.WARN)
+            end
+        end, {
+            desc = "Open lensline debug log file"
+        })
+    end
 end
 
 function M.enable()

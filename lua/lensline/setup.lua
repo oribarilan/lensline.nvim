@@ -7,185 +7,105 @@ local debug = require("lensline.debug")
 local M = {}
 
 local autocmd_group = nil
-local global_refresh_timer = nil
-
-local function refresh_buffer(bufnr)
-    debug.log_context("Core", "refresh_buffer called for buffer " .. bufnr)
-    
-    -- check if plugin is enabled
-    if not config.is_enabled() then
-        debug.log_context("Core", "plugin is disabled, skipping refresh")
-        return
-    end
-    
-    if not utils.is_valid_buffer(bufnr) then
-        debug.log_context("Core", "buffer " .. bufnr .. " is not valid for refresh", "WARN")
-        return
-    end
-    
-    debug.log_context("Core", "using new lens manager for orchestration")
-    
-    -- clear cache for this buffer since content may have changed
-    local lsp_provider = require("lensline.providers.lsp")
-    lsp_provider.clear_cache(bufnr)
-    
-    -- use new lens manager for orchestration instead of direct provider calls
-    local lens_manager = require("lensline.core.lens_manager")
-    lens_manager.refresh_buffer_lenses(bufnr)
-end
-
-local function debounced_refresh_current()
-    -- Stop any existing timer safely
-    if global_refresh_timer then
-        if not global_refresh_timer:is_closing() then
-            global_refresh_timer:stop()
-            global_refresh_timer:close()
-        end
-        global_refresh_timer = nil
-    end
-    
-    -- Create new timer
-    local opts = config.get()
-    global_refresh_timer = vim.loop.new_timer()
-    global_refresh_timer:start(opts.refresh.debounce_ms, 0, function()
-        vim.schedule(function()
-            global_refresh_timer:close()
-            global_refresh_timer = nil
-            local current_bufnr = vim.api.nvim_get_current_buf()
-            if utils.is_valid_buffer(current_bufnr) then
-                refresh_buffer(current_bufnr)
-            end
-        end)
-    end)
-end
-
-local function on_buffer_event(bufnr)
-    if not utils.is_valid_buffer(bufnr) then
-        return
-    end
-    
-    -- Use global debounced refresh for current buffer
-    debounced_refresh_current()
-end
-
-local function cleanup_buffer(bufnr)
-    -- Just clear the renderer for this buffer
-    -- Global timer doesn't need per-buffer cleanup
-    renderer.clear_buffer(bufnr)
-end
-
-local function setup_autocommands()
-    if autocmd_group then
-        vim.api.nvim_del_augroup_by_id(autocmd_group)
-    end
-    
-    autocmd_group = vim.api.nvim_create_augroup("lensline", { clear = true })
-    
-    local opts = config.get()
-    
-    vim.api.nvim_create_autocmd(opts.refresh.events, {
-        group = autocmd_group,
-        callback = function(event)
-            on_buffer_event(event.buf)
-        end,
-    })
-    
-    -- additional cache invalidation events
-    vim.api.nvim_create_autocmd("LspDetach", {
-        group = autocmd_group,
-        callback = function(event)
-            debug.log_context("Core", "lsp detach detected, clearing cache for buffer " .. event.buf)
-            local lsp_provider = require("lensline.providers.lsp")
-            lsp_provider.clear_cache(event.buf)
-            
-            -- Clear suppressed tokens to prevent memory leaks when LSP restarts
-            config.clear_suppressed_tokens()
-        end,
-    })
-    
-    vim.api.nvim_create_autocmd("BufDelete", {
-        group = autocmd_group,
-        callback = function(event)
-            cleanup_buffer(event.buf)
-        end,
-    })
-    
-    vim.api.nvim_create_autocmd("VimLeavePre", {
-        group = autocmd_group,
-        callback = function()
-            -- Stop global timer on vim exit safely
-            if global_refresh_timer then
-                if not global_refresh_timer:is_closing() then
-                    global_refresh_timer:stop()
-                    global_refresh_timer:close()
-                end
-                global_refresh_timer = nil
-            end
-        end,
-    })
-end
 
 function M.initialize()
-    local opts = config.get()
-    
-    -- initialize debug system first
-    debug.init()
-    
-    debug.log_context("Core", "initializing plugin with config: " .. vim.inspect(opts))
-    
-    -- setup LSP log filtering (must be done before any LSP requests)
-    config.setup_lsp_handlers()
-    
-    setup_autocommands()
-    
-    local current_buf = vim.api.nvim_get_current_buf()
-    debug.log_context("Core", "current buffer: " .. current_buf)
-    
-    if utils.is_valid_buffer(current_buf) then
-        debug.log_context("Core", "triggering initial refresh for buffer " .. current_buf)
-        on_buffer_event(current_buf)
-    else
-        debug.log_context("Core", "current buffer is not valid, skipping initial refresh", "WARN")
-    end
+  local opts = config.get()
+  
+  -- Initialize debug system first
+  debug.init()
+  
+  debug.log_context("Core", "initializing plugin with new provider architecture")
+  debug.log_context("Core", "config: " .. vim.inspect(opts))
+  
+  -- Setup LSP handlers for noise suppression
+  config.setup_lsp_handlers()
+  
+  -- Setup core autocommands for cleanup
+  M.setup_core_autocommands()
+  
+  -- Setup provider event listeners
+  providers.setup_event_listeners()
+  
+  debug.log_context("Core", "plugin initialized successfully")
 end
 
+function M.setup_core_autocommands()
+  if autocmd_group then
+    vim.api.nvim_del_augroup_by_id(autocmd_group)
+  end
+  
+  autocmd_group = vim.api.nvim_create_augroup("lensline_core", { clear = true })
+  
+  -- Buffer cleanup on deletion
+  vim.api.nvim_create_autocmd("BufDelete", {
+    group = autocmd_group,
+    callback = function(event)
+      renderer.clear_buffer(event.buf)
+    end,
+  })
+  
+  -- Window events for initial setup
+  vim.api.nvim_create_autocmd("WinEnter", {
+    group = autocmd_group,
+    callback = function(event)
+      local bufnr = vim.api.nvim_get_current_buf()
+      if utils.is_valid_buffer(bufnr) then
+        -- Only trigger on window enter, not scroll
+        M.refresh_current_buffer()
+      end
+    end,
+  })
+  
+  debug.log_context("Core", "core autocommands initialized")
+end
+
+
 function M.refresh_current_buffer()
-    local bufnr = vim.api.nvim_get_current_buf()
-    on_buffer_event(bufnr)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not utils.is_valid_buffer(bufnr) then
+    return
+  end
+  
+  debug.log_context("Core", "manual refresh requested for buffer " .. bufnr)
+  
+  -- Clear existing lens data
+  renderer.clear_buffer(bufnr)
+  
+  -- Trigger all providers
+  local enabled_providers = providers.get_enabled_providers()
+  for name, provider_info in pairs(enabled_providers) do
+    providers.trigger_provider(bufnr, name, provider_info.module, provider_info.config)
+  end
 end
 
 function M.enable()
-    config.set_enabled(true)
-    M.initialize()
+  config.set_enabled(true)
+  M.initialize()
 end
 
 function M.disable()
-    config.set_enabled(false)
-    
-    -- restore original LSP handlers
-    config.restore_lsp_handlers()
-    
-    if autocmd_group then
-        vim.api.nvim_del_augroup_by_id(autocmd_group)
-        autocmd_group = nil
+  config.set_enabled(false)
+  
+  debug.log_context("Core", "disabling lensline")
+  
+  -- Restore LSP handlers
+  config.restore_lsp_handlers()
+  
+  -- Cleanup autocommands
+  if autocmd_group then
+    vim.api.nvim_del_augroup_by_id(autocmd_group)
+    autocmd_group = nil
+  end
+  
+  -- Clear all buffer renderers
+  local buffers = vim.api.nvim_list_bufs()
+  for _, bufnr in ipairs(buffers) do
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      renderer.clear_buffer(bufnr)
     end
-    
-    -- Stop global timer safely
-    if global_refresh_timer then
-        if not global_refresh_timer:is_closing() then
-            global_refresh_timer:stop()
-            global_refresh_timer:close()
-        end
-        global_refresh_timer = nil
-    end
-    
-    -- Clear all buffer renderers
-    local buffers = vim.api.nvim_list_bufs()
-    for _, bufnr in ipairs(buffers) do
-        if vim.api.nvim_buf_is_valid(bufnr) then
-            renderer.clear_buffer(bufnr)
-        end
-    end
+  end
+  
+  debug.log_context("Core", "lensline disabled")
 end
 
 return M
