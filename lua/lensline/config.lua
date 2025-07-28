@@ -1,7 +1,6 @@
 local M = {}
 
 M.defaults = {
-  use_nerdfonts = true,   -- enable nerd font icons in built-in providers
   providers = {  -- Array format: order determines display sequence
     {
       name = "ref_count",
@@ -27,6 +26,7 @@ M.defaults = {
     separator = " • ",
     highlight = "Comment",
     prefix = "┃ ",
+    use_nerdfont = true,   -- enable nerd font icons in built-in providers
   },
   debug_mode = false,
 }

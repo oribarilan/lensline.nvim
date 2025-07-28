@@ -57,9 +57,18 @@ local function parse_blame_output(blame_output, debug)
   
   if latest_author and latest_time > 0 then
     local relative_time = format_relative_time(latest_time)
-    local result = latest_author .. " (" .. relative_time .. ")"
+    local config = require("lensline.config")
+    local opts = config.get()
+    
+    local result
+    if opts.style.use_nerdfont then
+      result = "󰊢 " .. latest_author .. ", " .. relative_time
+    else
+      result = latest_author .. ", " .. relative_time
+    end
+    
     debug.log_context("LastAuthor", "final result: " .. result)
-    return "󰊢 " .. result
+    return result
   else
     debug.log_context("LastAuthor", "no valid author/time found in blame output")
     return nil

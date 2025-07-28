@@ -33,7 +33,6 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
   event = 'LspAttach',
   config = function()
     require("lensline").setup({
-      use_nerdfonts = true,     -- enable nerd font icons in built-in providers
       providers = {  -- Array format: order determines display sequence
         {
           name = "ref_count",
@@ -59,6 +58,7 @@ lensline.nvim works out of the box with sane defaults. You can customize what da
         separator = " • ",      -- separator between all lens attributes
         highlight = "Comment",  -- highlight group for lens text
         prefix = "┃ ",         -- prefix before lens content
+        use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
       debug_mode = false,       -- enable debug output for development
     })
