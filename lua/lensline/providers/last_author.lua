@@ -230,8 +230,28 @@ return {
   event = { "BufRead", "BufWritePost" },
   debounce = 500,
   handler = function(bufnr, func_info, callback)
-    local debug = require("lensline.debug")
+    -- Early exit guard: check if this provider is disabled
+    local config = require("lensline.config")
+    local opts = config.get()
+    local provider_config = nil
     
+    -- Find this provider's config
+    for _, provider in ipairs(opts.providers) do
+      if provider.name == "last_author" then
+        provider_config = provider
+        break
+      end
+    end
+    
+    -- Exit early if provider is disabled
+    if provider_config and provider_config.enabled == false then
+      if callback then
+        callback(nil)
+      end
+      return nil
+    end
+    
+    local debug = require("lensline.debug")
     debug.log_context("LastAuthor", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Get the file path and validate it

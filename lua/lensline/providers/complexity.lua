@@ -5,14 +5,10 @@ return {
   event = { "BufWritePost", "TextChanged" },
   debounce = 300,
   handler = function(bufnr, func_info, callback)
-    local debug = require("lensline.debug")
-    
-    debug.log_context("Complexity", "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
-    
-    -- Configuration access
+    -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")
-    local provider_config = nil
     local opts = config.get()
+    local provider_config = nil
     
     -- Find this provider's config
     for _, provider in ipairs(opts.providers) do
@@ -21,6 +17,17 @@ return {
         break
       end
     end
+    
+    -- Exit early if provider is disabled
+    if provider_config and provider_config.enabled == false then
+      if callback then
+        callback(nil)
+      end
+      return nil
+    end
+    
+    local debug = require("lensline.debug")
+    debug.log_context("Complexity", "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Default configuration
     local min_level = (provider_config and provider_config.min_level) or "L"
