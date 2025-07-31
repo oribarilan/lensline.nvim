@@ -97,6 +97,15 @@ function M.trigger_provider(bufnr, provider_name, provider_module, provider_conf
     return
   end
   
+  -- Check limits before any provider execution
+  local limits = require("lensline.limits")
+  local should_skip, reason = limits.should_skip(bufnr)
+  if should_skip then
+    local debug = require("lensline.debug")
+    debug.log_context("Providers", "skipping provider " .. provider_name .. " for buffer " .. bufnr .. ": " .. (reason or "unknown"))
+    return
+  end
+  
   local debounce_key = provider_name .. "_" .. bufnr
   local debounce_delay = provider_module.debounce or 100
   
@@ -149,6 +158,16 @@ function M.execute_provider(bufnr, provider_module, provider_config)
       completed = true
       debug.log_context("Providers", "provider " .. provider_module.name .. " timed out, rendering " .. #lens_items .. " items")
       vim.schedule(function()
+        -- Check lens count limits before rendering (timeout case)
+        local limits = require("lensline.limits")
+        local config = require("lensline.config").get()
+        local should_skip_lenses, lens_reason = limits.should_skip_lenses(#lens_items, config)
+        
+        if should_skip_lenses then
+          debug.log_context("Providers", "skipping lens rendering for " .. provider_module.name .. " (timeout): " .. lens_reason)
+          return
+        end
+        
         local renderer = require("lensline.renderer")
         renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
       end)
@@ -168,6 +187,17 @@ function M.execute_provider(bufnr, provider_module, provider_config)
       completed = true
       timeout_timer:close()
       debug.log_context("Providers", "provider " .. provider_module.name .. " completed all functions, rendering " .. #lens_items .. " items")
+      
+      -- Check lens count limits before rendering
+      local limits = require("lensline.limits")
+      local config = require("lensline.config").get()
+      local should_skip_lenses, lens_reason = limits.should_skip_lenses(#lens_items, config)
+      
+      if should_skip_lenses then
+        debug.log_context("Providers", "skipping lens rendering for " .. provider_module.name .. ": " .. lens_reason)
+        return
+      end
+      
       local renderer = require("lensline.renderer")
       renderer.render_provider_lenses(bufnr, provider_module.name, lens_items)
     end

@@ -53,7 +53,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.1', -- or: branch = '0.1.x' 
+  tag = '0.1.2', -- or: branch = '0.1.x' 
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -67,7 +67,7 @@ Or with any other package manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.1' } 
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.2' } 
 ``` 
 
 or
@@ -84,7 +84,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.1', -- or: branch = '0.1.x'
+    tag = '0.1.2', -- or: branch = '0.1.x'
 }
 ```
 </details>
@@ -127,6 +127,12 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         highlight = "Comment",  -- highlight group for lens text
         prefix = "┃ ",         -- prefix before lens content
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
+      },
+      limits = {
+        exclude = { /* see config.lua for extensive list of default patterns */ },
+        exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
+        max_lines = 1000,          -- process only first N lines of large files
+        max_lenses = 70,          -- skip rendering if too many lenses generated
       },
       debug_mode = false,       -- enable debug output for development
     })

@@ -28,6 +28,50 @@ M.defaults = {
     prefix = "┃ ",
     use_nerdfont = true,   -- enable nerd font icons in built-in providers
   },
+  limits = {
+    exclude = {
+      -- Common
+      ".git/**",
+      "build*/**",        -- Covers `build`, `build_debug`, etc.
+
+      -- JavaScript/TypeScript
+      "node_modules/**",
+      "dist/**",
+      "out/**",
+      ".next/**",
+      "*.min.js",
+      "*.min.css",
+
+      -- Python
+      ".venv/**",
+      "venv/**",
+      "env/**",
+      "__pycache__/**",
+      ".mypy_cache/**",
+
+      -- Rust
+      "target/**",
+
+      -- Java
+      "build/**",         -- Gradle build output
+      "target/**",        -- Maven build output (also used in Rust)
+      ".gradle/**",       -- Gradle metadata
+      ".settings/**",     -- Eclipse project settings
+      ".classpath",       -- Eclipse metadata
+      ".project",         -- Eclipse metadata
+
+      -- C# (.NET / MSBuild)
+      "bin/**",           -- Compiled binaries
+      "obj/**",           -- Intermediate object files
+      "*.dll",            -- Assemblies (expensive to parse)
+      "*.exe",            -- Binaries
+      "*.pdb",            -- Debug symbols
+      "*.csproj",         -- Metadata (can include but probably not needed for lenses)
+    },
+    exclude_gitignored = true,
+    max_lines = 1000,
+    max_lenses = 70,
+  },
   debug_mode = false,
 }
 
