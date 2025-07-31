@@ -55,8 +55,17 @@ end
 
 -- LSP-only function discovery using document symbols
 function M.find_functions_in_range(bufnr, start_line, end_line)
+  -- Apply limits truncation to end_line
+  local limits = require("lensline.limits")
+  local truncated_end_line = limits.get_truncated_end_line(bufnr, end_line)
+  
+  if truncated_end_line == 0 then
+    -- File should be skipped entirely
+    return {}
+  end
+  
   -- Only use LSP document symbols - no fallbacks
-  return M.find_functions_via_lsp(bufnr, start_line, end_line)
+  return M.find_functions_via_lsp(bufnr, start_line, truncated_end_line)
 end
 
 -- Use LSP document symbols to find functions (most reliable approach)

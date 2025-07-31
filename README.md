@@ -128,6 +128,12 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         prefix = "┃ ",         -- prefix before lens content
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
+      limits = {
+        exclude = { /* see config.lua for default patterns */ },
+        exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
+        max_lines = 1000,          -- process only first N lines of large files
+        max_lenses = 70,          -- skip rendering if too many lenses generated
+      },
       debug_mode = false,       -- enable debug output for development
     })
   end,

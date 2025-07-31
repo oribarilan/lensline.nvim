@@ -28,6 +28,12 @@ M.defaults = {
     prefix = "┃ ",
     use_nerdfont = true,   -- enable nerd font icons in built-in providers
   },
+  limits = {
+    exclude = { ".git/**", "node_modules/**", ".venv/**", "**/__pycache__/**" },
+    exclude_gitignored = true,
+    max_lines = 1000,
+    max_lenses = 70,
+  },
   debug_mode = false,
 }
 
