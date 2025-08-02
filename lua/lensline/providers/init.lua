@@ -207,7 +207,9 @@ function M.execute_provider(bufnr, provider_module, provider_config)
   for _, func_info in ipairs(functions) do
     debug.log_context("Providers", "calling provider " .. provider_module.name .. " for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
+    debug.log_context("Providers", "provider started " .. provider_module.name)
     local success, result = pcall(provider_module.handler, bufnr, func_info, handle_function_result)
+    debug.log_context("Providers", "provider finished " .. provider_module.name)
     
     if success then
       -- If provider returns result synchronously, handle it immediately
@@ -297,7 +299,10 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
   
   -- Call provider for each function synchronously
   for _, func_info in ipairs(functions) do
+    local debug = require("lensline.debug")
+    debug.log_context("Providers", "provider started " .. provider_module.name)
     local success, result = pcall(provider_module.handler, bufnr, func_info)
+    debug.log_context("Providers", "provider finished " .. provider_module.name)
     if success and result then
       table.insert(lens_items, result)
     end
