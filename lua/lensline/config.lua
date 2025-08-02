@@ -72,6 +72,7 @@ M.defaults = {
     max_lines = 1000,
     max_lenses = 70,
   },
+  debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   debug_mode = false,
 }
 

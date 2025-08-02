@@ -3,7 +3,6 @@
 return {
   name = "complexity",
   event = { "BufWritePost", "TextChanged" },
-  debounce = 300,
   handler = function(bufnr, func_info, callback)
     -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")

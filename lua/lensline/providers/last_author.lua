@@ -244,7 +244,6 @@ end
 return {
   name = "last_author",
   event = { "BufRead", "BufWritePost" },
-  debounce = 500,
   handler = function(bufnr, func_info, callback)
     -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")

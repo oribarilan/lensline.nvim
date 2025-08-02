@@ -134,6 +134,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         max_lines = 1000,          -- process only first N lines of large files
         max_lenses = 70,          -- skip rendering if too many lenses generated
       },
+      debounce_ms = 500,        -- unified debounce delay for all providers (in milliseconds)
       debug_mode = false,       -- enable debug output for development
     })
   end,

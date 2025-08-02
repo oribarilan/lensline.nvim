@@ -5,7 +5,6 @@ local utils = require("lensline.utils")
 return {
   name = "ref_count",
   event = { "LspAttach", "BufWritePost" },
-  debounce = 1000,
   handler = function(bufnr, func_info, callback)
     -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")
