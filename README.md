@@ -109,7 +109,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         {
           name = "diag_summary",
-          enabled = false,    -- disabled by default - enable explicitly to use
+          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
           min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
         {
@@ -119,7 +119,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         {
           name = "complexity",
-          enabled = false,    -- disabled by default - enable explicitly to use
+          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
           min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
         },
       },
@@ -180,7 +180,9 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>diag_summary Provider</strong> - Diagnostic aggregation</summary>
+<summary><strong>diag_summary Provider (BETA)</strong> - Diagnostic aggregation</summary>
+
+> **⚠️ Beta Feature**: This provider is currently in beta. While functional, it may have edge cases or performance considerations. Feedback and bug reports are welcome!
 
 **Provider Name**: `diag_summary`
 
@@ -210,7 +212,9 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
+<summary><strong>complexity Provider (BETA)</strong> - Code complexity analysis</summary>
+
+> **⚠️ Beta Feature**: This provider is currently in beta. While the complexity analysis uses research-based heuristics, it may have edge cases, performance considerations, and may need refinement for different coding styles and languages. Feedback and bug reports are welcome!
 
 **Provider Name**: `complexity`
 
