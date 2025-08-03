@@ -3,9 +3,55 @@ local M = {}
 local debug_file_path = nil
 local session_id = nil
 
+-- Log rotation constants
+local MAX_LOG_SIZE = 512000  -- 500KB in bytes
+local MAX_ROTATED_FILES = 2  -- Keep .log.1 and .log.2
+
 -- generate unique session id for this neovim instance
 local function generate_session_id()
     return os.date("%Y%m%d_%H%M%S") .. "_" .. math.random(1000, 9999)
+end
+
+-- get file size in bytes
+local function get_file_size(filepath)
+    local stat = vim.loop.fs_stat(filepath)
+    return stat and stat.size or 0
+end
+
+-- rotate log files: .log -> .log.1 -> .log.2 -> delete
+local function rotate_log_files()
+    if not debug_file_path then
+        return
+    end
+    
+    -- Remove oldest rotated file (.log.2)
+    local log2_path = debug_file_path .. ".2"
+    if vim.fn.filereadable(log2_path) == 1 then
+        os.remove(log2_path)
+    end
+    
+    -- Move .log.1 to .log.2
+    local log1_path = debug_file_path .. ".1"
+    if vim.fn.filereadable(log1_path) == 1 then
+        os.rename(log1_path, log2_path)
+    end
+    
+    -- Move current .log to .log.1
+    if vim.fn.filereadable(debug_file_path) == 1 then
+        os.rename(debug_file_path, log1_path)
+    end
+end
+
+-- check if log rotation is needed and rotate if necessary
+local function rotate_if_needed()
+    if not debug_file_path then
+        return
+    end
+    
+    local current_size = get_file_size(debug_file_path)
+    if current_size >= MAX_LOG_SIZE then
+        rotate_log_files()
+    end
 end
 
 -- init debug logging for new session
@@ -14,6 +60,9 @@ function M.init()
     local opts = config.get()
     
     if not opts.debug_mode then
+        -- Ensure debug_file_path is nil when debug is disabled
+        debug_file_path = nil
+        session_id = nil
         return
     end
     
@@ -25,10 +74,15 @@ function M.init()
     session_id = generate_session_id()
     debug_file_path = cache_dir .. "/debug_" .. session_id .. ".log"
     
-    -- cleanup old debug files  (keep only current session)
-    local old_files = vim.fn.glob(cache_dir .. "/debug_*.log", true, true)
+    -- cleanup old debug files (keep only current session)
+    -- This includes both main log files and rotated files (.log.1, .log.2)
+    local old_files = vim.fn.glob(cache_dir .. "/debug_*.log*", true, true)
+    local current_session_prefix = debug_file_path
     for _, file in ipairs(old_files) do
-        if file ~= debug_file_path then
+        -- Keep files that match current session pattern: debug_SESSION.log, debug_SESSION.log.1, debug_SESSION.log.2
+        if not (file == debug_file_path or
+                file == debug_file_path .. ".1" or
+                file == debug_file_path .. ".2") then
             os.remove(file)
         end
     end
@@ -46,9 +100,21 @@ function M.log(message, level)
     local config = require("lensline.config")
     local opts = config.get()
     
-    if not opts.debug_mode or not debug_file_path then
+    if not opts.debug_mode then
         return
     end
+    
+    -- Lazy initialization: if debug_mode is true but debug system isn't initialized yet, do it now
+    if not debug_file_path then
+        M.init()
+    end
+    
+    if not debug_file_path then
+        return -- init failed, still no debug_file_path
+    end
+    
+    -- Check if rotation is needed before writing
+    rotate_if_needed()
     
     level = level or "INFO"
     local timestamp = os.date("%H:%M:%S.") .. string.format("%03d", math.floor((os.clock() * 1000) % 1000))

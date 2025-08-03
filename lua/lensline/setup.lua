@@ -11,9 +11,7 @@ local autocmd_group = nil
 function M.initialize()
   local opts = config.get()
   
-  -- Initialize debug system first
-  debug.init()
-  
+  -- Debug system will be lazily initialized on first use if debug_mode = true
   debug.log_context("Core", "initializing plugin with new provider architecture")
   debug.log_context("Core", "config: " .. vim.inspect(opts))
   
