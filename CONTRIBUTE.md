@@ -49,6 +49,17 @@ lensline.nvim/
 └── TODO.md                  -- Development roadmap
 ```
 
+## Debug System
+
+When `debug_mode = true` is set in your config:
+
+- **`:LenslineDebug` command**: Automatically created to open the current debug log file in a new tab
+- **Log rotation**: Debug logs are automatically rotated when they exceed 500KB, keeping up to 3 files (main + 2 rotated) per session
+- **Session isolation**: Each Neovim session creates separate debug files, with old sessions cleaned up on startup
+- **Performance**: When `debug_mode = false` (default), no debug files are created and logging has zero performance impact
+
+Debug logs contain detailed information about provider execution, LSP interactions, and system events - useful for troubleshooting issues or understanding plugin behavior.
+
 ## Release Process
 
 1. **Update Version**: Increment the version in `README.md` in the `install` section.
