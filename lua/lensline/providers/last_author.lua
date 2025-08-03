@@ -70,9 +70,9 @@ return {
     
     debug.log_context("LastAuthor", "processing file: " .. filename)
     
-    -- Configure cache if not already done
-    local cache_config = opts.blame_cache or { max_files = 50 }
-    blame_cache.configure(cache_config)
+    -- Configure cache using provider config
+    local cache_max_files = provider_config and provider_config.cache_max_files or 50
+    blame_cache.configure({ max_files = cache_max_files })
     
     -- Use cached blame data to get function author
     local author_info = blame_cache.get_function_author(filename, bufnr, func_info)
