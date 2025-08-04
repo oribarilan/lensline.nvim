@@ -357,6 +357,10 @@ end
 function M.cleanup()
   M.cleanup_debounce_timers()
   M.cleanup_event_listeners()
+  
+  -- Clean up function discovery cache
+  local utils = require("lensline.utils")
+  utils.cleanup_function_cache()
 end
 
 return M

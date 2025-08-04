@@ -2,6 +2,10 @@ local utils = require("lensline.utils")
 
 -- Reference Count Provider
 -- Shows reference count for functions/methods using LSP
+--
+-- Note: Reference counts are not cached because they can change when any file
+-- in the workspace is modified. However, function discovery is cached so we
+-- efficiently only do ref count lookups for relevant functions
 return {
   name = "ref_count",
   event = { "LspAttach", "BufWritePost" },

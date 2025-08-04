@@ -1,5 +1,12 @@
 local M = {}
 
+-- LRU cache for function discovery results per buffer
+-- Only caches document symbols (safe)
+local function_cache = {}
+local buffer_changedtick = {}
+local cache_access_order = {} -- Track access order for LRU eviction
+local MAX_CACHE_SIZE = 50 -- Limit cache to 50 buffers maximum
+
 function M.debounce(fn, delay)
     local timer = vim.loop.new_timer()
     return function(...)
@@ -80,25 +87,56 @@ function M.find_functions_via_lsp(bufnr, start_line, end_line)
     return {}
   end
   
+  -- Check cache validity using buffer's changedtick
+  local current_changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
+  local cache_key = bufnr
+  
+  if function_cache[cache_key] and buffer_changedtick[cache_key] == current_changedtick then
+    -- Cache hit - update LRU order and filter functions for requested range
+    update_access_order(cache_key)
+    local cached_functions = function_cache[cache_key]
+    local filtered_functions = {}
+    for _, func in ipairs(cached_functions) do
+      if func.line >= start_line and func.line <= end_line then
+        table.insert(filtered_functions, func)
+      end
+    end
+    return filtered_functions
+  end
+  
   local params = {
     textDocument = vim.lsp.util.make_text_document_params(bufnr)
   }
   
-  local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/documentSymbol", params, 2000)
+  local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/documentSymbol", params, 1000)
   if not ok or not results then
     return {}
   end
   
   local functions = {}
   
-  -- Process results from all clients
+  -- Process results from all clients (get ALL functions for caching)
   for _, result in pairs(results) do
     if result.result then
-      M.extract_symbols_recursive(result.result, functions, start_line, end_line)
+      M.extract_symbols_recursive(result.result, functions, 1, math.huge)
     end
   end
   
-  return functions
+  -- Cache the complete function list for this buffer with LRU management
+  function_cache[cache_key] = functions
+  buffer_changedtick[cache_key] = current_changedtick
+  update_access_order(cache_key)
+  evict_lru_if_needed()
+  
+  -- Return filtered results for the requested range
+  local filtered_functions = {}
+  for _, func in ipairs(functions) do
+    if func.line >= start_line and func.line <= end_line then
+      table.insert(filtered_functions, func)
+    end
+  end
+  
+  return filtered_functions
 end
 
 -- Recursively extract function/method symbols from LSP response
@@ -293,6 +331,70 @@ function M.find_functions_generic(bufnr, start_line, end_line)
   end
   
   return functions
+end
+
+-- LRU cache management functions
+local function update_access_order(bufnr)
+  -- Remove bufnr from current position if it exists
+  for i, cached_bufnr in ipairs(cache_access_order) do
+    if cached_bufnr == bufnr then
+      table.remove(cache_access_order, i)
+      break
+    end
+  end
+  -- Add to end (most recently used)
+  table.insert(cache_access_order, bufnr)
+end
+
+local function evict_lru_if_needed()
+  while #cache_access_order > MAX_CACHE_SIZE do
+    local lru_bufnr = table.remove(cache_access_order, 1) -- Remove least recently used
+    function_cache[lru_bufnr] = nil
+    buffer_changedtick[lru_bufnr] = nil
+  end
+end
+
+function M.clear_function_cache(bufnr)
+  if bufnr then
+    -- Clear cache for specific buffer
+    function_cache[bufnr] = nil
+    buffer_changedtick[bufnr] = nil
+    -- Remove from access order
+    for i, cached_bufnr in ipairs(cache_access_order) do
+      if cached_bufnr == bufnr then
+        table.remove(cache_access_order, i)
+        break
+      end
+    end
+  else
+    -- Clear entire cache
+    function_cache = {}
+    buffer_changedtick = {}
+    cache_access_order = {}
+  end
+end
+
+-- Clean up cache for invalid buffers to prevent memory leaks
+function M.cleanup_function_cache()
+  local valid_access_order = {}
+  for bufnr, _ in pairs(function_cache) do
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+      function_cache[bufnr] = nil
+      buffer_changedtick[bufnr] = nil
+    else
+      -- Keep valid buffers in access order
+      for _, cached_bufnr in ipairs(cache_access_order) do
+        if cached_bufnr == bufnr then
+          table.insert(valid_access_order, bufnr)
+          break
+        end
+      end
+    end
+  end
+  cache_access_order = valid_access_order
+  
+  -- Apply LRU eviction after cleanup
+  evict_lru_if_needed()
 end
 
 return M
