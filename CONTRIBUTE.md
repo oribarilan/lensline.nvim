@@ -33,21 +33,28 @@ return {
 lensline.nvim/
 ├── lua/
 │   └── lensline/
-│       ├── init.lua         -- Plugin entry point and public API
-│       ├── config.lua       -- Configuration management and defaults
-│       ├── setup.lua        -- Setup logic, autocommands, and orchestration
-│       ├── renderer.lua     -- Virtual text rendering and extmark management
-│       ├── debug.lua        -- Debug logging system
-│       ├── utils.lua        -- Shared helper functions (LSP, function detection)
+│       ├── init.lua           -- Plugin entry point and public API
+│       ├── config.lua         -- Configuration management and defaults
+│       ├── setup.lua          -- Setup logic, autocommands, and orchestration
+│       ├── renderer.lua       -- Virtual text rendering and extmark management
+│       ├── executor.lua       -- Provider execution and coordination
+│       ├── lens_explorer.lua  -- Function detection and treesitter integration
+│       ├── debug.lua          -- Debug logging system
+│       ├── utils.lua          -- Shared helper functions (LSP, function detection)
+│       ├── blame_cache.lua    -- Git blame caching system
+│       ├── limits.lua         -- File processing limits and exclusions
 │       └── providers/
-│           ├── init.lua     -- Provider coordination and registry
-│           ├── ref_count.lua -- LSP reference counting provider
-│           └── last_author.lua -- Git blame provider
-├── README.md                -- User documentation
-├── CONTRIBUTE.md            -- This file
-├── CHANGELOG.md             -- Release notes and version history
-├── LICENSE                  -- MIT license
-└── TODO.md                  -- Development roadmap
+│           ├── init.lua       -- Provider coordination and registry
+│           ├── ref_count.lua  -- LSP reference counting provider
+│           ├── last_author.lua -- Git blame provider
+│           ├── complexity.lua -- Code complexity analysis provider (beta)
+│           └── diag_summary.lua -- LSP diagnostics aggregation provider (beta)
+├── README.md                  -- User documentation
+├── CONTRIBUTE.md              -- This file
+├── CHANGELOG.md               -- Release notes and version history
+├── providers.md               -- Provider development guide
+├── LICENSE                    -- MIT license
+└── .gitignore                 -- Git ignore patterns
 ```
 
 ## Debug System
