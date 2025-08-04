@@ -1,7 +1,7 @@
 local config = require("lensline.config")
 local utils = require("lensline.utils")
 local renderer = require("lensline.renderer")
-local providers = require("lensline.providers")
+local executor = require("lensline.executor")
 local debug = require("lensline.debug")
 
 local M = {}
@@ -21,8 +21,8 @@ function M.initialize()
   -- Setup core autocommands for cleanup
   M.setup_core_autocommands()
   
-  -- Setup provider event listeners
-  providers.setup_event_listeners()
+  -- Setup provider event listeners via executor
+  executor.setup_event_listeners()
   
   debug.log_context("Core", "plugin initialized successfully")
 end
@@ -42,14 +42,14 @@ function M.setup_core_autocommands()
     end,
   })
   
-  -- Window events for initial setup
-  vim.api.nvim_create_autocmd("WinEnter", {
+  -- Initial buffer setup only - providers handle their own specific events
+  -- BufReadPost ensures proper initialization without interfering with buffer switching
+  vim.api.nvim_create_autocmd("BufReadPost", {
     group = autocmd_group,
     callback = function(event)
-      local bufnr = vim.api.nvim_get_current_buf()
+      local bufnr = event.buf or vim.api.nvim_get_current_buf()
       if utils.is_valid_buffer(bufnr) then
-        -- Only trigger on window enter, not scroll
-        M.refresh_current_buffer()
+        executor.trigger_unified_update(bufnr)
       end
     end,
   })
@@ -69,8 +69,8 @@ function M.refresh_current_buffer()
   -- Clear existing lens data
   renderer.clear_buffer(bufnr)
   
-  -- Use the unified update mechanism to trigger all providers
-  providers.trigger_unified_update(bufnr)
+  -- Use the unified update mechanism to trigger all providers via executor
+  executor.trigger_unified_update(bufnr)
 end
 
 function M.enable()
@@ -83,8 +83,8 @@ function M.disable()
   
   debug.log_context("Core", "disabling lensline")
   
-  -- Cleanup provider resources (debounce timers and event listeners)
-  providers.cleanup()
+  -- Cleanup provider resources (debounce timers and event listeners) via executor
+  executor.cleanup()
   
   -- Restore LSP handlers
   config.restore_lsp_handlers()
