@@ -140,6 +140,7 @@ end
 function M.execute_provider(bufnr, provider_module, provider_config)
   local debug = require("lensline.debug")
   
+  debug.log_context("Performance", "PROVIDER EXECUTION START - " .. provider_module.name .. " for buffer " .. bufnr)
   debug.log_context("Providers", "executing provider " .. provider_module.name .. " for buffer " .. bufnr)
   
   if not utils.is_valid_buffer(bufnr) then
@@ -150,7 +151,9 @@ function M.execute_provider(bufnr, provider_module, provider_config)
   -- Find functions once for all providers
   local start_line = 1
   local end_line = vim.api.nvim_buf_line_count(bufnr)
+  debug.log_context("Performance", "CALLING FUNCTION DISCOVERY from provider " .. provider_module.name)
   local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
+  debug.log_context("Performance", "FUNCTION DISCOVERY COMPLETE for provider " .. provider_module.name .. " - found " .. (functions and #functions or 0) .. " functions")
   
   debug.log_context("Providers", "found " .. (functions and #functions or 0) .. " functions for provider " .. provider_module.name)
   

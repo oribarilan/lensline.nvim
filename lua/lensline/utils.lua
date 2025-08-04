@@ -7,6 +7,27 @@ local buffer_changedtick = {}
 local cache_access_order = {} -- Track access order for LRU eviction
 local MAX_CACHE_SIZE = 50 -- Limit cache to 50 buffers maximum
 
+-- LRU cache management functions (moved up to be available for use)
+local function update_access_order(bufnr)
+  -- Remove bufnr from current position if it exists
+  for i, cached_bufnr in ipairs(cache_access_order) do
+    if cached_bufnr == bufnr then
+      table.remove(cache_access_order, i)
+      break
+    end
+  end
+  -- Add to end (most recently used)
+  table.insert(cache_access_order, bufnr)
+end
+
+local function evict_lru_if_needed()
+  while #cache_access_order > MAX_CACHE_SIZE do
+    local lru_bufnr = table.remove(cache_access_order, 1) -- Remove least recently used
+    function_cache[lru_bufnr] = nil
+    buffer_changedtick[lru_bufnr] = nil
+  end
+end
+
 function M.debounce(fn, delay)
     local timer = vim.loop.new_timer()
     return function(...)
@@ -77,8 +98,12 @@ end
 
 -- Use LSP document symbols to find functions (most reliable approach)
 function M.find_functions_via_lsp(bufnr, start_line, end_line)
+  local debug = require("lensline.debug")
+  debug.log_context("Performance", "FUNCTION DISCOVERY CALLED for buffer " .. bufnr .. " (lines " .. start_line .. "-" .. end_line .. ")")
+  
   local clients = M.get_lsp_clients(bufnr)
   if not clients or #clients == 0 then
+    debug.log_context("Performance", "FUNCTION DISCOVERY SKIPPED - no LSP clients")
     return {}
   end
   
@@ -108,8 +133,19 @@ function M.find_functions_via_lsp(bufnr, start_line, end_line)
     textDocument = vim.lsp.util.make_text_document_params(bufnr)
   }
   
+  -- Add timing logs around the sync LSP call
+  local debug = require("lensline.debug")
+  local start_time = vim.loop.hrtime()
+  debug.log_context("Performance", "SYNC LSP CALL START - textDocument/documentSymbol for buffer " .. bufnr)
+  
   local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/documentSymbol", params, 1000)
+  
+  local end_time = vim.loop.hrtime()
+  local duration_ms = (end_time - start_time) / 1000000  -- Convert to milliseconds
+  debug.log_context("Performance", "SYNC LSP CALL END - duration: " .. string.format("%.2f", duration_ms) .. "ms")
+  
   if not ok or not results then
+    debug.log_context("Performance", "SYNC LSP CALL FAILED - ok: " .. tostring(ok) .. ", results: " .. tostring(results ~= nil))
     return {}
   end
   
@@ -331,27 +367,6 @@ function M.find_functions_generic(bufnr, start_line, end_line)
   end
   
   return functions
-end
-
--- LRU cache management functions
-local function update_access_order(bufnr)
-  -- Remove bufnr from current position if it exists
-  for i, cached_bufnr in ipairs(cache_access_order) do
-    if cached_bufnr == bufnr then
-      table.remove(cache_access_order, i)
-      break
-    end
-  end
-  -- Add to end (most recently used)
-  table.insert(cache_access_order, bufnr)
-end
-
-local function evict_lru_if_needed()
-  while #cache_access_order > MAX_CACHE_SIZE do
-    local lru_bufnr = table.remove(cache_access_order, 1) -- Remove least recently used
-    function_cache[lru_bufnr] = nil
-    buffer_changedtick[lru_bufnr] = nil
-  end
 end
 
 function M.clear_function_cache(bufnr)
