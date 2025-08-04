@@ -1,4 +1,4 @@
-local utils = require("lensline.utils")
+local lens_explorer = require("lensline.lens_explorer")
 
 -- Reference Count Provider
 -- Shows reference count for functions/methods using LSP
@@ -35,7 +35,7 @@ return {
     debug.log_context("LSP", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Get LSP clients for this buffer
-    local clients = utils.get_lsp_clients(bufnr)
+    local clients = lens_explorer.get_lsp_clients(bufnr)
     debug.log_context("LSP", "found " .. (clients and #clients or 0) .. " LSP clients")
     if not clients or #clients == 0 then
       debug.log_context("LSP", "no LSP clients available")
@@ -44,7 +44,7 @@ return {
     end
 
     -- Check if any LSP client supports references
-    if not utils.has_lsp_capability(bufnr, "textDocument/references") then
+    if not lens_explorer.has_lsp_capability(bufnr, "textDocument/references") then
       debug.log_context("LSP", "no LSP client supports textDocument/references")
       if callback then callback(nil) end
       return nil

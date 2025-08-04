@@ -1,7 +1,7 @@
 local config = require("lensline.config")
 local utils = require("lensline.utils")
 local renderer = require("lensline.renderer")
-local providers = require("lensline.providers")
+local executor = require("lensline.executor")
 local debug = require("lensline.debug")
 
 local M = {}
@@ -21,8 +21,8 @@ function M.initialize()
   -- Setup core autocommands for cleanup
   M.setup_core_autocommands()
   
-  -- Setup provider event listeners
-  providers.setup_event_listeners()
+  -- Setup provider event listeners via executor
+  executor.setup_event_listeners()
   
   debug.log_context("Core", "plugin initialized successfully")
 end
@@ -69,8 +69,8 @@ function M.refresh_current_buffer()
   -- Clear existing lens data
   renderer.clear_buffer(bufnr)
   
-  -- Use the unified update mechanism to trigger all providers
-  providers.trigger_unified_update(bufnr)
+  -- Use the unified update mechanism to trigger all providers via executor
+  executor.trigger_unified_update(bufnr)
 end
 
 function M.enable()
@@ -83,8 +83,8 @@ function M.disable()
   
   debug.log_context("Core", "disabling lensline")
   
-  -- Cleanup provider resources (debounce timers and event listeners)
-  providers.cleanup()
+  -- Cleanup provider resources (debounce timers and event listeners) via executor
+  executor.cleanup()
   
   -- Restore LSP handlers
   config.restore_lsp_handlers()
