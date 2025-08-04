@@ -38,7 +38,7 @@ lensline.nvim/
 │       ├── setup.lua          -- Setup logic, autocommands, and orchestration
 │       ├── renderer.lua       -- Virtual text rendering and extmark management
 │       ├── executor.lua       -- Provider execution and coordination
-│       ├── lens_explorer.lua  -- Function detection and treesitter integration
+│       ├── lens_explorer.lua  -- Function detection using LSP document symbols
 │       ├── debug.lua          -- Debug logging system
 │       ├── utils.lua          -- Shared helper functions (LSP, function detection)
 │       ├── blame_cache.lua    -- Git blame caching system
