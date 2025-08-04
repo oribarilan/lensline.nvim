@@ -130,13 +130,15 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
       limits = {
-        exclude = { /* see config.lua for extensive list of default patterns */ },
+        exclude = { 
+            -- see config.lua for extensive list of default patterns 
+        },
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
         max_lenses = 70,          -- skip rendering if too many lenses generated
       },
-      debounce_ms = 500,        -- unified debounce delay for all providers (in milliseconds)
-      debug_mode = false,       -- enable debug output for development
+      debounce_ms = 500,        -- unified debounce delay for all providers
+      debug_mode = false,       -- enable debug output for development, see CONTRIBUTE.md
     })
   end,
 }
