@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial changelog setup
+- Centralized lens discovery system to reduce repetitive work across providers
+- LRU cache for lens discovery to improve performance and reduce redundant computations
 
 ### Changed
 - Debug files now capped at 1.5 MB with automatic rotation for better log management
 - Unified debouncing system across all providers for consistent performance
 - Lens rendering optimized to only re-render when content actually changes
+- Function search made more reliable for both lens discovery and reference counting
 
 ### Fixed
 - `last_author` provider performance significantly improved with per-file caching
