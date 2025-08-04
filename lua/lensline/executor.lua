@@ -7,6 +7,9 @@ local M = {}
 -- Global debounce timer for unified provider updates
 local unified_debounce_timer = {}
 
+-- Track execution state to prevent cascading/recursive calls
+local execution_in_progress = {}
+
 -- Event listeners setup
 local event_listeners = {}
 
@@ -60,6 +63,13 @@ function M.trigger_unified_update(bufnr)
     return
   end
   
+  -- Prevent cascading/recursive executions
+  if execution_in_progress[bufnr] then
+    local debug = require("lensline.debug")
+    debug.log_context("Executor", "skipping unified update for buffer " .. bufnr .. " - execution already in progress")
+    return
+  end
+  
   -- Check limits before any provider execution
   local limits = require("lensline.limits")
   local should_skip, reason = limits.should_skip(bufnr)
@@ -76,13 +86,17 @@ function M.trigger_unified_update(bufnr)
   -- Cancel existing timer for this buffer
   if unified_debounce_timer[debounce_key] then
     unified_debounce_timer[debounce_key]:stop()
+    unified_debounce_timer[debounce_key]:close()
   end
   
   -- Create new debounced execution that triggers all providers
   unified_debounce_timer[debounce_key] = vim.loop.new_timer()
   unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
     vim.schedule(function()
-      M.execute_all_providers(bufnr)
+      -- Double-check execution state before proceeding
+      if not execution_in_progress[bufnr] then
+        M.execute_all_providers(bufnr)
+      end
     end)
   end)
 end
@@ -90,26 +104,51 @@ end
 -- Execute all enabled providers for a buffer
 function M.execute_all_providers(bufnr)
   local debug = require("lensline.debug")
-  debug.log_context("Executor", "executing all providers for buffer " .. bufnr)
   
-  local providers = require("lensline.providers")
-  local enabled_providers = providers.get_enabled_providers()
-  
-  -- PERFORMANCE FIX: Discover functions once for ALL providers using lens_explorer
-  local start_line = 1
-  local end_line = vim.api.nvim_buf_line_count(bufnr)
-  debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY START for buffer " .. bufnr)
-  local functions = lens_explorer.discover_functions(bufnr, start_line, end_line)
-  debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions")
-  
-  if not functions or #functions == 0 then
-    debug.log_context("Executor", "no functions found, skipping all providers")
+  -- Mark execution as in progress to prevent cascading calls
+  if execution_in_progress[bufnr] then
+    debug.log_context("Executor", "execution already in progress for buffer " .. bufnr .. ", skipping")
     return
   end
   
-  -- Pass the discovered functions to each provider
-  for name, provider_info in pairs(enabled_providers) do
-    M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
+  execution_in_progress[bufnr] = true
+  debug.log_context("Executor", "executing all providers for buffer " .. bufnr)
+  
+  -- Cleanup function to ensure execution state is always cleared
+  local function cleanup_execution()
+    execution_in_progress[bufnr] = nil
+  end
+  
+  -- Ensure cleanup happens even if there's an error
+  local success, err = pcall(function()
+    local providers = require("lensline.providers")
+    local enabled_providers = providers.get_enabled_providers()
+    
+    -- PERFORMANCE FIX: Discover functions once for ALL providers using lens_explorer
+    local start_line = 1
+    local end_line = vim.api.nvim_buf_line_count(bufnr)
+    debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY START for buffer " .. bufnr)
+    local functions = lens_explorer.discover_functions(bufnr, start_line, end_line)
+    debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions")
+    
+    if not functions or #functions == 0 then
+      debug.log_context("Executor", "no functions found, skipping all providers")
+      cleanup_execution()
+      return
+    end
+    
+    -- Pass the discovered functions to each provider
+    for name, provider_info in pairs(enabled_providers) do
+      M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
+    end
+    
+    -- Cleanup after all providers are triggered (not necessarily completed)
+    cleanup_execution()
+  end)
+  
+  if not success then
+    debug.log_context("Executor", "error during provider execution: " .. tostring(err), "ERROR")
+    cleanup_execution()
   end
 end
 
@@ -219,6 +258,9 @@ function M.cleanup_debounce_timers()
     end
   end
   unified_debounce_timer = {}
+  
+  -- Clear execution state tracking
+  execution_in_progress = {}
 end
 
 -- Cleanup function for event listeners

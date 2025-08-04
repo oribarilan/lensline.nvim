@@ -4,7 +4,7 @@
 
 return {
   name = "diag_summary",
-  event = { "DiagnosticChanged", "BufEnter" },
+  event = { "DiagnosticChanged", "BufReadPost" },  -- Changed from BufEnter to BufReadPost to avoid cascade loops
   handler = function(bufnr, func_info, callback)
     -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")
