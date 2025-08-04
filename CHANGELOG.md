@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.1.3] - 2025-01-04
+
+### Added
 - Initial changelog setup
 - Centralized lens discovery system to reduce repetitive work across providers
 - LRU cache for lens discovery to improve performance and reduce redundant computations

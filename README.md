@@ -53,7 +53,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.2', -- or: branch = '0.1.x' 
+  tag = '0.1.3', -- or: branch = '0.1.x'
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -67,7 +67,7 @@ Or with any other package manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.2' } 
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.3' }
 ``` 
 
 or
@@ -84,7 +84,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.2', -- or: branch = '0.1.x'
+    tag = '0.1.3', -- or: branch = '0.1.x'
 }
 ```
 </details>
@@ -286,14 +286,29 @@ lensline.disable()
 lensline.toggle()
 ```
 
-## Potential Features 
+## Roadmap
 
-* [ ] Clickable lenses with `vim.ui.select` actions
-* [ ] Test coverage provider
-* [ ] Class level lens
-* [ ] Diagnostics provider (errors/warnings per function)
-* [ ] References - some LSP count self, some don't, address this
-* [ ] Configuration for enabled or disabled file names/extensions
+Currently we are focused on making out first v1.0.0 release, which focuses on core functionality and performance.
+
+Here we are listing the core features plan. For a more detailed history of changes, please see the [CHANGELOG.md](CHANGELOG.md).
+
+### v0.1.x
+- [x] Core lensline plugin with modular provider system
+- [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diag_summary` (beta)
+- [x] Customizable styling and layout options
+- [x] Efficient sync function discovery
+- [ ] View port based rendering - only render lenses in proximity to the view port
+- [ ] Async function discovery
+
+### v0.2.x
+- [ ] Graduate beta providers (`complexity`, `diag_summary`)
+- [ ] Streamlined provider API
+
+### Potential Features (post v1.0.0)
+
+- [ ] Test coverage provider
+- [ ] Class level lens
+- [ ] References - some LSP count self, some don't, address this
 
 ## Contribute
 
@@ -301,8 +316,10 @@ PRs, issues, and suggestions welcome.
 
 For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
-## Thanks
+## Thanks to
 
-- Thanks to [lazy.nvim](https://github.com/folke/lazy.nvim) & [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for inspiration on a (hopefully) good README.md
+- [lazy.nvim](https://github.com/folke/lazy.nvim) & [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for inspiration on a (hopefully) good README.md
 
-- Thanks to whoever invented the code-lens feature
+- The inventor of the code-lens feature
+
+- [flaticon](https://www.flaticon.com/) for the ape icon
