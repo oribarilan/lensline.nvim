@@ -73,7 +73,10 @@ return {
       local ref_count = 0
       
       -- Single synchronous request only (no fallbacks to avoid blocking)
-      local results = vim.lsp.buf_request_sync(bufnr, "textDocument/references", params, 1000)
+      local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/references", params, 1000)
+      if not ok then
+        results = nil
+      end
       
       if results then
         for _, result in pairs(results) do

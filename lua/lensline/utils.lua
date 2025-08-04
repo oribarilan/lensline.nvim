@@ -84,8 +84,8 @@ function M.find_functions_via_lsp(bufnr, start_line, end_line)
     textDocument = vim.lsp.util.make_text_document_params(bufnr)
   }
   
-  local results = vim.lsp.buf_request_sync(bufnr, "textDocument/documentSymbol", params, 2000)
-  if not results then
+  local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/documentSymbol", params, 2000)
+  if not ok or not results then
     return {}
   end
   
