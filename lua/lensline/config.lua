@@ -14,7 +14,8 @@ M.defaults = {
     },
     {
       name = "last_author",
-      enabled = true,    -- disable by default (git operations can be slow)
+      enabled = true,    -- enable by default with caching optimization
+      cache_max_files = 50,  -- maximum number of files to cache blame data for
     },
     {
       name = "complexity",
@@ -72,6 +73,7 @@ M.defaults = {
     max_lines = 1000,
     max_lenses = 70,
   },
+  debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   debug_mode = false,
 }
 

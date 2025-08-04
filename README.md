@@ -109,16 +109,17 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         {
           name = "diag_summary",
-          enabled = false,    -- disabled by default - enable explicitly to use
+          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
           min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
         {
           name = "last_author",
-          enabled = true,    -- enabled by default (git operations can be slow)
+          enabled = true,         -- enabled by default with caching optimization
+          cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
         },
         {
           name = "complexity",
-          enabled = false,    -- disabled by default - enable explicitly to use
+          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
           min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
         },
       },
@@ -134,6 +135,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         max_lines = 1000,          -- process only first N lines of large files
         max_lenses = 70,          -- skip rendering if too many lenses generated
       },
+      debounce_ms = 500,        -- unified debounce delay for all providers (in milliseconds)
       debug_mode = false,       -- enable debug output for development
     })
   end,
@@ -178,7 +180,9 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>diag_summary Provider</strong> - Diagnostic aggregation</summary>
+<summary><strong>diag_summary Provider (BETA)</strong> - Diagnostic aggregation</summary>
+
+> **⚠️ Beta Feature**: This provider is currently in beta. While functional, it may have edge cases or performance considerations. Feedback and bug reports are welcome!
 
 **Provider Name**: `diag_summary`
 
@@ -208,7 +212,9 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
+<summary><strong>complexity Provider (BETA)</strong> - Code complexity analysis</summary>
+
+> **⚠️ Beta Feature**: This provider is currently in beta. While the complexity analysis uses research-based heuristics, it may have edge cases, performance considerations, and may need refinement for different coding styles and languages. Feedback and bug reports are welcome!
 
 **Provider Name**: `complexity`
 

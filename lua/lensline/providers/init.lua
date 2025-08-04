@@ -11,8 +11,8 @@ M.available_providers = {
   complexity = require("lensline.providers.complexity"),
 }
 
--- Global debounce timers for each provider
-local debounce_timers = {}
+-- Global debounce timer for unified provider updates
+local unified_debounce_timer = {}
 
 -- Event listeners setup
 local event_listeners = {}
@@ -83,16 +83,15 @@ function M.setup_event_listeners()
     vim.api.nvim_create_autocmd(event, {
       group = group_id,
       callback = function(args)
-        for _, provider_info in ipairs(providers) do
-          M.trigger_provider(args.buf, provider_info.name, provider_info.provider, provider_info.config)
-        end
+        -- Trigger unified update for all providers instead of individual triggers
+        M.trigger_unified_update(args.buf)
       end,
     })
   end
 end
 
--- Trigger a specific provider with debouncing
-function M.trigger_provider(bufnr, provider_name, provider_module, provider_config)
+-- Trigger unified update for all enabled providers with unified debouncing
+function M.trigger_unified_update(bufnr)
   if not utils.is_valid_buffer(bufnr) then
     return
   end
@@ -102,25 +101,39 @@ function M.trigger_provider(bufnr, provider_name, provider_module, provider_conf
   local should_skip, reason = limits.should_skip(bufnr)
   if should_skip then
     local debug = require("lensline.debug")
-    debug.log_context("Providers", "skipping provider " .. provider_name .. " for buffer " .. bufnr .. ": " .. (reason or "unknown"))
+    debug.log_context("Providers", "skipping unified update for buffer " .. bufnr .. ": " .. (reason or "unknown"))
     return
   end
   
-  local debounce_key = provider_name .. "_" .. bufnr
-  local debounce_delay = provider_module.debounce or 100
+  local debounce_key = "unified_" .. bufnr
+  local config = require("lensline.config")
+  local opts = config.get()
+  local debounce_delay = opts.debounce_ms or 500
   
-  -- Cancel existing timer
-  if debounce_timers[debounce_key] then
-    debounce_timers[debounce_key]:stop()
+  -- Cancel existing timer for this buffer
+  if unified_debounce_timer[debounce_key] then
+    unified_debounce_timer[debounce_key]:stop()
   end
   
-  -- Create new debounced execution
-  debounce_timers[debounce_key] = vim.loop.new_timer()
-  debounce_timers[debounce_key]:start(debounce_delay, 0, function()
+  -- Create new debounced execution that triggers all providers
+  unified_debounce_timer[debounce_key] = vim.loop.new_timer()
+  unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
     vim.schedule(function()
-      M.execute_provider(bufnr, provider_module, provider_config)
+      M.execute_all_providers(bufnr)
     end)
   end)
+end
+
+-- Execute all enabled providers for a buffer
+function M.execute_all_providers(bufnr)
+  local debug = require("lensline.debug")
+  debug.log_context("Providers", "executing all providers for buffer " .. bufnr)
+  
+  local enabled_providers = M.get_enabled_providers()
+  
+  for name, provider_info in pairs(enabled_providers) do
+    M.execute_provider(bufnr, provider_info.module, provider_info.config)
+  end
 end
 
 -- Execute a provider and render results
@@ -207,7 +220,9 @@ function M.execute_provider(bufnr, provider_module, provider_config)
   for _, func_info in ipairs(functions) do
     debug.log_context("Providers", "calling provider " .. provider_module.name .. " for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
+    debug.log_context("Providers", "provider started " .. provider_module.name)
     local success, result = pcall(provider_module.handler, bufnr, func_info, handle_function_result)
+    debug.log_context("Providers", "provider finished " .. provider_module.name)
     
     if success then
       -- If provider returns result synchronously, handle it immediately
@@ -297,7 +312,10 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
   
   -- Call provider for each function synchronously
   for _, func_info in ipairs(functions) do
+    local debug = require("lensline.debug")
+    debug.log_context("Providers", "provider started " .. provider_module.name)
     local success, result = pcall(provider_module.handler, bufnr, func_info)
+    debug.log_context("Providers", "provider finished " .. provider_module.name)
     if success and result then
       table.insert(lens_items, result)
     end
@@ -306,19 +324,19 @@ function M.execute_provider_sync(bufnr, provider_module, provider_config)
   return lens_items
 end
 
--- Cleanup function for debounce timers
+-- Cleanup function for unified debounce timers
 function M.cleanup_debounce_timers()
   local debug = require("lensline.debug")
-  debug.log_context("Providers", "cleaning up debounce timers")
+  debug.log_context("Providers", "cleaning up unified debounce timers")
   
-  for key, timer in pairs(debounce_timers) do
+  for key, timer in pairs(unified_debounce_timer) do
     if timer and not timer:is_closing() then
       timer:stop()
       timer:close()
       debug.log_context("Providers", "cleaned up timer: " .. key)
     end
   end
-  debounce_timers = {}
+  unified_debounce_timer = {}
 end
 
 -- Cleanup function for event listeners

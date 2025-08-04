@@ -5,7 +5,6 @@
 return {
   name = "diag_summary",
   event = { "DiagnosticChanged", "BufEnter" },
-  debounce = 100, -- Lower debounce since diagnostics are push-based
   handler = function(bufnr, func_info, callback)
     -- Early exit guard: check if this provider is disabled
     local config = require("lensline.config")

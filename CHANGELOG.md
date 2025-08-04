@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial changelog setup
+
+### Changed
+- Debug files now capped at 1.5 MB with automatic rotation for better log management
+- Unified debouncing system across all providers for consistent performance
+- Lens rendering optimized to only re-render when content actually changes
+
+### Fixed
+- `last_author` provider performance significantly improved with per-file caching
+- `last_author` provider now only triggers for modified files, reducing unnecessary git operations
+
+### Removed
+
+## [v0.1.2] - 2024-12-15
+
+### Added
+- Core lensline plugin with modular provider system
+- **ref_count** provider - displays LSP reference counts above functions
+- **last_author** provider - shows git blame information for function authors
+- **complexity** provider (beta) - analyzes and displays function complexity metrics
+- **diag_summary** provider (beta) - summarizes LSP diagnostics for functions
+- Customizable styling and layout options
+- Automatic function detection using treesitter
+- Modular design allowing easy addition of custom providers
+- Debug logging system with automatic log rotation
+- Limits on provider execution time to prevent performance issues

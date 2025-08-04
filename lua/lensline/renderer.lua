@@ -65,10 +65,23 @@ function M.render_lens_item(bufnr, line, text)
   -- Add the lens text
   table.insert(virt_text, { text, highlight })
   
-  vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line - 1, 0, {
+  -- Check if extmark already exists with the same content to avoid redundant redraws
+  local existing = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, {line - 1, 0}, {line - 1, 0}, { details = true })[1]
+  if existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text}) then
+    return  -- No change, skip re-render
+  end
+  
+  local extmark_opts = {
     virt_lines = { virt_text },
     virt_lines_above = true,
-  })
+  }
+  
+  -- If there's an existing extmark, use its ID to replace it
+  if existing then
+    extmark_opts.id = existing[1]
+  end
+  
+  vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line - 1, 0, extmark_opts)
 end
 
 -- Store lens data from different providers
@@ -134,14 +147,21 @@ function M.render_combined_lenses(bufnr)
   
   debug.log_context("Renderer", "provider lens data: " .. vim.inspect(M.provider_lens_data[bufnr]))
   
-  -- Clear all previous renderings (only extmarks, not lens data)
-  debug.log_context("Renderer", "clearing old extmarks")
-  M.clear_buffer(bufnr)
-  
   local opts = config.get()
   local highlight = opts.style.highlight or "Comment"
   local prefix = opts.style.prefix or ""
   local separator = opts.style.separator or " • "
+  
+  -- Get all existing extmarks before processing
+  local existing_extmarks = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, 0, -1, { details = true })
+  local existing_by_line = {}
+  for _, mark in ipairs(existing_extmarks) do
+    local line = mark[2]
+    existing_by_line[line] = mark
+  end
+  
+  -- Track which lines we're going to render
+  local lines_to_render = {}
   
   -- Combine all lens items from all providers by line, respecting config order
   local combined_lines = {}
@@ -187,6 +207,7 @@ function M.render_combined_lenses(bufnr)
   debug.log_context("Renderer", "rendering " .. vim.tbl_count(combined_lines) .. " lines")
   for line, texts in pairs(combined_lines) do
     debug.log_context("Renderer", "rendering line " .. line .. " with texts: " .. vim.inspect(texts))
+    lines_to_render[line - 1] = true  -- Track 0-based line numbers
     
     local line_content = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
     local leading_whitespace = line_content:match("^%s*") or ""
@@ -209,15 +230,38 @@ function M.render_combined_lenses(bufnr)
     
     debug.log_context("Renderer", "setting extmark for line " .. line .. " with virt_text: " .. vim.inspect(virt_text))
     
-    local ok, err = pcall(vim.api.nvim_buf_set_extmark, bufnr, M.namespace, line - 1, 0, {
-      virt_lines = { virt_text },
-      virt_lines_above = true,
-    })
-    
-    if not ok then
-      debug.log_context("Renderer", "failed to set extmark: " .. tostring(err), "ERROR")
+    -- Check if extmark already exists with the same content to avoid redundant redraws
+    local existing = existing_by_line[line - 1]
+    if existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text}) then
+      debug.log_context("Renderer", "skipping redraw for line " .. line .. " - content unchanged")
+      -- Continue to next line instead of redrawing
     else
-      debug.log_context("Renderer", "successfully set extmark for line " .. line)
+      -- If there's an existing extmark, we need to pass its ID to replace it
+      local extmark_opts = {
+        virt_lines = { virt_text },
+        virt_lines_above = true,
+      }
+      
+      if existing then
+        -- Use the existing extmark ID to replace it instead of creating a new one
+        extmark_opts.id = existing[1]
+      end
+      
+      local ok, err = pcall(vim.api.nvim_buf_set_extmark, bufnr, M.namespace, line - 1, 0, extmark_opts)
+      
+      if not ok then
+        debug.log_context("Renderer", "failed to set extmark: " .. tostring(err), "ERROR")
+      else
+        debug.log_context("Renderer", "successfully set extmark for line " .. line)
+      end
+    end
+  end
+  
+  -- Clear extmarks for lines that no longer have lens data
+  for line, mark in pairs(existing_by_line) do
+    if not lines_to_render[line] then
+      debug.log_context("Renderer", "clearing extmark for line " .. (line + 1) .. " - no longer has lens data")
+      vim.api.nvim_buf_del_extmark(bufnr, M.namespace, mark[1])
     end
   end
 end
@@ -264,10 +308,23 @@ function M.render_buffer_lenses(bufnr, lens_data)
     local combined_text = table.concat(texts, separator)
     table.insert(virt_text, { combined_text, highlight })
     
-    vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line - 1, 0, {
-      virt_lines = { virt_text },
-      virt_lines_above = true,
-    })
+    -- Check if extmark already exists with the same content to avoid redundant redraws
+    local existing = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, {line - 1, 0}, {line - 1, 0}, { details = true })[1]
+    if existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text}) then
+      -- Skip redraw - content unchanged
+    else
+      local extmark_opts = {
+        virt_lines = { virt_text },
+        virt_lines_above = true,
+      }
+      
+      -- If there's an existing extmark, use its ID to replace it
+      if existing then
+        extmark_opts.id = existing[1]
+      end
+      
+      vim.api.nvim_buf_set_extmark(bufnr, M.namespace, line - 1, 0, extmark_opts)
+    end
   end
 end
 

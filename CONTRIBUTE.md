@@ -45,13 +45,55 @@ lensline.nvim/
 │           └── last_author.lua -- Git blame provider
 ├── README.md                -- User documentation
 ├── CONTRIBUTE.md            -- This file
+├── CHANGELOG.md             -- Release notes and version history
 ├── LICENSE                  -- MIT license
 └── TODO.md                  -- Development roadmap
 ```
 
+## Debug System
+
+When `debug_mode = true` is set in your config:
+
+- **`:LenslineDebug` command**: Automatically created to open the current debug log file in a new tab
+- **Log rotation**: Debug logs are automatically rotated when they exceed 500KB, keeping up to 3 files (main + 2 rotated) per session
+- **Session isolation**: Each Neovim session creates separate debug files, with old sessions cleaned up on startup
+- **Performance**: When `debug_mode = false` (default), no debug files are created and logging has zero performance impact
+
+Debug logs contain detailed information about provider execution, LSP interactions, and system events - useful for troubleshooting issues or understanding plugin behavior.
+
+## Changelog Maintenance
+
+We maintain a [`CHANGELOG.md`](CHANGELOG.md) file to track all user-facing changes. This helps users understand what's new, changed, or fixed in each release.
+
+### Adding Changes During Development
+
+When making user-facing changes, add them to the `## [Unreleased]` section at the top of [`CHANGELOG.md`](CHANGELOG.md):
+
+- **Added** — for new features
+- **Changed** — for updates or improvements
+- **Fixed** — for bug fixes
+- **Removed** — for anything deprecated or dropped
+
+Use bullet points and keep entries short and clear. Only include **user-facing** changes (not internal refactoring, formatting, etc.)
+
+Example:
+```markdown
+## [Unreleased]
+### Added
+- Support for multiple git providers
+- New `complexity` provider for function complexity analysis
+
+### Fixed
+- Crash on startup if config was missing
+- Memory leak in blame cache system
+```
+
 ## Release Process
 
-1. **Update Version**: Increment the version in `README.md` in the `install` section.
-2. **Merge**: Merge changes into the main branch.
-3. **Merge to release branch**: Merge the main branch into the `release/0.1.x` branch.
-4. **Tag Release**: Create a new tag for the release (e.g., `0.1.0`) on the `release/0.1.x` branch.
+1. **Update Changelog**: Rename the `[Unreleased]` section to the version you're releasing
+   Example: `## [Unreleased]` → `## [v0.1.2] - 2025-08-03`
+2. **Create fresh Unreleased section**: Add a new empty `[Unreleased]` section at the top for future changes
+3. **Update Version**: Increment the version in `README.md` in the `install` section
+4. **Merge**: Merge changes into the main branch
+5. **Merge to release branch**: Merge the main branch into the `release/0.1.x` branch
+6. **Tag Release**: Create a new tag for the release (e.g., `v0.1.2`) on the `release/0.1.x` branch
