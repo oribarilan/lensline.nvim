@@ -42,21 +42,13 @@ function M.setup_core_autocommands()
     end,
   })
   
-  -- Initial buffer setup - only when actually needed
-  -- Removed aggressive WinEnter/BufEnter that was causing infinite loops
-  -- The providers themselves already handle the necessary events:
-  -- - last_author: BufRead, BufWritePost
-  -- - ref_count: LspAttach, BufWritePost
-  -- - diag_summary: DiagnosticChanged, BufEnter
-  -- - complexity: BufWritePost, TextChanged
-  --
-  -- We only need to handle the initial case when a buffer is first loaded
+  -- Initial buffer setup only - providers handle their own specific events
+  -- BufReadPost ensures proper initialization without interfering with buffer switching
   vim.api.nvim_create_autocmd("BufReadPost", {
     group = autocmd_group,
     callback = function(event)
       local bufnr = event.buf or vim.api.nvim_get_current_buf()
       if utils.is_valid_buffer(bufnr) then
-        -- Use the debounced executor for initial setup
         executor.trigger_unified_update(bufnr)
       end
     end,

@@ -63,7 +63,7 @@ function M.trigger_unified_update(bufnr)
     return
   end
   
-  -- Prevent cascading/recursive executions
+  -- Prevent recursive executions during active provider runs
   if execution_in_progress[bufnr] then
     local debug = require("lensline.debug")
     debug.log_context("Executor", "skipping unified update for buffer " .. bufnr .. " - execution already in progress")
@@ -83,7 +83,7 @@ function M.trigger_unified_update(bufnr)
   local opts = config.get()
   local debounce_delay = opts.debounce_ms or 500
   
-  -- Cancel existing timer for this buffer
+  -- Cancel existing timer to prevent multiple debounced calls
   if unified_debounce_timer[debounce_key] then
     unified_debounce_timer[debounce_key]:stop()
     unified_debounce_timer[debounce_key]:close()
@@ -93,7 +93,7 @@ function M.trigger_unified_update(bufnr)
   unified_debounce_timer[debounce_key] = vim.loop.new_timer()
   unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
     vim.schedule(function()
-      -- Double-check execution state before proceeding
+      -- Verify execution state hasn't changed during debounce delay
       if not execution_in_progress[bufnr] then
         M.execute_all_providers(bufnr)
       end
@@ -105,7 +105,7 @@ end
 function M.execute_all_providers(bufnr)
   local debug = require("lensline.debug")
   
-  -- Mark execution as in progress to prevent cascading calls
+  -- Track execution state to prevent recursive provider calls
   if execution_in_progress[bufnr] then
     debug.log_context("Executor", "execution already in progress for buffer " .. bufnr .. ", skipping")
     return
@@ -114,12 +114,12 @@ function M.execute_all_providers(bufnr)
   execution_in_progress[bufnr] = true
   debug.log_context("Executor", "executing all providers for buffer " .. bufnr)
   
-  -- Cleanup function to ensure execution state is always cleared
+  -- Ensure execution state is cleared regardless of success/failure
   local function cleanup_execution()
     execution_in_progress[bufnr] = nil
   end
   
-  -- Ensure cleanup happens even if there's an error
+  -- Wrap execution in pcall to guarantee cleanup
   local success, err = pcall(function()
     local providers = require("lensline.providers")
     local enabled_providers = providers.get_enabled_providers()
@@ -142,7 +142,7 @@ function M.execute_all_providers(bufnr)
       M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
     end
     
-    -- Cleanup after all providers are triggered (not necessarily completed)
+    -- Clear execution state after triggering all providers
     cleanup_execution()
   end)
   
