@@ -131,16 +131,31 @@ function M.execute_all_providers(bufnr)
   
   local enabled_providers = M.get_enabled_providers()
   
+  -- PERFORMANCE FIX: Discover functions once for ALL providers
+  local start_line = 1
+  local end_line = vim.api.nvim_buf_line_count(bufnr)
+  debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY START for buffer " .. bufnr)
+  local utils = require("lensline.utils")
+  local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
+  debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions")
+  
+  if not functions or #functions == 0 then
+    debug.log_context("Providers", "no functions found, skipping all providers")
+    return
+  end
+  
+  -- Pass the discovered functions to each provider
   for name, provider_info in pairs(enabled_providers) do
-    M.execute_provider(bufnr, provider_info.module, provider_info.config)
+    M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
   end
 end
 
--- Execute a provider and render results
+-- Execute a provider and render results (LEGACY VERSION - still used by some paths)
 function M.execute_provider(bufnr, provider_module, provider_config)
   local debug = require("lensline.debug")
+  local utils = require("lensline.utils")
   
-  debug.log_context("Performance", "PROVIDER EXECUTION START - " .. provider_module.name .. " for buffer " .. bufnr)
+  debug.log_context("Performance", "PROVIDER EXECUTION START - " .. provider_module.name .. " for buffer " .. bufnr .. " (legacy with individual discovery)")
   debug.log_context("Providers", "executing provider " .. provider_module.name .. " for buffer " .. bufnr)
   
   if not utils.is_valid_buffer(bufnr) then
@@ -148,10 +163,10 @@ function M.execute_provider(bufnr, provider_module, provider_config)
     return
   end
   
-  -- Find functions once for all providers
+  -- Find functions individually (legacy path)
   local start_line = 1
   local end_line = vim.api.nvim_buf_line_count(bufnr)
-  debug.log_context("Performance", "CALLING FUNCTION DISCOVERY from provider " .. provider_module.name)
+  debug.log_context("Performance", "CALLING FUNCTION DISCOVERY from provider " .. provider_module.name .. " (legacy)")
   local functions = utils.find_functions_in_range(bufnr, start_line, end_line)
   debug.log_context("Performance", "FUNCTION DISCOVERY COMPLETE for provider " .. provider_module.name .. " - found " .. (functions and #functions or 0) .. " functions")
   
@@ -161,6 +176,25 @@ function M.execute_provider(bufnr, provider_module, provider_config)
     debug.log_context("Providers", "no functions found, skipping provider " .. provider_module.name)
     return
   end
+  
+  -- Use the new optimized function
+  M.execute_provider_with_functions(bufnr, provider_module, provider_config, functions)
+end
+
+-- Execute a provider with pre-discovered functions (NEW OPTIMIZED VERSION)
+function M.execute_provider_with_functions(bufnr, provider_module, provider_config, functions)
+  local debug = require("lensline.debug")
+  local utils = require("lensline.utils")
+  
+  debug.log_context("Performance", "PROVIDER EXECUTION START - " .. provider_module.name .. " for buffer " .. bufnr .. " (with pre-discovered functions)")
+  debug.log_context("Providers", "executing provider " .. provider_module.name .. " for buffer " .. bufnr)
+  
+  if not utils.is_valid_buffer(bufnr) then
+    debug.log_context("Providers", "buffer " .. bufnr .. " is not valid", "WARN")
+    return
+  end
+  
+  debug.log_context("Providers", "using " .. #functions .. " pre-discovered functions for provider " .. provider_module.name)
   
   local lens_items = {}
   local pending_functions = #functions
