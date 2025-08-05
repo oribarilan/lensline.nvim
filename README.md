@@ -297,8 +297,8 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diag_summary` (beta)
 - [x] Customizable styling and layout options
 - [x] Efficient sync function discovery
-- [ ] View port based rendering - only render lenses in proximity to the view port
 - [ ] Async function discovery
+- [ ] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
 
 ### v0.2.x
 - [ ] Graduate beta providers (`complexity`, `diag_summary`)

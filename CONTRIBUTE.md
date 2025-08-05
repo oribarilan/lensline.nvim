@@ -57,6 +57,14 @@ lensline.nvim/
 └── .gitignore                 -- Git ignore patterns
 ```
 
+## Performance Architecture
+
+### Async Function Discovery
+Function detection uses asynchronous LSP calls (`vim.lsp.buf_request`) to prevent UI blocking during file operations. The system employs a stale-first rendering strategy: cached function data renders immediately for responsive user feedback, while fresh LSP data updates in the background. The nature of this design gurantees a self-healing mechanism.
+
+### Efficient Rendering
+The renderer uses batched extmark operations and incremental updates to minimize API overhead. Only changed content triggers re-rendering, and all extmark modifications are grouped into single operations for optimal performance.
+
 ## Debug System
 
 When `debug_mode = true` is set in your config:
