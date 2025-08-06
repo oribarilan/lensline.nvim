@@ -52,7 +52,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.3', -- or: branch = 'release/0.1.x'
+  tag = '0.1.4', -- or: branch = 'release/0.1.x'
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -66,7 +66,7 @@ Or with any other package manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.3' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.4' }
 ``` 
 
 or
@@ -83,7 +83,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.3', -- or: branch = 'release/0.1.x'
+    tag = '0.1.4', -- or: branch = 'release/0.1.x'
 }
 ```
 </details>

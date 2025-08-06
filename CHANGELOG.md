@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.1.4] - 2025-08-06
+
+### Added
 - Anonymous function filtering: Lenses now only appear on named functions, filtering out anonymous functions, lambdas, and callbacks across many common languages (Lua, JavaScript, TypeScript, Python, Go, Rust, C, C++, C#, Java, Ruby, PHP, Kotlin, Swift)
 
 ### Changed
