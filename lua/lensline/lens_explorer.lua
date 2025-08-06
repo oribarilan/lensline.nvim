@@ -282,14 +282,13 @@ local function is_named_function(symbol)
     return false
   end
   
-  -- Skip Lua-style anonymous functions
-  if symbol.name:match("^function%(") then
-    return false
-  end
-  
-  -- Skip generic names
+  -- Skip generic names that indicate anonymous functions
   local lower_name = symbol.name:lower()
-  if lower_name:match("^anonymous$") or lower_name:match("^lambda$") then
+  if lower_name == "function" or
+     lower_name == "lambda" or
+     lower_name == "anonymous" or
+     symbol.name:match("^function%(") or    -- Lua-style "function(" pattern
+     symbol.name:match("^vim%.") then       -- Skip Neovim API wrappers
     return false
   end
   
