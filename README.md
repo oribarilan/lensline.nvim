@@ -23,20 +23,19 @@
 </div>
 
 # What is lensline?
-A lightweight plugin that displays fully customizeable contextual information about functions. 
+A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
 ![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
 
 ## Why use lensline?
 
-- **🔍 Glanceable insights**: See meaningful context (like refs, authorship, code complexity, diagnostics and more) directly above your functions without leaving the buffer
-- **🧘 Zero-interaction UX**: No toggles, no keystrokes. Info appears automatically as you scroll and code
-- **🧩 Modular & customizable**: Every lens is independent and pluggable, with full control over layout, styling, and behavior
-- **🥷 Minimal and unobtrusive**: Designed to blend into your editing flow without stealing focus. Distraction-free.
+- **🔍 Glanceable insights**: Instantly see relevant context such as references, git authorship, and complexity, shown right above the function you’re working on.
+- **🧘 Seamless & distraction-free**: Lenses appear automatically as you code, blending into your workflow without stealing focus or requiring interaction.
+- **🧩 Modular & customizable**: Lens attributes are independent and configurable. Choose which ones to use, arrange them how you like, and customize their appearance, or define your own.
 
 ## Install
 
-It is suggested to either use the latest release tag or the release branch `release/0.1.x`. (which will contain the latest matching version).
+We recommend using the latest tagged release (`tag = '0.1.x'`) or the `release/0.1.x` branch.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -53,7 +52,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.3', -- or: branch = '0.1.x'
+  tag = '0.1.3', -- or: branch = 'release/0.1.x'
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -73,7 +72,7 @@ Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.3' }
 or
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
+Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.1.x' }
 ```
 
 </details>
@@ -84,7 +83,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': '0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.3', -- or: branch = '0.1.x'
+    tag = '0.1.3', -- or: branch = 'release/0.1.x'
 }
 ```
 </details>
@@ -297,8 +296,8 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diag_summary` (beta)
 - [x] Customizable styling and layout options
 - [x] Efficient sync function discovery
-- [ ] View port based rendering - only render lenses in proximity to the view port
-- [ ] Async function discovery
+- [x] Async function discovery
+- [x] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
 
 ### v0.2.x
 - [ ] Graduate beta providers (`complexity`, `diag_summary`)

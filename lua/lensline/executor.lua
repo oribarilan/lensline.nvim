@@ -101,6 +101,28 @@ function M.trigger_unified_update(bufnr)
   end)
 end
 
+-- Helper function to get stale cache data for immediate rendering
+function M.get_stale_cache_if_available(bufnr)
+  local debug = require("lensline.debug")
+  
+  -- Access lens_explorer's cache directly for stale data
+  -- This allows showing previous function data immediately while async refresh happens
+  local lens_explorer = require("lensline.lens_explorer")
+  
+  -- Try to get any cached functions for this buffer (even if changedtick doesn't match)
+  local function_cache = lens_explorer.function_cache or {}
+  local cached_functions = function_cache[bufnr]
+  
+  if cached_functions and #cached_functions > 0 then
+    local current_changedtick = vim.api.nvim_buf_get_changedtick(bufnr)
+    debug.log_context("Performance", "STALE CACHE CHECK - buffer " .. bufnr .. " has " .. #cached_functions .. " cached functions (current changedtick: " .. current_changedtick .. ")")
+    return cached_functions
+  else
+    debug.log_context("Performance", "STALE CACHE CHECK - buffer " .. bufnr .. " has no cached functions available")
+    return nil
+  end
+end
+
 -- Execute all enabled providers for a buffer
 function M.execute_all_providers(bufnr)
   local debug = require("lensline.debug")
@@ -112,7 +134,9 @@ function M.execute_all_providers(bufnr)
   end
   
   execution_in_progress[bufnr] = true
+  local total_execution_start_time = vim.loop.hrtime()
   debug.log_context("Executor", "executing all providers for buffer " .. bufnr)
+  debug.log_context("Performance", "=== ASYNC EXECUTION FLOW START ===")
   
   -- Ensure execution state is cleared regardless of success/failure
   local function cleanup_execution()
@@ -124,26 +148,57 @@ function M.execute_all_providers(bufnr)
     local providers = require("lensline.providers")
     local enabled_providers = providers.get_enabled_providers()
     
-    -- PERFORMANCE FIX: Discover functions once for ALL providers using lens_explorer
+    -- PERFORMANCE FIX: Discover functions once for ALL providers using async lens_explorer
     local start_line = 1
     local end_line = vim.api.nvim_buf_line_count(bufnr)
-    debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY START for buffer " .. bufnr)
-    local functions = lens_explorer.discover_functions(bufnr, start_line, end_line)
-    debug.log_context("Performance", "UNIFIED FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions")
     
-    if not functions or #functions == 0 then
-      debug.log_context("Executor", "no functions found, skipping all providers")
+    -- Try to show stale cache immediately for responsive UX
+    local stale_start_time = vim.loop.hrtime()
+    local stale_functions = M.get_stale_cache_if_available(bufnr)
+    if stale_functions and #stale_functions > 0 then
+      debug.log_context("Performance", "STALE CACHE RENDER START - found " .. #stale_functions .. " functions for immediate display")
+      -- Execute providers with stale data for immediate feedback
+      for name, provider_info in pairs(enabled_providers) do
+        M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, stale_functions)
+      end
+      local stale_end_time = vim.loop.hrtime()
+      local stale_duration_ms = (stale_end_time - stale_start_time) / 1000000
+      debug.log_context("Performance", "STALE CACHE RENDER COMPLETE - duration: " .. string.format("%.2f", stale_duration_ms) .. "ms")
+    else
+      debug.log_context("Performance", "NO STALE CACHE AVAILABLE - will wait for async result")
+    end
+    
+    local async_start_time = vim.loop.hrtime()
+    debug.log_context("Performance", "ASYNC FUNCTION DISCOVERY START for buffer " .. bufnr)
+    lens_explorer.discover_functions_async(bufnr, start_line, end_line, function(functions)
+      local async_end_time = vim.loop.hrtime()
+      local async_duration_ms = (async_end_time - async_start_time) / 1000000
+      debug.log_context("Performance", "ASYNC FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions, total async duration: " .. string.format("%.2f", async_duration_ms) .. "ms")
+      
+      if not functions or #functions == 0 then
+        debug.log_context("Executor", "no functions found in async result, skipping fresh providers")
+        cleanup_execution()
+        return
+      end
+      
+      -- Pass the fresh discovered functions to each provider (will update stale lenses)
+      local fresh_render_start_time = vim.loop.hrtime()
+      debug.log_context("Performance", "FRESH DATA RENDER START - updating " .. #functions .. " functions")
+      for name, provider_info in pairs(enabled_providers) do
+        M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
+      end
+      local fresh_render_end_time = vim.loop.hrtime()
+      local fresh_render_duration_ms = (fresh_render_end_time - fresh_render_start_time) / 1000000
+      debug.log_context("Performance", "FRESH DATA RENDER COMPLETE - duration: " .. string.format("%.2f", fresh_render_duration_ms) .. "ms")
+      
+      -- Log overall execution summary
+      local total_execution_end_time = vim.loop.hrtime()
+      local total_duration_ms = (total_execution_end_time - total_execution_start_time) / 1000000
+      debug.log_context("Performance", "=== ASYNC EXECUTION FLOW COMPLETE - total duration: " .. string.format("%.2f", total_duration_ms) .. "ms ===")
+      
+      -- Clear execution state after triggering all providers
       cleanup_execution()
-      return
-    end
-    
-    -- Pass the discovered functions to each provider
-    for name, provider_info in pairs(enabled_providers) do
-      M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
-    end
-    
-    -- Clear execution state after triggering all providers
-    cleanup_execution()
+    end)
   end)
   
   if not success then

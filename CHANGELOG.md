@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Function discovery now uses asynchronous LSP calls to eliminate UI hangs during file operations
+- Rendering system optimized with batched extmark operations and incremental updates for better performance
+- Stale-first rendering strategy provides immediate user feedback while fresh data loads in background
 
 ### Fixed
 
