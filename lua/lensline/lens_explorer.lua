@@ -265,6 +265,37 @@ function M.find_functions_via_lsp(bufnr, start_line, end_line)
 end
 
 -- Recursively extract function/method symbols from LSP response
+-- Helper function to identify legitimately named functions (not anonymous)
+local function is_named_function(symbol)
+  -- Only check Functions, not Methods or Constructors
+  if symbol.kind ~= vim.lsp.protocol.SymbolKind.Function then
+    return false
+  end
+  
+  -- Must have a name
+  if not symbol.name then
+    return false
+  end
+  
+  -- Name must not be empty/whitespace
+  if not symbol.name:match("%S") then
+    return false
+  end
+  
+  -- Skip Lua-style anonymous functions
+  if symbol.name:match("^function%(") then
+    return false
+  end
+  
+  -- Skip generic names
+  local lower_name = symbol.name:lower()
+  if lower_name:match("^anonymous$") or lower_name:match("^lambda$") then
+    return false
+  end
+  
+  return true
+end
+
 function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
   for _, symbol in ipairs(symbols) do
     -- Check if this symbol is a function, method, or constructor
@@ -275,6 +306,14 @@ function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
     }
     
     if symbol_kinds[symbol.kind] then
+      -- For Functions: only include if it's a named function
+      -- For Methods/Constructors: include all (they're typically named)
+      if symbol.kind == vim.lsp.protocol.SymbolKind.Function then
+        if not is_named_function(symbol) then
+          goto continue_loop  -- Skip anonymous functions
+        end
+      end
+      
       local line_num
       local end_line_num
       local character
@@ -302,6 +341,8 @@ function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
         })
       end
     end
+    
+    ::continue_loop::
     
     -- Recursively process children if they exist
     if symbol.children then
