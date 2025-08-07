@@ -1,6 +1,6 @@
 # Providers
 
-Guidelines for writing custom providers for `lensline.nvim`.
+This guide is for **users** who want to create custom providers for lensline.nvim. For project development and contributing to the codebase, see [`CONTRIBUTE.md`](CONTRIBUTE.md).
 
 ## Architecture
 
@@ -56,7 +56,12 @@ The `func_info` parameter contains:
 - **`range`**: LSP range object
 - **`end_line`**: Function end line number (optional - may be `nil` if unknown)
 
-**Note**: `end_line` may not always be available depending on the LSP server and language. Always check if it exists before using it.
+**Note**: `end_line` may be `nil` in several scenarios:
+- LSP server doesn't provide complete range information
+- File processing was truncated due to performance limits (`max_lines` config)
+- Function definition spans beyond the processed range
+
+Always check if it exists before using it. The [`utils.get_function_lines()`](lua/lensline/utils.lua) utility handles this automatically with fallback logic.
 
 ### Utility Functions
 
@@ -267,3 +272,48 @@ require("lensline").setup({
   }
 })
 ```
+
+## Quick Start Guide
+
+For simple providers, use the **inline provider** approach - define them directly in your config:
+
+```lua
+require("lensline").setup({
+  providers = {
+    { name = "ref_count", enabled = true },
+    
+    -- Custom inline provider
+    {
+      name = "my_provider",
+      enabled = true,
+      event = { "BufWritePost" },
+      handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
+        -- Use utilities for common patterns
+        local lines = utils.get_function_lines(bufnr, func_info)
+        local icon = utils.if_nerdfont_else("🔧 ", "Tool: ")
+        callback({ line = func_info.line, text = icon .. "Custom" })
+      end
+    }
+  }
+})
+```
+
+## Available Utilities
+
+The [`utils.lua`](lua/lensline/utils.lua) module provides organized utility functions:
+
+**Core Utilities:**
+- `utils.debounce(fn, delay)` - Debounce function calls
+- `utils.is_valid_buffer(bufnr)` - Buffer validation
+
+**Style & Configuration:**
+- `utils.is_using_nerdfonts()` - Check if nerdfonts are enabled
+- `utils.if_nerdfont_else(nerdfont_value, fallback_value)` - Conditional styling
+
+**Buffer & Function Analysis:**
+- `utils.get_function_lines(bufnr, func_info)` - Extract function content with smart end detection
+
+**LSP Utilities:**
+- `utils.has_lsp_references_capability(bufnr)` - Check LSP references support
+- `utils.get_lsp_references(bufnr, func_info, callback)` - Get LSP references asynchronously

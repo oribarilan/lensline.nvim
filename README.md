@@ -25,6 +25,8 @@
 # What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
+> **📖 Documentation Guide**: This README covers installation, configuration, and basic usage for **users**. For custom provider development, see [`providers.md`](providers.md). For contributing to the project codebase, see [`CONTRIBUTE.md`](CONTRIBUTE.md).
+
 ![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
 
 ## Why use lensline?
@@ -255,7 +257,102 @@ To show all complexity levels including simple functions:
 
 ### Custom Providers
 
-lensline supports custom providers for unlimited extensibility. You can create your own provider, or contribute additional built-in ones. Please see [providers.md](providers.md) for detailed guidelines on writing custom providers.
+lensline supports custom providers for unlimited extensibility:
+
+- **Create inline providers** - Define simple providers directly in your config (~10 lines of code)
+- **Write external providers** - Create complex providers in separate files
+- **Use composable utilities** - Leverage built-in utilities for LSP, function analysis, and styling
+
+#### Examples
+
+For comprehensive provider development guidance, see [`providers.md`](providers.md).
+
+<details>
+<summary><strong>Zero Reference Warning</strong> - Modify existing ref_count behavior</summary>
+
+**Category**: Modifying existing providers
+
+Shows a warning when functions have zero references, helping identify unused code.
+
+```lua
+require("lensline").setup({
+  providers = {
+    -- Replace the default ref_count with this enhanced version
+    {
+      name = "ref_count_with_warning",
+      enabled = true,
+      event = { "LspAttach", "BufWritePost" },
+      handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
+        
+        utils.get_lsp_references(bufnr, func_info, function(references)
+          if references then
+            local count = #references
+            local icon, text
+            
+            if count == 0 then
+              icon = utils.if_nerdfont_else("⚠️ ", "WARN ")
+              text = icon .. "No references"
+            else
+              icon = utils.if_nerdfont_else("󰌹 ", "")
+              local suffix = utils.if_nerdfont_else("", " refs")
+              text = icon .. count .. suffix
+            end
+            
+            callback({ line = func_info.line, text = text })
+          else
+            callback(nil)
+          end
+        end)
+      end
+    }
+  }
+})
+```
+
+</details>
+
+<details>
+<summary><strong>Function Length</strong> - Show function line count</summary>
+
+**Category**: Custom provider
+
+Displays the number of lines in each function, helping identify long functions that might need refactoring.
+
+```lua
+require("lensline").setup({
+  providers = {
+    { name = "ref_count", enabled = true },
+    
+    {
+      name = "function_length",
+      enabled = true,
+      event = { "BufWritePost", "TextChanged" },
+      handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
+        local function_lines = utils.get_function_lines(bufnr, func_info)
+        local func_line_count = #function_lines
+        local total_lines = vim.api.nvim_buf_line_count(bufnr)
+        
+        -- Only show for functions longer than threshold
+        local threshold = provider_config.min_lines or 10
+        if func_line_count >= threshold then
+          callback({
+            line = func_info.line,
+            text = string.format("(%d/%d lines)", func_line_count, total_lines)
+          })
+        else
+          callback(nil)
+        end
+      end
+    }
+  }
+})
+```
+
+</details>
+
+For detailed guidelines and more examples, see [providers.md](providers.md).
 
 ## Commands
 
@@ -301,7 +398,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.2.x
 - [ ] Graduate beta providers (`complexity`, `diag_summary`)
-- [ ] Streamlined provider API
+- [x] Streamlined provider API - **COMPLETED in v0.1.x**
 
 ### Potential Features (post v1.0.0)
 
