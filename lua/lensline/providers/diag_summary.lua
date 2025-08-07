@@ -14,7 +14,6 @@ return {
     end
 
     local debug = require("lensline.debug")
-    local config = require("lensline.config")
 
     -- Configuration with defaults - matches config.lua default
     local min_level = (provider_config and provider_config.min_level) or "WARN"

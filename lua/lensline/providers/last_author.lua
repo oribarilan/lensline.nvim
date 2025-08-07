@@ -37,7 +37,7 @@ return {
   event = { "BufRead", "BufWritePost" },
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
-    local config = require("lensline.config")
+    local utils = require("lensline.utils")
     
     -- Get the file path and validate it
     local filename = vim.api.nvim_buf_get_name(bufnr)
@@ -63,14 +63,9 @@ return {
     end
     
     -- Format the result
-    local opts = config.get()
     local relative_time = format_relative_time(author_info.time)
-    local result_text
-    if opts.style.use_nerdfont then
-      result_text = "󰊢 " .. author_info.author .. ", " .. relative_time
-    else
-      result_text = author_info.author .. ", " .. relative_time
-    end
+    local icon = utils.if_nerdfont_else("󰊢 ", "")
+    local result_text = icon .. author_info.author .. ", " .. relative_time
     
     local result = {
       line = func_info.line,

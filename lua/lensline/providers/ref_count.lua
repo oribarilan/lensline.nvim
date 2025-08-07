@@ -7,7 +7,7 @@ return {
   event = { "LspAttach", "BufWritePost" },
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
-    local config = require("lensline.config")
+    local utils = require("lensline.utils")
     
     -- Get LSP clients for this buffer
     local clients = lens_explorer.get_lsp_clients(bufnr)
@@ -57,11 +57,11 @@ return {
       end
       
       -- Create and return lens item via callback
-      local opts = config.get()
-      local icon = opts.style.use_nerdfont and "󰌹 " or ""
+      local icon = utils.if_nerdfont_else("󰌹 ", "")
+      local suffix = utils.if_nerdfont_else("", " refs")
       callback({
         line = func_info.line,
-        text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
+        text = icon .. ref_count .. suffix
       })
     end)
   end

@@ -58,6 +58,22 @@ The `func_info` parameter contains:
 
 **Note**: `end_line` may not always be available depending on the LSP server and language. Always check if it exists before using it.
 
+### Utility Functions
+
+For common config access patterns, use the utility functions:
+
+```lua
+local utils = require("lensline.utils")
+
+-- Check if nerdfonts are enabled
+if utils.is_using_nerdfonts() then
+  -- nerdfonts enabled
+end
+
+-- Choose value based on nerdfont setting
+local icon = utils.if_nerdfont_else("📏", "Lines:")
+```
+
 ### Examples
 
 **Sync provider (immediate callback):**
@@ -127,6 +143,7 @@ require("lensline").setup({
       enabled = true,
       event = { "BufWritePost", "TextChanged" },
       handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
         local total_lines = vim.api.nvim_buf_line_count(bufnr)
         local func_lines = "?"
         
@@ -134,40 +151,11 @@ require("lensline").setup({
           func_lines = func_info.end_line - func_info.line + 1
         end
         
+        local icon = utils.if_nerdfont_else("📏 ", "Lines: ")
         callback({
           line = func_info.line,
-          text = string.format("📏 %s/%d lines", func_lines, total_lines)
+          text = string.format("%s%s/%d", icon, func_lines, total_lines)
         })
-      end
-    },
-    
-    -- File age tracker
-    {
-      name = "file_age",
-      enabled = true,
-      event = { "BufRead", "BufWritePost" },
-      handler = function(bufnr, func_info, provider_config, callback)
-        local filename = vim.api.nvim_buf_get_name(bufnr)
-        if filename == "" then
-          callback(nil)
-          return
-        end
-        
-        local stat = vim.loop.fs_stat(filename)
-        if not stat then
-          callback(nil)
-          return
-        end
-        
-        local age_days = math.floor((os.time() - stat.mtime.sec) / 86400)
-        if age_days > 0 then
-          callback({
-            line = func_info.line,
-            text = "🕐 " .. age_days .. "d old"
-          })
-        else
-          callback(nil)
-        end
       end
     },
     
