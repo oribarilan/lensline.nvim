@@ -35,37 +35,16 @@ end
 return {
   name = "last_author",
   event = { "BufRead", "BufWritePost" },
-  handler = function(bufnr, func_info, callback)
-    -- Early exit guard: check if this provider is disabled
-    local config = require("lensline.config")
-    local opts = config.get()
-    local provider_config = nil
-    
-    -- Find this provider's config
-    for _, provider in ipairs(opts.providers) do
-      if provider.name == "last_author" then
-        provider_config = provider
-        break
-      end
-    end
-    
-    -- Exit early if provider is disabled
-    if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
-    end
-    
+  handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
-    debug.log_context("LastAuthor", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
+    local utils = require("lensline.utils")
     
     -- Get the file path and validate it
     local filename = vim.api.nvim_buf_get_name(bufnr)
     if filename == "" or not vim.loop.fs_stat(filename) then
       debug.log_context("LastAuthor", "invalid or unsaved file: " .. (filename or "empty"))
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
     
     debug.log_context("LastAuthor", "processing file: " .. filename)
@@ -79,32 +58,21 @@ return {
     
     if not author_info then
       debug.log_context("LastAuthor", "no author info found for function at line " .. func_info.line)
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
     
     -- Format the result
     local relative_time = format_relative_time(author_info.time)
-    local result_text
-    if opts.style.use_nerdfont then
-      result_text = "󰊢 " .. author_info.author .. ", " .. relative_time
-    else
-      result_text = author_info.author .. ", " .. relative_time
-    end
-    
-    debug.log_context("LastAuthor", "final result: " .. result_text)
+    local icon = utils.if_nerdfont_else("󰊢 ", "")
+    local result_text = icon .. author_info.author .. ", " .. relative_time
     
     local result = {
       line = func_info.line,
       text = result_text
     }
     
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil  -- Must return nil for async mode
-    else
-      return result  -- Synchronous mode
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end
 }

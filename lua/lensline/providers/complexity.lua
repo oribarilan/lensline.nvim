@@ -3,30 +3,9 @@
 return {
   name = "complexity",
   event = { "BufWritePost", "TextChanged" },
-  handler = function(bufnr, func_info, callback)
-    -- Early exit guard: check if this provider is disabled
-    local config = require("lensline.config")
-    local opts = config.get()
-    local provider_config = nil
-    
-    -- Find this provider's config
-    for _, provider in ipairs(opts.providers) do
-      if provider.name == "complexity" then
-        provider_config = provider
-        break
-      end
-    end
-    
-    -- Exit early if provider is disabled
-    if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
-    end
-    
+  handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
-    debug.log_context("Complexity", "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
+    local utils = require("lensline.utils")
     
     -- Default configuration
     local min_level = (provider_config and provider_config.min_level) or "L"
@@ -104,42 +83,8 @@ return {
       return label, math.floor(score)
     end
     
-    -- Get function content
-    local start_line = func_info.line
-    local end_line = func_info.end_line or start_line
-    
-    -- If we don't have end_line, try to estimate it by finding the function body
-    if end_line == start_line then
-      local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, -1, false)
-      local brace_count = 0
-      local found_opening = false
-      
-      for i, line in ipairs(lines) do
-        -- Count braces to find function end
-        local open_braces = select(2, line:gsub("[{(]", ""))
-        local close_braces = select(2, line:gsub("[})]", ""))
-        
-        if open_braces > 0 then
-          found_opening = true
-        end
-        
-        if found_opening then
-          brace_count = brace_count + open_braces - close_braces
-          if brace_count <= 0 and i > 1 then
-            end_line = start_line + i - 1
-            break
-          end
-        end
-        
-        -- Safety limit to avoid analyzing huge chunks
-        if i > 100 then
-          end_line = start_line + i - 1
-          break
-        end
-      end
-    end
-    
-    local function_lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+    -- Get function content using utility
+    local function_lines = utils.get_function_lines(bufnr, func_info)
     local text = table.concat(function_lines, "\n")
     
     debug.log_context("Complexity", "analyzing " .. #function_lines .. " lines for function '" .. (func_info.name or "unknown") .. "'")
@@ -147,18 +92,14 @@ return {
     -- Calculate complexity using research-based heuristics
     local complexity_label, score = estimate_complexity(text)
     
-    debug.log_context("Complexity", "function '" .. (func_info.name or "unknown") .. "' complexity: " .. complexity_label .. " (score: " .. score .. ")")
+    debug.log_context("Complexity", "complexity: " .. complexity_label .. " (score: " .. score .. ")")
     
     -- Check if we should show this complexity level based on configuration
     if not should_show_complexity(complexity_label) then
-      debug.log_context("Complexity", "skipping function '" .. (func_info.name or "unknown") .. "' - below min_level: " .. min_level)
+      debug.log_context("Complexity", "skipping - below min_level: " .. min_level)
       -- Return nil to indicate no lens should be shown
-      if callback then
-        callback(nil)
-        return nil
-      else
-        return nil
-      end
+      callback(nil)
+      return
     end
     
     local result = {
@@ -166,12 +107,7 @@ return {
       text = format_complexity(complexity_label)
     }
     
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil
-    else
-      return result
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end
 }

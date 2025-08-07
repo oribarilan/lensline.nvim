@@ -23,10 +23,19 @@ function M.get_enabled_providers()
   
   for _, provider_config in ipairs(opts.providers) do
     local provider_name = provider_config.name
-    local provider_module = M.available_providers[provider_name]
+    local provider_module = nil
     
     debug.log_context("Providers", "checking provider: " .. provider_name)
-    debug.log_context("Providers", "provider_module found: " .. tostring(provider_module ~= nil))
+    
+    -- Check if inline provider (has handler function)
+    if provider_config.handler then
+      provider_module = provider_config  -- Use config as module for inline providers
+      debug.log_context("Providers", "found inline provider: " .. provider_name)
+    else
+      provider_module = M.available_providers[provider_name]  -- Built-in provider
+      debug.log_context("Providers", "built-in provider found: " .. tostring(provider_module ~= nil))
+    end
+    
     debug.log_context("Providers", "enabled: " .. tostring(provider_config.enabled ~= false))
     
     if provider_module and provider_config.enabled ~= false then
@@ -35,6 +44,8 @@ function M.get_enabled_providers()
         config = provider_config
       }
       debug.log_context("Providers", "enabled provider: " .. provider_name)
+    elseif not provider_module then
+      debug.log_context("Providers", "provider not found: " .. provider_name, "WARN")
     end
   end
   

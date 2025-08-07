@@ -5,42 +5,15 @@
 return {
   name = "diag_summary",
   event = { "DiagnosticChanged", "BufReadPost" },  -- BufReadPost avoids conflicts with buffer switching
-  handler = function(bufnr, func_info, callback)
-    -- Early exit guard: check if this provider is disabled
-    local config = require("lensline.config")
-    local opts = config.get()
-    local provider_config = nil
-
-    -- Find this provider's config
-    for _, provider in ipairs(opts.providers) do
-      if provider.name == "diag_summary" then
-        provider_config = provider
-        break
-      end
-    end
-
-    -- Exit early if provider is disabled
-    if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
-    end
-
+  handler = function(bufnr, func_info, provider_config, callback)
     -- Buffer validation like other providers
     local utils = require("lensline.utils")
     if not utils.is_valid_buffer(bufnr) then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     local debug = require("lensline.debug")
-    debug.log_context(
-      "DiagSummary",
-      "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line
-    )
 
     -- Configuration with defaults - matches config.lua default
     local min_level = (provider_config and provider_config.min_level) or "WARN"
@@ -57,6 +30,7 @@ return {
     end
 
     -- Get diagnostic icons based on nerdfonts config
+    local opts = config.get()
     local diagnostic_icons = {
       [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
       [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
@@ -143,30 +117,20 @@ return {
       end
     end
 
-    debug.log_context(
-      "DiagSummary",
-      "found " .. total_count .. " diagnostics for function '" .. (func_info.name or "unknown") .. "'"
-    )
+    debug.log_context("DiagSummary", "found " .. total_count .. " diagnostics")
 
     -- Check if we should show diagnostics based on min_level
     -- Only show if highest severity is at or above the minimum level
     if total_count == 0 or highest_severity > min_level then
-      debug.log_context(
-        "DiagSummary",
-        "skipping function '" .. (func_info.name or "unknown") .. "' - no diagnostics or below min_level"
-      )
-      if callback then
-        callback(nil)
-      end
-      return nil
+      debug.log_context("DiagSummary", "skipping - no diagnostics or below min_level")
+      callback(nil)
+      return
     end
 
     local text = format_diagnostic_counts(counts, min_level)
     if not text then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     local result = {
@@ -174,18 +138,8 @@ return {
       text = text,
     }
 
-    debug.log_context(
-      "DiagSummary",
-      "returning diagnostics for function '" .. (func_info.name or "unknown") .. "': " .. text
-    )
-
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil
-    else
-      return result
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end,
 }
 

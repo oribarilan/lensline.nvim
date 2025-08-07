@@ -1,6 +1,8 @@
 # Contributing to lensline.nvim
 
-We welcome contributions as issues, pull requests, or suggestions. This document outlines how to contribute effectively.
+This is a guide for **project contributors** who want to contribute code, fixes, or improvements to the lensline.nvim codebase itself. For using lensline or creating custom providers, see [`README.md`](README.md) and [`providers.md`](providers.md).
+
+We welcome contributions as issues, pull requests, or suggestions. This document outlines how to contribute effectively to the project development.
 
 ## Development Setup
 
@@ -40,7 +42,7 @@ lensline.nvim/
 │       ├── executor.lua       -- Provider execution and coordination
 │       ├── lens_explorer.lua  -- Function detection using LSP document symbols
 │       ├── debug.lua          -- Debug logging system
-│       ├── utils.lua          -- Shared helper functions (LSP, function detection)
+│       ├── utils.lua          -- Organized utility functions (core, style, buffer, LSP)
 │       ├── blame_cache.lua    -- Git blame caching system
 │       ├── limits.lua         -- File processing limits and exclusions
 │       └── providers/
