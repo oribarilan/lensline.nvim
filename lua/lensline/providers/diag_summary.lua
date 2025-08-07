@@ -21,19 +21,15 @@ return {
 
     -- Exit early if provider is disabled
     if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     -- Buffer validation like other providers
     local utils = require("lensline.utils")
     if not utils.is_valid_buffer(bufnr) then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     local debug = require("lensline.debug")
@@ -155,18 +151,14 @@ return {
         "DiagSummary",
         "skipping function '" .. (func_info.name or "unknown") .. "' - no diagnostics or below min_level"
       )
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     local text = format_diagnostic_counts(counts, min_level)
     if not text then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
 
     local result = {
@@ -179,13 +171,8 @@ return {
       "returning diagnostics for function '" .. (func_info.name or "unknown") .. "': " .. text
     )
 
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil
-    else
-      return result
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end,
 }
 

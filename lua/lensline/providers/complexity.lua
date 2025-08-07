@@ -19,10 +19,8 @@ return {
     
     -- Exit early if provider is disabled
     if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
     
     local debug = require("lensline.debug")
@@ -153,12 +151,8 @@ return {
     if not should_show_complexity(complexity_label) then
       debug.log_context("Complexity", "skipping function '" .. (func_info.name or "unknown") .. "' - below min_level: " .. min_level)
       -- Return nil to indicate no lens should be shown
-      if callback then
-        callback(nil)
-        return nil
-      else
-        return nil
-      end
+      callback(nil)
+      return
     end
     
     local result = {
@@ -166,12 +160,7 @@ return {
       text = format_complexity(complexity_label)
     }
     
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil
-    else
-      return result
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end
 }

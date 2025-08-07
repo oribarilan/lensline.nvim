@@ -2,10 +2,6 @@ local lens_explorer = require("lensline.lens_explorer")
 
 -- Reference Count Provider
 -- Shows reference count for functions/methods using LSP
---
--- Note: Reference counts are not cached because they can change when any file
--- in the workspace is modified. However, function discovery is cached so we
--- efficiently only do ref count lookups for relevant functions
 return {
   name = "ref_count",
   event = { "LspAttach", "BufWritePost" },
@@ -25,10 +21,8 @@ return {
     
     -- Exit early if provider is disabled
     if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
     
     local debug = require("lensline.debug")
@@ -39,15 +33,15 @@ return {
     debug.log_context("LSP", "found " .. (clients and #clients or 0) .. " LSP clients")
     if not clients or #clients == 0 then
       debug.log_context("LSP", "no LSP clients available")
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
 
     -- Check if any LSP client supports references
     if not lens_explorer.has_lsp_capability(bufnr, "textDocument/references") then
       debug.log_context("LSP", "no LSP client supports textDocument/references")
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
 
     local char_pos = func_info.character or 0
@@ -71,67 +65,24 @@ return {
     
     debug.log_context("LSP", "requesting references at position " .. (func_info.line - 1) .. ":" .. char_pos)
     
-    -- If no callback provided, run synchronously
-    if not callback then
-      debug.log_context("LSP", "running in synchronous mode")
-      local ref_count = 0
-      
-      -- Single synchronous request only (no fallbacks to avoid blocking)
-      local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/references", params, 1000)
-      if not ok then
-        results = nil
-      end
-      
-      if results then
-        for _, result in pairs(results) do
-          if result.result and type(result.result) == "table" then
-            ref_count = ref_count + #result.result
-            debug.log_context("LSP", "found " .. #result.result .. " references")
-          end
-        end
-      end
-      
-      debug.log_context("LSP", "total references for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line .. ": " .. ref_count)
-      
-      -- Create lens item
-      local opts = config.get()
-      local icon = opts.style.use_nerdfont and "󰌹 " or ""
-      local result = {
-        line = func_info.line,
-        text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
-      }
-      
-      -- Handle both sync and async modes
-      if callback then
-        callback(result)
-        return nil
-      else
-        return result
-      end
-    end
-    
-    -- Run asynchronously
-    debug.log_context("LSP", "running in async mode for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
-    
-    -- Make async LSP request with timeout
+    -- Make async LSP request
     vim.lsp.buf_request(bufnr, "textDocument/references", params, function(err, result, ctx)
       local ref_count = 0
       
       if result and type(result) == "table" then
         ref_count = #result
-        debug.log_context("LSP", "async found " .. ref_count .. " references for " .. (func_info.name or "unknown"))
+        debug.log_context("LSP", "found " .. ref_count .. " references for " .. (func_info.name or "unknown"))
       elseif err then
-        debug.log_context("LSP", "async request error: " .. vim.inspect(err))
+        debug.log_context("LSP", "request error: " .. vim.inspect(err))
       end
       
       -- Create and return lens item via callback
       local opts = config.get()
       local icon = opts.style.use_nerdfont and "󰌹 " or ""
-      local result = {
+      callback({
         line = func_info.line,
         text = icon .. ref_count .. (opts.style.use_nerdfont and "" or " refs")
-      }
-      callback(result)
+      })
     end)
   end
 }

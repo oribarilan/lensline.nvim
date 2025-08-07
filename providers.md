@@ -2,53 +2,74 @@
 
 Guidelines for writing custom providers for `lensline.nvim`.
 
-## Architecture: Simple Providers
+## Architecture
 
 **lensline** uses a simple **Provider** architecture:
 
 - **Providers** are self-contained modules that handle specific data sources (LSP, git, etc.)
-- Each provider defines its own event triggers, debounce timing, and data collection logic
+- Each provider defines its own event triggers and data collection logic
 - Providers operate independently, allowing for easy addition or removal
-- Providers are triggered per detected function, with a debounce mechanism to avoid excessive updates, and only on specific events in the active buffer
+- All providers use a unified async callback pattern
 
+## Provider API
 
-## Creating Custom Providers
-
-You can create custom providers by adding them to the provider registry. A provider is a Lua module that returns a table with the following structure:
+A provider is a Lua module that returns a table with the following structure:
 
 ```lua
 -- custom_provider.lua
 return {
   name = "my_custom_provider",
   event = { "BufWritePost" },  -- events that trigger this provider
-  debounce = 1000,             -- debounce delay in milliseconds
   handler = function(bufnr, func_info, callback)
     -- bufnr: buffer number
-    -- func_info: { line = number, name = string, character = number }
-    -- callback: function to call with result (for async) or nil (for sync)
+    -- func_info: { line = number, name = string, character = number, range = table }
+    -- callback: function to call with result
     
     -- Your custom logic here
     local custom_data = get_my_custom_data(func_info)
     
-    -- For synchronous providers, return the lens item:
-    if not callback then
-      return {
-        line = func_info.line,
-        text = "💩 " .. custom_data
-      }
-    end
-    
-    -- For async providers, call the callback:
+    -- Always call callback with lens item or nil
     callback({
       line = func_info.line,
       text = "💩 " .. custom_data
     })
-    return nil
+    -- or callback(nil) if no lens should be shown
   end
 }
 ```
 
-Then register it in your configuration by adding it to the providers registry:
+### Handler Function
+
+- **Parameters**: `(bufnr, func_info, callback)`
+- **Return**: Nothing (always use callback)
+- **Callback**: Called with lens item `{ line = number, text = string }` or `nil`
+
+### Examples
+
+**Sync provider (immediate callback):**
+```lua
+handler = function(bufnr, func_info, callback)
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  callback({ line = func_info.line, text = "📄 " .. line_count .. " lines" })
+end
+```
+
+**Async provider (delayed callback):**
+```lua
+handler = function(bufnr, func_info, callback)
+  vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
+    if result then
+      callback({ line = func_info.line, text = "ℹ️ hover available" })
+    else
+      callback(nil)
+    end
+  end)
+end
+```
+
+## Registration
+
+Add your custom provider to the registry:
 
 ```lua
 -- Add your custom provider to the registry

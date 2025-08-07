@@ -51,10 +51,8 @@ return {
     
     -- Exit early if provider is disabled
     if provider_config and provider_config.enabled == false then
-      if callback then
-        callback(nil)
-      end
-      return nil
+      callback(nil)
+      return
     end
     
     local debug = require("lensline.debug")
@@ -64,8 +62,8 @@ return {
     local filename = vim.api.nvim_buf_get_name(bufnr)
     if filename == "" or not vim.loop.fs_stat(filename) then
       debug.log_context("LastAuthor", "invalid or unsaved file: " .. (filename or "empty"))
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
     
     debug.log_context("LastAuthor", "processing file: " .. filename)
@@ -79,8 +77,8 @@ return {
     
     if not author_info then
       debug.log_context("LastAuthor", "no author info found for function at line " .. func_info.line)
-      if callback then callback(nil) end
-      return nil
+      callback(nil)
+      return
     end
     
     -- Format the result
@@ -99,12 +97,7 @@ return {
       text = result_text
     }
     
-    -- Handle both sync and async modes
-    if callback then
-      callback(result)
-      return nil  -- Must return nil for async mode
-    else
-      return result  -- Synchronous mode
-    end
+    -- Always call callback (async-only)
+    callback(result)
   end
 }
