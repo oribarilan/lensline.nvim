@@ -5,7 +5,6 @@ return {
   event = { "BufWritePost", "TextChanged" },
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
-    debug.log_context("Complexity", "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Default configuration
     local min_level = (provider_config and provider_config.min_level) or "L"
@@ -126,11 +125,11 @@ return {
     -- Calculate complexity using research-based heuristics
     local complexity_label, score = estimate_complexity(text)
     
-    debug.log_context("Complexity", "function '" .. (func_info.name or "unknown") .. "' complexity: " .. complexity_label .. " (score: " .. score .. ")")
+    debug.log_context("Complexity", "complexity: " .. complexity_label .. " (score: " .. score .. ")")
     
     -- Check if we should show this complexity level based on configuration
     if not should_show_complexity(complexity_label) then
-      debug.log_context("Complexity", "skipping function '" .. (func_info.name or "unknown") .. "' - below min_level: " .. min_level)
+      debug.log_context("Complexity", "skipping - below min_level: " .. min_level)
       -- Return nil to indicate no lens should be shown
       callback(nil)
       return

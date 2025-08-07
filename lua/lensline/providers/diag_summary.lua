@@ -15,10 +15,6 @@ return {
 
     local debug = require("lensline.debug")
     local config = require("lensline.config")
-    debug.log_context(
-      "DiagSummary",
-      "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line
-    )
 
     -- Configuration with defaults - matches config.lua default
     local min_level = (provider_config and provider_config.min_level) or "WARN"
@@ -122,18 +118,12 @@ return {
       end
     end
 
-    debug.log_context(
-      "DiagSummary",
-      "found " .. total_count .. " diagnostics for function '" .. (func_info.name or "unknown") .. "'"
-    )
+    debug.log_context("DiagSummary", "found " .. total_count .. " diagnostics")
 
     -- Check if we should show diagnostics based on min_level
     -- Only show if highest severity is at or above the minimum level
     if total_count == 0 or highest_severity > min_level then
-      debug.log_context(
-        "DiagSummary",
-        "skipping function '" .. (func_info.name or "unknown") .. "' - no diagnostics or below min_level"
-      )
+      debug.log_context("DiagSummary", "skipping - no diagnostics or below min_level")
       callback(nil)
       return
     end
@@ -148,11 +138,6 @@ return {
       line = func_info.line,
       text = text,
     }
-
-    debug.log_context(
-      "DiagSummary",
-      "returning diagnostics for function '" .. (func_info.name or "unknown") .. "': " .. text
-    )
 
     -- Always call callback (async-only)
     callback(result)

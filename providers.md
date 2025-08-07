@@ -45,6 +45,7 @@ return {
 - **Return**: Nothing (always use callback)
 - **Callback**: Called with lens item `{ line = number, text = string }` or `nil`
 - **provider_config**: Contains this provider's configuration options
+- **Debug logging**: Automatic - no need to add debug logging in provider handlers
 
 ### func_info Structure
 

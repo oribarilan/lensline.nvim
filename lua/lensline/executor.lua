@@ -254,7 +254,9 @@ function M.execute_provider_with_functions(bufnr, provider_module, provider_conf
     
     if lens_item then
       table.insert(lens_items, lens_item)
-      debug.log_context("Executor", "provider " .. provider_module.name .. " returned lens item for line " .. lens_item.line)
+      debug.log_context("Executor", provider_module.name .. " → " .. lens_item.text .. " (line " .. lens_item.line .. ")")
+    else
+      debug.log_context("Executor", provider_module.name .. " → nil")
     end
     
     pending_functions = pending_functions - 1

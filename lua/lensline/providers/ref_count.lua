@@ -8,7 +8,6 @@ return {
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
     local config = require("lensline.config")
-    debug.log_context("LSP", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Get LSP clients for this buffer
     local clients = lens_explorer.get_lsp_clients(bufnr)
@@ -53,7 +52,6 @@ return {
       
       if result and type(result) == "table" then
         ref_count = #result
-        debug.log_context("LSP", "found " .. ref_count .. " references for " .. (func_info.name or "unknown"))
       elseif err then
         debug.log_context("LSP", "request error: " .. vim.inspect(err))
       end

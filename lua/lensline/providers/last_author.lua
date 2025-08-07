@@ -38,7 +38,6 @@ return {
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
     local config = require("lensline.config")
-    debug.log_context("LastAuthor", "handler called for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     -- Get the file path and validate it
     local filename = vim.api.nvim_buf_get_name(bufnr)
@@ -72,8 +71,6 @@ return {
     else
       result_text = author_info.author .. ", " .. relative_time
     end
-    
-    debug.log_context("LastAuthor", "final result: " .. result_text)
     
     local result = {
       line = func_info.line,
