@@ -60,7 +60,7 @@ The `func_info` parameter contains:
 
 ### Utility Functions
 
-For common config access patterns, use the utility functions:
+For common provider patterns, use the utility functions:
 
 ```lua
 local utils = require("lensline.utils")
@@ -72,6 +72,10 @@ end
 
 -- Choose value based on nerdfont setting
 local icon = utils.if_nerdfont_else("📏", "Lines:")
+
+-- Get function content as array of lines (including signature)
+local function_lines = utils.get_function_lines(bufnr, func_info)
+local function_text = table.concat(function_lines, "\n")
 ```
 
 ### Examples
@@ -165,16 +169,19 @@ require("lensline").setup({
       enabled = true,
       event = { "BufWritePost" },
       handler = function(bufnr, func_info, provider_config, callback)
-        local lines = vim.api.nvim_buf_get_lines(bufnr, func_info.line-1, func_info.end_line or func_info.line, false)
+        local utils = require("lensline.utils")
+        local function_lines = utils.get_function_lines(bufnr, func_info)
         local todos = 0
-        for _, line in ipairs(lines) do
+        
+        for _, line in ipairs(function_lines) do
           if line:match("TODO") or line:match("FIXME") then
             todos = todos + 1
           end
         end
         
         if todos > 0 then
-          callback({ line = func_info.line, text = "📝 " .. todos .. " TODOs" })
+          local icon = utils.if_nerdfont_else("📝 ", "TODOs: ")
+          callback({ line = func_info.line, text = icon .. todos .. " TODOs" })
         else
           callback(nil)
         end

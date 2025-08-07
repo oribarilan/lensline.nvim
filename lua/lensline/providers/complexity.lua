@@ -5,6 +5,7 @@ return {
   event = { "BufWritePost", "TextChanged" },
   handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
+    local utils = require("lensline.utils")
     
     -- Default configuration
     local min_level = (provider_config and provider_config.min_level) or "L"
@@ -82,42 +83,8 @@ return {
       return label, math.floor(score)
     end
     
-    -- Get function content
-    local start_line = func_info.line
-    local end_line = func_info.end_line or start_line
-    
-    -- If we don't have end_line, try to estimate it by finding the function body
-    if end_line == start_line then
-      local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, -1, false)
-      local brace_count = 0
-      local found_opening = false
-      
-      for i, line in ipairs(lines) do
-        -- Count braces to find function end
-        local open_braces = select(2, line:gsub("[{(]", ""))
-        local close_braces = select(2, line:gsub("[})]", ""))
-        
-        if open_braces > 0 then
-          found_opening = true
-        end
-        
-        if found_opening then
-          brace_count = brace_count + open_braces - close_braces
-          if brace_count <= 0 and i > 1 then
-            end_line = start_line + i - 1
-            break
-          end
-        end
-        
-        -- Safety limit to avoid analyzing huge chunks
-        if i > 100 then
-          end_line = start_line + i - 1
-          break
-        end
-      end
-    end
-    
-    local function_lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+    -- Get function content using utility
+    local function_lines = utils.get_function_lines(bufnr, func_info)
     local text = table.concat(function_lines, "\n")
     
     debug.log_context("Complexity", "analyzing " .. #function_lines .. " lines for function '" .. (func_info.name or "unknown") .. "'")
