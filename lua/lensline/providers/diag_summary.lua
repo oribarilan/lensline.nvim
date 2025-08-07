@@ -5,26 +5,7 @@
 return {
   name = "diag_summary",
   event = { "DiagnosticChanged", "BufReadPost" },  -- BufReadPost avoids conflicts with buffer switching
-  handler = function(bufnr, func_info, callback)
-    -- Early exit guard: check if this provider is disabled
-    local config = require("lensline.config")
-    local opts = config.get()
-    local provider_config = nil
-
-    -- Find this provider's config
-    for _, provider in ipairs(opts.providers) do
-      if provider.name == "diag_summary" then
-        provider_config = provider
-        break
-      end
-    end
-
-    -- Exit early if provider is disabled
-    if provider_config and provider_config.enabled == false then
-      callback(nil)
-      return
-    end
-
+  handler = function(bufnr, func_info, provider_config, callback)
     -- Buffer validation like other providers
     local utils = require("lensline.utils")
     if not utils.is_valid_buffer(bufnr) then
@@ -33,6 +14,7 @@ return {
     end
 
     local debug = require("lensline.debug")
+    local config = require("lensline.config")
     debug.log_context(
       "DiagSummary",
       "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line
@@ -53,6 +35,7 @@ return {
     end
 
     -- Get diagnostic icons based on nerdfonts config
+    local opts = config.get()
     local diagnostic_icons = {
       [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
       [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",

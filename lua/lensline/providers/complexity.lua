@@ -3,26 +3,7 @@
 return {
   name = "complexity",
   event = { "BufWritePost", "TextChanged" },
-  handler = function(bufnr, func_info, callback)
-    -- Early exit guard: check if this provider is disabled
-    local config = require("lensline.config")
-    local opts = config.get()
-    local provider_config = nil
-    
-    -- Find this provider's config
-    for _, provider in ipairs(opts.providers) do
-      if provider.name == "complexity" then
-        provider_config = provider
-        break
-      end
-    end
-    
-    -- Exit early if provider is disabled
-    if provider_config and provider_config.enabled == false then
-      callback(nil)
-      return
-    end
-    
+  handler = function(bufnr, func_info, provider_config, callback)
     local debug = require("lensline.debug")
     debug.log_context("Complexity", "analyzing function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     

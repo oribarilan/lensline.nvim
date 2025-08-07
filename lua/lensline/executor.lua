@@ -283,7 +283,7 @@ function M.execute_provider_with_functions(bufnr, provider_module, provider_conf
     debug.log_context("Executor", "calling provider " .. provider_module.name .. " for function '" .. (func_info.name or "unknown") .. "' at line " .. func_info.line)
     
     debug.log_context("Executor", "provider started " .. provider_module.name)
-    local success, result = pcall(provider_module.handler, bufnr, func_info, handle_function_result)
+    local success, result = pcall(provider_module.handler, bufnr, func_info, provider_config, handle_function_result)
     debug.log_context("Executor", "provider finished " .. provider_module.name)
     
     if success then

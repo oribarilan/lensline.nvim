@@ -20,9 +20,10 @@ A provider is a Lua module that returns a table with the following structure:
 return {
   name = "my_custom_provider",
   event = { "BufWritePost" },  -- events that trigger this provider
-  handler = function(bufnr, func_info, callback)
+  handler = function(bufnr, func_info, provider_config, callback)
     -- bufnr: buffer number
     -- func_info: { line = number, name = string, character = number, range = table }
+    -- provider_config: this provider's configuration from setup()
     -- callback: function to call with result
     
     -- Your custom logic here
@@ -40,15 +41,16 @@ return {
 
 ### Handler Function
 
-- **Parameters**: `(bufnr, func_info, callback)`
+- **Parameters**: `(bufnr, func_info, provider_config, callback)`
 - **Return**: Nothing (always use callback)
 - **Callback**: Called with lens item `{ line = number, text = string }` or `nil`
+- **provider_config**: Contains this provider's configuration options
 
 ### Examples
 
 **Sync provider (immediate callback):**
 ```lua
-handler = function(bufnr, func_info, callback)
+handler = function(bufnr, func_info, provider_config, callback)
   local line_count = vim.api.nvim_buf_line_count(bufnr)
   callback({ line = func_info.line, text = "📄 " .. line_count .. " lines" })
 end
@@ -56,7 +58,7 @@ end
 
 **Async provider (delayed callback):**
 ```lua
-handler = function(bufnr, func_info, callback)
+handler = function(bufnr, func_info, provider_config, callback)
   vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
     if result then
       callback({ line = func_info.line, text = "ℹ️ hover available" })
@@ -64,6 +66,20 @@ handler = function(bufnr, func_info, callback)
       callback(nil)
     end
   end)
+end
+```
+
+**Using provider config:**
+```lua
+handler = function(bufnr, func_info, provider_config, callback)
+  local threshold = provider_config.threshold or 10
+  local count = get_some_count(func_info)
+  
+  if count > threshold then
+    callback({ line = func_info.line, text = "⚠️ " .. count })
+  else
+    callback(nil)
+  end
 end
 ```
 
