@@ -1,5 +1,7 @@
 local M = {}
 
+-- Core Utilities
+
 function M.debounce(fn, delay)
     local timer = vim.loop.new_timer()
     return function(...)
@@ -17,7 +19,8 @@ function M.is_valid_buffer(bufnr)
     return bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr)
 end
 
--- Simple config accessors
+-- Style & Configuration Utilities
+
 function M.is_using_nerdfonts()
     local config = require("lensline.config")
     local opts = config.get()
@@ -27,6 +30,8 @@ end
 function M.if_nerdfont_else(nerdfont_value, fallback_value)
     return M.is_using_nerdfonts() and nerdfont_value or fallback_value
 end
+
+-- Buffer & Function Analysis Utilities
 
 -- Function content extraction utility
 function M.get_function_lines(bufnr, func_info)
@@ -69,6 +74,63 @@ function M.get_function_lines(bufnr, func_info)
     end
     
     return vim.api.nvim_buf_get_lines(bufnr, start_line - 1, estimated_end, false)
+end
+
+-- LSP Utilities
+
+function M.has_lsp_references_capability(bufnr)
+    local lens_explorer = require("lensline.lens_explorer")
+    local clients = lens_explorer.get_lsp_clients(bufnr)
+    if not clients or #clients == 0 then
+        return false
+    end
+    return lens_explorer.has_lsp_capability(bufnr, "textDocument/references")
+end
+
+function M.get_lsp_references(bufnr, func_info, callback)
+    local debug = require("lensline.debug")
+    local lens_explorer = require("lensline.lens_explorer")
+    
+    -- Check LSP capability first
+    if not M.has_lsp_references_capability(bufnr) then
+        debug.log_context("LSP", "no LSP references capability available")
+        callback(nil)
+        return
+    end
+    
+    -- Resolve function position
+    local char_pos = func_info.character or 0
+    
+    -- If we have a function name, try to find its exact position in the line
+    if func_info.name then
+        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
+        local name_start = line_content:find(func_info.name, 1, true)
+        if name_start then
+            char_pos = name_start - 1  -- Convert to 0-indexed
+            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
+        end
+    end
+    
+    -- Create LSP reference request
+    local params = {
+        textDocument = vim.lsp.util.make_text_document_params(bufnr),
+        position = { line = func_info.line - 1, character = char_pos },
+        context = { includeDeclaration = false }
+    }
+    
+    debug.log_context("LSP", "requesting references at position " .. (func_info.line - 1) .. ":" .. char_pos)
+    
+    -- Make async LSP request
+    vim.lsp.buf_request(bufnr, "textDocument/references", params, function(err, result, ctx)
+        if result and type(result) == "table" then
+            callback(result)  -- Return raw reference array
+        else
+            if err then
+                debug.log_context("LSP", "request error: " .. vim.inspect(err))
+            end
+            callback(nil)
+        end
+    end)
 end
 
 return M

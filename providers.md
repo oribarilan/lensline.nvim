@@ -76,6 +76,19 @@ local icon = utils.if_nerdfont_else("📏", "Lines:")
 -- Get function content as array of lines (including signature)
 local function_lines = utils.get_function_lines(bufnr, func_info)
 local function_text = table.concat(function_lines, "\n")
+
+-- Get LSP references for composable LSP-based providers
+utils.get_lsp_references(bufnr, func_info, function(references)
+  if references then
+    local count = #references
+    -- Custom logic here
+  end
+end)
+
+-- Check if LSP references are available
+if utils.has_lsp_references_capability(bufnr) then
+  -- LSP references supported
+end
 ```
 
 ### Examples
@@ -185,6 +198,53 @@ require("lensline").setup({
         else
           callback(nil)
         end
+      end
+    },
+    
+    -- Popular/Unpopular function provider using LSP utilities
+    {
+      name = "popularity",
+      enabled = true,
+      event = { "LspAttach", "BufWritePost" },
+      handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
+        
+        utils.get_lsp_references(bufnr, func_info, function(references)
+          if references then
+            local count = #references
+            local threshold = provider_config.threshold or 3
+            local label = count >= threshold and "Popular" or "Unpopular"
+            local icon = utils.if_nerdfont_else("📈 ", "")
+            callback({
+              line = func_info.line,
+              text = icon .. label .. " (" .. count .. ")"
+            })
+          else
+            callback(nil)
+          end
+        end)
+      end
+    },
+    
+    -- Unused function detector
+    {
+      name = "unused_detector",
+      enabled = true,
+      event = { "LspAttach", "BufWritePost" },
+      handler = function(bufnr, func_info, provider_config, callback)
+        local utils = require("lensline.utils")
+        
+        utils.get_lsp_references(bufnr, func_info, function(references)
+          if references and #references == 0 then
+            local icon = utils.if_nerdfont_else("🚫 ", "")
+            callback({
+              line = func_info.line,
+              text = icon .. "Unused"
+            })
+          else
+            callback(nil)  -- Only show for unused functions
+          end
+        end)
       end
     }
   }
