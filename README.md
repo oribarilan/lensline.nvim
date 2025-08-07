@@ -25,8 +25,6 @@
 # What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
-> **📖 Documentation Guide**: This README covers installation, configuration, and basic usage for **users**. For custom provider development, see [`providers.md`](providers.md). For contributing to the project codebase, see [`CONTRIBUTE.md`](CONTRIBUTE.md).
-
 ![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
 
 ## Why use lensline?
@@ -62,7 +60,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 }
 ```
 
-Or with any other package manager:
+Or with any other plugin manager:
 
 <details>
 <summary><strong>vim-plug</strong></summary>
@@ -149,7 +147,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
-- **Opinionated defaults**: Built-in providers to commonly-used functionality inspired by popular IDEs (VSCode, IntelliJ) - reference counts & git blame info
+- **Opinionated defaults**: Built-in providers to commonly-used functionality inspired by popular IDEs (VSCode, JetBrains) - reference counts & git blame info
 - **Extension over configuration**: Provider expose a minimal set of configs. For customization, lensline encourages writing custom providers
 
 This design keeps the plugin lightweight while enabling unlimited customization. The provider based approach scales better than trying to support everything through configuration.
@@ -259,18 +257,18 @@ To show all complexity levels including simple functions:
 
 lensline supports custom providers for unlimited extensibility:
 
-- **Create inline providers** - Define simple providers directly in your config (~10 lines of code)
-- **Write external providers** - Create complex providers in separate files
+- **Create inline providers** - Define simple providers directly in your config 
 - **Use composable utilities** - Leverage built-in utilities for LSP, function analysis, and styling
 
 #### Examples
 
-For comprehensive provider development guidance, see [`providers.md`](providers.md).
+Here are a few examples for inspiration. For comprehensive provider  guidance, see [`providers.md`](providers.md).
 
 <details>
 <summary><strong>Zero Reference Warning</strong> - Modify existing ref_count behavior</summary>
 
 **Category**: Modifying existing providers
+![lensline demo](https://github.com/user-attachments/assets/c5910040-370b-49c9-95a8-97d15fd9109c)
 
 Shows a warning when functions have zero references, helping identify unused code.
 
