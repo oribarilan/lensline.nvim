@@ -317,6 +317,8 @@ require("lensline").setup({
 
 Displays the number of lines in each function, helping identify long functions that might need refactoring.
 
+![Function Length Provider Demo](https://github.com/user-attachments/assets/1d574aee-e1dc-4b5b-ab1c-252b1fcefd28)
+
 ```lua
 require("lensline").setup({
   providers = {
@@ -329,19 +331,14 @@ require("lensline").setup({
       handler = function(bufnr, func_info, provider_config, callback)
         local utils = require("lensline.utils")
         local function_lines = utils.get_function_lines(bufnr, func_info)
-        local func_line_count = #function_lines
+        local func_line_count = math.max(0, #function_lines - 1) -- Subtract 1 for signature
         local total_lines = vim.api.nvim_buf_line_count(bufnr)
         
-        -- Only show for functions longer than threshold
-        local threshold = provider_config.min_lines or 10
-        if func_line_count >= threshold then
-          callback({
-            line = func_info.line,
-            text = string.format("(%d/%d lines)", func_line_count, total_lines)
-          })
-        else
-          callback(nil)
-        end
+        -- Show line count for all functions
+        callback({
+          line = func_info.line,
+          text = string.format("(%d/%d lines)", func_line_count, total_lines)
+        })
       end
     }
   }
