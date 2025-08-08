@@ -118,7 +118,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         {
           name = "complexity",
-          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
+          enabled = false,    -- disabled by default - enable explicitly to use
           min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
         },
       },
@@ -213,21 +213,23 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>complexity Provider (BETA)</strong> - Code complexity analysis</summary>
-
-> **⚠️ Beta Feature**: This provider is currently in beta. While the complexity analysis uses research-based heuristics, it may have edge cases, performance considerations, and may need refinement for different coding styles and languages. Feedback and bug reports are welcome!
+<summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
 
 **Provider Name**: `complexity`
 
 **Events**: `BufWritePost`, `TextChanged`
 
-**What it shows**: Function complexity indicators using research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
+**What it shows**: Function complexity indicators using language-aware research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
 
 **Display Format**: `Cx: S/M/L/XL` where:
 - **S** (Small) - Simple sequential functions
 - **M** (Medium) - Functions with basic branching
 - **L** (Large) - Functions with significant complexity
 - **XL** (Extra Large) - Highly complex functions
+
+**Language Support**: Automatically detects and uses language-specific patterns for:
+- Lua, JavaScript, TypeScript, Python, Go
+- Falls back to generic patterns for other languages
 
 **Configuration**:
 - `enabled`: Enable/disable the provider (default: `false`)
@@ -392,7 +394,8 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
 
 ### v0.2.x
-- [ ] Graduate beta providers (`complexity`, `diag_summary`)
+- [x] Graduate `complexity` provider from beta - **COMPLETED in v0.2.1**
+- [ ] Graduate `diag_summary` provider from beta
 - [x] Streamlined provider API - **COMPLETED in v0.2.0**
 
 ### Potential Features (post v1.0.0)
