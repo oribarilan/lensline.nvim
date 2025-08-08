@@ -15,6 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [v0.2.0] - 2025-08-07
+
+### Added
+- Inline provider support for defining custom providers directly in configuration
+- Composable utility functions for common provider patterns
+- Centralized debug logging for all providers
+
+### Changed
+- Streamlined provider API with unified async callback pattern
+- Simplified provider development with reduced boilerplate code
+- All built-in providers updated to use new streamlined API
+
+### Fixed
+- Improved provider execution flow and reliability
+
 ## [v0.1.4] - 2025-08-06
 
 ### Added

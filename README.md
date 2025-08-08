@@ -35,7 +35,7 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## Install
 
-We recommend using the latest tagged release (`tag = '0.1.x'`) or the `release/0.1.x` branch.
+We recommend using the latest tagged release (`tag = '0.2.x'`) or the `release/0.2.x` branch.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -43,8 +43,8 @@ We recommend using the latest tagged release (`tag = '0.1.x'`) or the `release/0
 
 or
 
-<a href="https://github.com/oribarilan/lensline.nvim/tree/release/0.1.x">
-  <img alt="Branch release/0.1.x" src="https://img.shields.io/static/v1?label=Branch&message=release/0.1.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
+<a href="https://github.com/oribarilan/lensline.nvim/tree/release/0.2.x">
+  <img alt="Branch release/0.2.x" src="https://img.shields.io/static/v1?label=Branch&message=release/0.2.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
 </a>
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
@@ -52,7 +52,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.1.4', -- or: branch = 'release/0.1.x'
+  tag = '0.2.0', -- or: branch = 'release/0.2.x'
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -66,13 +66,13 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.1.4' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.2.0' }
 ``` 
 
 or
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.1.x' }
+Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.2.x' }
 ```
 
 </details>
@@ -83,7 +83,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.1.4', -- or: branch = 'release/0.1.x'
+    tag = '0.2.0', -- or: branch = 'release/0.2.x'
 }
 ```
 </details>
@@ -393,7 +393,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.2.x
 - [ ] Graduate beta providers (`complexity`, `diag_summary`)
-- [x] Streamlined provider API - **COMPLETED in v0.1.x**
+- [x] Streamlined provider API - **COMPLETED in v0.2.0**
 
 ### Potential Features (post v1.0.0)
 
