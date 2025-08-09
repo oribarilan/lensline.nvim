@@ -1,5 +1,7 @@
 FROM ubuntu:22.04
 ARG NVIM_VERSION=v0.8.3
+# Provided automatically by buildx; falls back to host arch if plain docker build
+ARG TARGETARCH
 
 # Install ONLY what is required to run the lensline test suite:
 # - ca-certificates curl xz-utils : fetch & extract Neovim release tarball
@@ -10,12 +12,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl xz-utils git lua5.1 luarocks make \
  && rm -rf /var/lib/apt/lists/*
 
-# Install Neovim (binary release)
-# NOTE: Skip executing 'nvim --version' during build to avoid Rosetta/QEMU issues on cross-arch (arm64 host building linux/amd64)
-RUN curl -fL "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux64.tar.gz" -o /tmp/nvim.tar.gz \
- && tar -xzf /tmp/nvim.tar.gz -C /opt \
- && ln -s /opt/nvim-*/bin/nvim /usr/local/bin/nvim \
- && rm /tmp/nvim.tar.gz
+# Install Neovim (binary release) matching architecture
+# We map Docker's TARGETARCH to Neovim release asset names:
+#   amd64  -> nvim-linux64
+#   arm64  -> nvim-linux-arm64
+# This prevents mixing an x86_64 binary into an arm64 base image (Rosetta/QEMU error).
+RUN set -eu; \
+  case "${TARGETARCH:-$(uname -m)}" in \
+    amd64|x86_64) NVIM_PKG="nvim-linux64" ;; \
+    arm64|aarch64) NVIM_PKG="nvim-linux-arm64" ;; \
+    *) echo "Unsupported TARGETARCH='${TARGETARCH}'"; exit 1 ;; \
+  esac; \
+  curl -fL "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/${NVIM_PKG}.tar.gz" -o /tmp/nvim.tar.gz; \
+  tar -xzf /tmp/nvim.tar.gz -C /opt; \
+  ln -sf /opt/nvim-*/bin/nvim /usr/local/bin/nvim; \
+  rm /tmp/nvim.tar.gz
 
 # Copy repository sources
 WORKDIR /app
@@ -25,5 +36,5 @@ COPY . /app
 RUN rm -rf ./.rocks && \
     luarocks --lua-version=5.1 --tree ./.rocks install luassert
 
-# delegate to Makefile so changes in orchestration need updating only once
+# Delegate to Makefile so changes in orchestration need updating only once
 CMD ["make","test"]
