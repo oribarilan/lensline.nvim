@@ -396,6 +396,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Streamlined provider API - **COMPLETED in v0.2.0**
 - [ ] Guaranteed end_line in provider API
 - [ ] Test coverage provider
+- [x] Test suite + CI
 
 ### Potential Features (post v1.0.0)
 
