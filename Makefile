@@ -9,14 +9,7 @@ LUA_VERSION := 5.1
 test:
 	@eval "$$(luarocks --lua-version=$(LUA_VERSION) --tree ./$(ROCKS_TREE) path)" \
 	  && $(NVIM) --headless -u tests/minimal_init.lua \
-	    -c "lua do \
-local busted = require('busted') \
-local files = vim.fn.globpath('tests/unit','**/*_spec.lua',0,1) \
-table.sort(files) \
-for _,f in ipairs(files) do dofile(f) end \
-local ok, err = pcall(function() require('busted.runner')() end) \
-if not ok then print('[busted error]', err) vim.cmd('cq 1') else vim.cmd('qa') end \
-end" \
+	    -c "lua local ok, err = pcall(function() require('busted.runner')({ paths={'tests/unit'}, standalone=true }) end) if not ok then print('[busted error]', err) vim.cmd('cq 1') else vim.cmd('qa') end" \
 	  || { echo '[test] failures'; exit 1; }
 
 .PHONY: clean-rocks

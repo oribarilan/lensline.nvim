@@ -28,6 +28,14 @@ if vim.fn.isdirectory(rocks) == 1 then
   end
 end
 
+-- Expose luassert early so specs that execute before busted.runner can use assert.are / etc.
+do
+  local ok, lua_assert = pcall(require, "luassert")
+  if ok and type(lua_assert) == "table" and lua_assert.are then
+    _G.assert = lua_assert
+  end
+end
+
 -- Disable built-in plugins we don't need
 vim.g.loaded_matchparen = 1
 vim.g.loaded_netrw = 1
