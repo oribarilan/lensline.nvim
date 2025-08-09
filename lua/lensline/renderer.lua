@@ -165,7 +165,16 @@ function M.render_combined_lenses(bufnr)
   for _, provider_name in ipairs(provider_order) do
     local lens_items = data_to_iterate[provider_name]
     if lens_items and type(lens_items) == "table" then
-      for _, item in ipairs(lens_items) do
+      -- Robust iteration: handle sparse arrays (nil gaps) while preserving numeric order
+      local numeric_indices = {}
+      for k, _ in pairs(lens_items) do
+        if type(k) == "number" then
+          table.insert(numeric_indices, k)
+        end
+      end
+      table.sort(numeric_indices)
+      for _, idx in ipairs(numeric_indices) do
+        local item = lens_items[idx]
         if item and item.line and item.text then
           if not combined_lines[item.line] then
             combined_lines[item.line] = {}
