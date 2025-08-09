@@ -394,10 +394,11 @@ Here we are listing the core features plan. For a more detailed history of chang
 ### v0.2.x
 - [ ] Graduate beta providers (`complexity`, `diag_summary`)
 - [x] Streamlined provider API - **COMPLETED in v0.2.0**
+- [ ] Guaranteed end_line in provider API
+- [ ] Test coverage provider
 
 ### Potential Features (post v1.0.0)
 
-- [ ] Test coverage provider
 - [ ] Class level lens
 - [ ] References - some LSP count self, some don't, address this
 
