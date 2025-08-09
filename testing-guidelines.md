@@ -1,6 +1,6 @@
-# Testing Guidelines (busted-only)
+# Testing Guidelines (custom runner)
 
-Single lightweight harness using Neovim headless + busted. No plenary, no Docker, no coverage by default.
+Single lightweight harness using Neovim headless + in-repo custom runner (no busted, no plenary, no Docker, no coverage by default).
 
 ## 1. Scope
 - We keep only unit tests for now under `tests/unit/`
@@ -13,9 +13,9 @@ Use a LOCAL LuaRocks tree (isolated per repo).
 Initial one‑time dependency install (or upgrade):
 ```bash
 rm -rf ./.rocks
-luarocks --lua-version=5.1 --tree ./.rocks install busted
+luarocks --lua-version=5.1 --tree ./.rocks install luassert
 ```
-(Installs busted and its deps into an isolated `./.rocks` tree – ignored by git)
+(Installs luassert (assertion DSL) into an isolated `./.rocks` tree – ignored by git)
 
 Ensure `nvim` is on PATH (Neovim 0.8+).
 
@@ -29,13 +29,13 @@ make test
 First time (or after upgrading deps):
 ```bash
 rm -rf ./.rocks
-luarocks --lua-version=5.1 --tree ./.rocks install busted
+luarocks --lua-version=5.1 --tree ./.rocks install luassert
 make test
 ```
 
 Underlying command (for reference only):
 ```
-nvim --headless -u tests/minimal_init.lua -c "lua require('busted.runner')({ paths={'tests/unit'}, standalone=true })" +qall
+nvim --headless -u tests/minimal_init.lua -c "lua require('lensline.test_runner').run()" +qall
 ```
 See [Makefile](Makefile:1) and [tests/minimal_init.lua](tests/minimal_init.lua:1).
 
@@ -120,9 +120,9 @@ These are intentionally deferred. If/when introduced, document them explicitly:
 ## 12. Quick Reference
 | Action | Command |
 |--------|---------|
-| Install/upgrade local deps | `rm -rf ./.rocks && luarocks --lua-version=5.1 --tree ./.rocks install busted` |
+| Install/upgrade local deps | `rm -rf ./.rocks && luarocks --lua-version=5.1 --tree ./.rocks install luassert` |
 | Run all unit tests | `make test` |
-| Run single file | `nvim --headless -u tests/minimal_init.lua -c "lua require('busted.runner')({ paths={'tests/unit/test_utils_spec.lua'}, standalone=true })" +qall` |
+| Run single file | (not yet supported by custom runner; run all) |
 | Clean local rocks tree | `rm -rf ./.rocks` |
 
 Keep it boring; keep it green.

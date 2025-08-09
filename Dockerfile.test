@@ -1,0 +1,18 @@
+FROM ubuntu:22.04 AS base
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git make neovim lua5.1 luarocks \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install test dependency (luassert) into local user tree (will be in LUA_PATH when we eval in Makefile)
+RUN luarocks --lua-version=5.1 install luassert
+
+WORKDIR /workspace
+COPY . /workspace
+
+# Optional: allow build to fail fast if tests fail (uncomment to enforce at build time)
+# RUN make test
+
+# Default command runs the test suite
+CMD ["make", "test"]
