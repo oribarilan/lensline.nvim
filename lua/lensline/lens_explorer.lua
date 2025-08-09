@@ -297,52 +297,49 @@ end
 
 function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
   for _, symbol in ipairs(symbols) do
-    -- Check if this symbol is a function, method, or constructor
+    -- Identify symbol kinds we care about (function / method / constructor)
     local symbol_kinds = {
       [vim.lsp.protocol.SymbolKind.Function] = true,
       [vim.lsp.protocol.SymbolKind.Method] = true,
       [vim.lsp.protocol.SymbolKind.Constructor] = true,
     }
-    
+
     if symbol_kinds[symbol.kind] then
-      -- For Functions: only include if it's a named function
-      -- For Methods/Constructors: include all (they're typically named)
-      if symbol.kind == vim.lsp.protocol.SymbolKind.Function then
-        if not is_named_function(symbol) then
-          goto continue_loop  -- Skip anonymous functions
+      local include = true
+      -- Only add plain Functions if they are "named" per our heuristic
+      if symbol.kind == vim.lsp.protocol.SymbolKind.Function and not is_named_function(symbol) then
+        include = false -- (previously used Lua 5.2 goto to "continue"; rewritten for 5.1 portability)
+      end
+
+      if include then
+        local line_num
+        local end_line_num
+        local character
+
+        -- Handle both DocumentSymbol and SymbolInformation formats
+        if symbol.range then
+          -- DocumentSymbol format
+          line_num = symbol.range.start.line + 1 -- Convert to 1-indexed
+          end_line_num = symbol.range["end"].line + 1 -- Convert to 1-indexed
+          character = symbol.range.start.character
+        elseif symbol.location then
+          -- SymbolInformation format
+          line_num = symbol.location.range.start.line + 1
+          end_line_num = symbol.location.range["end"].line + 1
+          character = symbol.location.range.start.character
+        end
+
+        if line_num and line_num >= start_line and line_num <= end_line then
+          table.insert(functions, {
+            line = line_num,
+            end_line = end_line_num,
+            character = character,
+            name = symbol.name,
+            kind = symbol.kind
+          })
         end
       end
-      
-      local line_num
-      local end_line_num
-      local character
-      
-      -- Handle both DocumentSymbol and SymbolInformation formats
-      if symbol.range then
-        -- DocumentSymbol format
-        line_num = symbol.range.start.line + 1 -- Convert to 1-indexed
-        end_line_num = symbol.range["end"].line + 1 -- Convert to 1-indexed
-        character = symbol.range.start.character
-      elseif symbol.location then
-        -- SymbolInformation format
-        line_num = symbol.location.range.start.line + 1
-        end_line_num = symbol.location.range["end"].line + 1
-        character = symbol.location.range.start.character
-      end
-      
-      if line_num and line_num >= start_line and line_num <= end_line then
-        table.insert(functions, {
-          line = line_num,
-          end_line = end_line_num,
-          character = character,
-          name = symbol.name,
-          kind = symbol.kind
-        })
-      end
     end
-    
-    ::continue_loop::
-    
     -- Recursively process children if they exist
     if symbol.children then
       M.extract_symbols_recursive(symbol.children, functions, start_line, end_line)
