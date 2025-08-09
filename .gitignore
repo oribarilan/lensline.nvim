@@ -40,3 +40,13 @@ luac.out
 *.hex
 
 TODO.md
+
+# --- Test infrastructure (local only, not published) ---
+tests/tmp/
+coverage/
+luacov.*
+luacov.report.out
+luacov.stats.out
+
+# Optional local rocks tree (created by `make deps`)
+.rocks/

@@ -27,6 +27,20 @@ return {
 }
 ```
 
+## Testing
+
+Harness uses [tests/minimal_init.lua](tests/minimal_init.lua:1) to set a minimal runtime.
+
+Install busted (LuaRocks):
+```bash
+luarocks install busted
+```
+
+Run:
+```bash
+make test
+```
+
 ## Architecture Overview
 
 ### File Structure
