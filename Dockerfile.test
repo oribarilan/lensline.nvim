@@ -1,40 +1,63 @@
+# Test container for lensline.nvim
+# - Supports NVIM_VERSION in { v0.8.3, stable }
+# - Uses deterministic Neovim release tarballs
+# - Installs only what's needed to run your Makefile-based tests
+
 FROM ubuntu:22.04
+
+# Default to lowest supported version; CI overrides with `stable` in the matrix
 ARG NVIM_VERSION=v0.8.3
-# Provided automatically by buildx; falls back to host arch if plain docker build
+# Provided automatically by buildx; fallback lets plain `docker build` work too
 ARG TARGETARCH
 
-# Install ONLY what is required to run the lensline test suite:
-# - ca-certificates curl xz-utils : fetch & extract Neovim release tarball
-# - lua5.1 luarocks               : install luassert (sole test dependency)
-# - git                            : provider code shells out to git (parity with runtime)
-# - make                           : invoke existing Makefile (run 'make test' exactly)
+# Minimal runtime deps:
+# - curl/xz: fetch & extract Neovim tarballs
+# - lua5.1/luarocks: install luassert (your test-only dep)
+# - git: your provider shells out to git (match runtime parity)
+# - make: invoke repo Makefile (we call `make test`)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl xz-utils git lua5.1 luarocks make \
  && rm -rf /var/lib/apt/lists/*
 
-# Install Neovim (binary release) matching architecture
-# We map Docker's TARGETARCH to Neovim release asset names:
-#   amd64  -> nvim-linux64
-#   arm64  -> nvim-linux-arm64
-# This prevents mixing an x86_64 binary into an arm64 base image (Rosetta/QEMU error).
+# Naming install
+# * v0.8.3 (old) uses:   nvim-linux64                 (amd64 only)
+# * stable (current) uses: nvim-linux-x86_64 (amd64) / nvim-linux-arm64 (arm64)
+# branch on NVIM_VERSION, then map architecture.
 RUN set -eu; \
-  case "${TARGETARCH:-$(uname -m)}" in \
-    amd64|x86_64) NVIM_PKG="nvim-linux64" ;; \
-    arm64|aarch64) NVIM_PKG="nvim-linux-arm64" ;; \
-    *) echo "Unsupported TARGETARCH='${TARGETARCH}'"; exit 1 ;; \
+  ARCH="${TARGETARCH:-$(uname -m)}"; \
+  case "$ARCH" in \
+    amd64|x86_64) \
+      if [ "$NVIM_VERSION" = "v0.8.3" ]; then \
+        NVIM_PKG="nvim-linux64"; \
+      else \
+        NVIM_PKG="nvim-linux-x86_64"; \
+      fi \
+      ;; \
+    arm64|aarch64) \
+      if [ "$NVIM_VERSION" = "v0.8.3" ]; then \
+        echo "Neovim ${NVIM_VERSION} does not provide an arm64 tarball. "; \
+        echo "Run this image as amd64 (e.g., buildx --platform linux/amd64) or use NVIM_VERSION=stable."; \
+        exit 1; \
+      else \
+        NVIM_PKG="nvim-linux-arm64"; \
+      fi \
+      ;; \
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;; \
   esac; \
-  curl -fL "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/${NVIM_PKG}.tar.gz" -o /tmp/nvim.tar.gz; \
+  URL="https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/${NVIM_PKG}.tar.gz"; \
+  echo "Downloading ${URL}"; \
+  curl -fL "$URL" -o /tmp/nvim.tar.gz; \
   tar -xzf /tmp/nvim.tar.gz -C /opt; \
   ln -sf /opt/nvim-*/bin/nvim /usr/local/bin/nvim; \
-  rm /tmp/nvim.tar.gz
+  rm /tmp/nvim.tar.gz; \
+  nvim --version
 
-# Copy repository sources
 WORKDIR /app
 COPY . /app
 
-# Install isolated test dependency tree (pure Lua, no compiler toolchain needed)
+# Isolated LuaRocks tree (pure Lua; no compiler toolchain needed)
 RUN rm -rf ./.rocks && \
     luarocks --lua-version=5.1 --tree ./.rocks install luassert
 
-# Delegate to Makefile so changes in orchestration need updating only once
-CMD ["make","test"]
+# Delegate to the repo Makefile so orchestration stays in one place
+CMD ["make", "test"]
