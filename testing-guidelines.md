@@ -1,6 +1,4 @@
-# Testing Guidelines (custom runner)
-
-Single lightweight harness using Neovim headless + in-repo custom runner (no busted, no plenary, no Docker, no coverage by default).
+# Testing Guidelines
 
 ## 1. Scope
 - We keep only unit tests for now under `tests/unit/`
@@ -8,7 +6,7 @@ Single lightweight harness using Neovim headless + in-repo custom runner (no bus
 - Future (optional): integration, e2e, coverage (outlined below)
 
 ## 2. Prerequisites
-Use a LOCAL LuaRocks tree (isolated per repo).
+Use a local LuaRocks tree (isolated per repo).
 
 Initial one‑time dependency install (or upgrade):
 ```bash
@@ -33,10 +31,8 @@ luarocks --lua-version=5.1 --tree ./.rocks install luassert
 make test
 ```
 
-Underlying command (for reference only):
-```
-nvim --headless -u tests/minimal_init.lua -c "lua require('lensline.test_runner').run()" +qall
-```
+Note that CI will run `make test` in nvim v0.8.3 to make sure compatibility is maintained.
+
 See [Makefile](Makefile:1) and [tests/minimal_init.lua](tests/minimal_init.lua:1).
 
 ## 4. File Naming
@@ -109,20 +105,3 @@ We do NOT start real language servers. Instead:
 - [ ] No persistent global state leakage
 - [ ] Names follow `test_..._spec.lua`
 - [ ] Fast (avoid large loops / heavy fixtures)
-
-## 11. Future (Optional) Extensions (NOT enabled now)
-These are intentionally deferred. If/when introduced, document them explicitly:
-- Integration tests (`tests/integration/`) using real `vim.api` side effects
-- E2E scenario tests (`tests/e2e/`) exercising user-facing flows
-- Coverage (luacov) triggered via an env flag `COVERAGE=1`
-- CI workflow file running `make test` across matrix of Neovim versions
-
-## 12. Quick Reference
-| Action | Command |
-|--------|---------|
-| Install/upgrade local deps | `rm -rf ./.rocks && luarocks --lua-version=5.1 --tree ./.rocks install luassert` |
-| Run all unit tests | `make test` |
-| Run single file | (not yet supported by custom runner; run all) |
-| Clean local rocks tree | `rm -rf ./.rocks` |
-
-Keep it boring; keep it green.
