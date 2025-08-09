@@ -36,18 +36,23 @@ end
 describe("providers.last_author", function()
   local provider = require("lensline.providers.last_author")
 
-  -- Base temp file directory (inside gitignored tests/tmp/)
-  local base_tmp = vim.fn.getcwd() .. "/tests/tmp"
-  if vim.fn.isdirectory(base_tmp) == 0 then
-    vim.fn.mkdir(base_tmp, "p")
+  -- Use system temp directory so OS / CI can clean it; create a namespaced subdir
+  local base_tmp_root = (vim.loop.os_tmpdir() or "/tmp") .. "/lensline_nvim_tests"
+  if vim.fn.isdirectory(base_tmp_root) == 0 then
+    pcall(vim.fn.mkdir, base_tmp_root, "p")
   end
 
-  -- Create a unique real file so fs_stat passes (different per test to avoid name collisions if a prior buffer lingers after failure)
+  -- Track created files for defensive cleanup
+  local created_files = {}
+  local buf_paths = {}
+
+  -- Create a unique real file so fs_stat passes
   local function make_real_file(tag)
-    local path = string.format("%s/.tmp_last_author_%s.lua", base_tmp, tag)
+    local path = string.format("%s/.last_author_%s_%d.lua", base_tmp_root, tag, math.random(1, 1e9))
     local fh = assert(io.open(path, "w"))
     fh:write("-- temp file for last_author tests\nlocal function foo() end\n")
     fh:close()
+    created_files[#created_files + 1] = path
     return path
   end
 
@@ -62,7 +67,26 @@ describe("providers.last_author", function()
     })
     local path = make_real_file(buf_counter)
     vim.api.nvim_buf_set_name(bufnr, path)
+    buf_paths[bufnr] = path
     return bufnr
+  end
+
+  local function cleanup_buf(bufnr)
+    local path = buf_paths[bufnr] or vim.api.nvim_buf_get_name(bufnr)
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end
+    if path and path ~= "" then
+      pcall(os.remove, path)
+    end
+    buf_paths[bufnr] = nil
+  end
+
+  -- Final cleanup after suite
+  local function cleanup_all_files()
+    for _, f in ipairs(created_files) do
+      pcall(os.remove, f)
+    end
   end
 
   it("returns nil when blame cache has no data", function()
@@ -84,7 +108,7 @@ describe("providers.last_author", function()
       end)
     end)
     eq(true, called)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    cleanup_buf(bufnr)
   end)
 
   it("formats minutes ago (>=1 min, < 60m)", function()
@@ -106,7 +130,7 @@ describe("providers.last_author", function()
       end)
     end)
     eq({ line = 1, text = "󰊢 Alice, 3min ago" }, out)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    cleanup_buf(bufnr)
   end)
 
   it("formats hours ago (< 24h) no nerdfont icon", function()
@@ -128,7 +152,7 @@ describe("providers.last_author", function()
       end)
     end)
     eq({ line = 1, text = "Bob, 3h ago" }, out)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    cleanup_buf(bufnr)
   end)
 
   it("formats days ago (< 365d)", function()
@@ -150,7 +174,7 @@ describe("providers.last_author", function()
       end)
     end)
     eq({ line = 2, text = "󰊢 Carol, 5d ago" }, out)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    cleanup_buf(bufnr)
   end)
 
   it("formats years ago (>= 365d)", function()
@@ -172,6 +196,7 @@ describe("providers.last_author", function()
       end)
     end)
     eq({ line = 3, text = "󰊢 Dave, 2y ago" }, out)
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    cleanup_buf(bufnr)
+    cleanup_all_files()
   end)
 end)
