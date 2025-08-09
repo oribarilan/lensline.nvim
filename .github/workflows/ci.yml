@@ -1,8 +1,10 @@
-name: PR gate (Docker tests)
+name: CI
 
 on:
   pull_request:
     branches: ["**"]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -34,6 +36,7 @@ jobs:
         run: make d-test
 
   gate:
+    name: gate
     runs-on: ubuntu-24.04
     needs: [test]  # only runs if all matrix jobs passed
     steps:
