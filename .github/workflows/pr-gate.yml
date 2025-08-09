@@ -32,3 +32,9 @@ jobs:
           DOCKER_PLATFORM: linux/amd64
           NVIM_VERSION: ${{ matrix.nvim }}
         run: make d-test
+
+  gate:
+    runs-on: ubuntu-24.04
+    needs: [test]  # only runs if all matrix jobs passed
+    steps:
+      - run: echo "all checks passed"
