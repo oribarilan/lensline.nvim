@@ -10,6 +10,14 @@ local MAX_CACHE_SIZE = 50 -- Limit cache to 50 buffers maximum
 -- Expose cache for stale data access (used by executor for immediate rendering)
 M.function_cache = function_cache
 
+-- Test helper: allow unit tests to shrink cache size for deterministic eviction scenarios
+-- Not documented publicly; name prefixed with '_' to discourage external use.
+function M._set_max_cache_size_for_test(size)
+  if type(size) == "number" and size > 0 and size < MAX_CACHE_SIZE then
+    MAX_CACHE_SIZE = size
+  end
+end
+
 -- LRU cache management functions
 local function update_access_order(bufnr)
   -- Remove bufnr from current position if it exists

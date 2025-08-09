@@ -79,7 +79,7 @@ describe("executor stale cache immediate render followed by fresh async update",
         get_lsp_clients = function() return {} end,
         has_lsp_capability = function() return false end,
         discover_functions_async = function(_, _, _, cb)
-          -- Delay to allow stale path to render first
+          -- Delay to allow stale path to render first (slightly longer to stabilize ordering)
           async_called = async_called + 1
           vim.defer_fn(function()
             cb(fresh_funcs)
@@ -108,8 +108,8 @@ describe("executor stale cache immediate render followed by fresh async update",
 
             executor.execute_all_providers(buf)
 
-            -- Wait for both stale immediate render and async render
-            vim.wait(400, function()
+            -- Wait for both stale immediate render and async render (reduced wait window)
+            vim.wait(150, function()
               return #render_calls >= 2
             end)
 
@@ -140,9 +140,9 @@ describe("executor stale cache immediate render followed by fresh async update",
             end
             assert.is_true(different, "expected fresh render to differ from stale render")
 
-            -- Provider handler invoked once per function across both phases (allow duplicates across phases)
+            -- Provider handler invoked (sanity check, avoid brittle exact count expectations)
             table.sort(handler_call_lines)
-            assert.is_true(#handler_call_lines >= #first)
+            assert.is_true(#handler_call_lines >= #first, "expected at least one handler call per stale function")
 
             vim.api.nvim_buf_delete(buf, { force = true })
           end)

@@ -95,12 +95,16 @@ describe("lens_explorer async discovery cache & LRU eviction", function()
     vim.api.nvim_buf_delete(bufnr, { force = true })
   end)
 
-  it("LRU eviction removes oldest entry after exceeding MAX_CACHE_SIZE", function()
-    -- We will create 55 buffers (>50 default). The earliest should be evicted.
+  it("LRU eviction removes oldest entry after exceeding MAX_CACHE_SIZE (shrunk for test)", function()
+    -- Shrink cache size for deterministic + fast eviction scenario
+    if lens_explorer._set_max_cache_size_for_test then
+      lens_explorer._set_max_cache_size_for_test(5)
+    end
+    local NEW_MAX = 5
+    local TARGET = 8 -- create 8 buffers so first 3 should be evicted (5 retained)
     local created = {}
     local callbacks_completed = 0
 
-    local TARGET = 55
     for i = 1, TARGET do
       local b = vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(b, 0, -1, false, { "buf" .. i })
@@ -110,31 +114,20 @@ describe("lens_explorer async discovery cache & LRU eviction", function()
       end)
     end
 
-    vim.wait(2000, function() return callbacks_completed == TARGET end)
+    -- Allow async symbol callbacks to finish (5ms each + overhead)
+    vim.wait(600, function() return callbacks_completed == TARGET end)
 
-    -- Ensure eviction occurred: size of function_cache <= 50
     local count = 0
-    for k,_ in pairs(lens_explorer.function_cache) do count = count + 1 end
-    assert.is_true(count <= 50)
+    for _ in pairs(lens_explorer.function_cache) do count = count + 1 end
+    assert.is_true(count <= NEW_MAX, "expected cache size <= " .. NEW_MAX .. ", got " .. count)
 
-    -- Oldest should have been evicted: created[1] very likely removed
-    -- (If race causes different eviction, we still assert earliest often gone;
-    -- fallback check ensures at least one of earliest five gone.)
-    local oldest_present = lens_explorer.function_cache[created[1]] ~= nil
-    if oldest_present then
-      local any_early_evict = false
-      for i = 1, math.min(5, #created) do
-        if lens_explorer.function_cache[created[i]] == nil then
-          any_early_evict = true
-          break
-        end
-      end
-      assert.is_true(any_early_evict, "Expected at least one early buffer to be evicted")
-    end
+    -- Oldest buffer should have been evicted deterministically
+    assert.is_nil(lens_explorer.function_cache[created[1]], "expected oldest buffer to be evicted")
 
-    -- Access a later buffer (sanity check only; skip internal cache assertion for robustness)
-    local last_buf = created[#created]
+    -- Newest buffer should still be present
+    assert.is_not_nil(lens_explorer.function_cache[created[#created]], "expected newest buffer to remain in cache")
 
+    -- Cleanup all created buffers
     for _, b in ipairs(created) do
       if vim.api.nvim_buf_is_valid(b) then
         vim.api.nvim_buf_delete(b, { force = true })

@@ -1,9 +1,12 @@
 local eq = assert.are.same
 
--- Test executor timeout path:
--- Forces provider to never invoke callback so timeout renders 0 items.
+-- Test executor timeout path (provider async never completes)
+-- Enhancements:
+--  - Uses configurable provider_timeout_ms (override via config) instead of timer patch heuristics
+--  - Asserts provider handler invoked for each function (verifies pending_functions & legit timeout)
+--  - Reduced overall wait for faster suite execution
 -- Paths exercised:
---   timeout timer branch ([lua/lensline/executor.lua:229]-[lua/lensline/executor.lua:248])
+--   timeout timer branch ([lua/lensline/executor.lua:229]-[lua/lensline/executor.lua:248]) using config.provider_timeout_ms override
 --   limits.should_skip_lenses check with zero lens_items ([lua/lensline/executor.lua:268])
 
 local function with_stub(mod_name, stub, fn)
@@ -14,47 +17,9 @@ local function with_stub(mod_name, stub, fn)
   if not ok then error(err) end
 end
 
-describe("executor provider timeout fallback rendering", function()
-  local orig_new_timer
-
-  before_each(function()
-    -- Capture original timer and patch only provider timeout timers (>=4000ms, repeat 0)
-    orig_new_timer = vim.loop.new_timer
-    vim.loop.new_timer = function()
-      local real_timer = orig_new_timer()
-      local proxy = {}
-      function proxy:start(timeout, repeat_interval, cb)
-        if timeout >= 4000 and repeat_interval == 0 then
-          -- Accelerate timeout to 10ms
-          vim.defer_fn(function()
-            cb()
-          end, 10)
-        else
-          real_timer:start(timeout, repeat_interval, cb)
-        end
-      end
-      function proxy:stop()
-        if real_timer.stop then real_timer:stop() end
-      end
-      function proxy:close()
-        if real_timer.close then real_timer:close() end
-      end
-      function proxy:is_closing()
-        if real_timer.is_closing then return real_timer:is_closing() end
-        return false
-      end
-      return proxy
-    end
-  end)
-
-  after_each(function()
-    if orig_new_timer then
-      vim.loop.new_timer = orig_new_timer
-    end
-  end)
-
+describe("executor provider timeout fallback rendering (configurable timeout)", function()
   it("renders empty lens set on timeout when provider never completes", function()
-    -- Configure single provider
+    -- Configure single provider with short provider_timeout_ms for deterministic test
     local config = require("lensline.config")
     config.setup({
       providers = {
@@ -62,6 +27,7 @@ describe("executor provider timeout fallback rendering", function()
       },
       style = { use_nerdfont = false },
       debounce_ms = 5,
+      provider_timeout_ms = 30,  -- override (default 5000ms) to accelerate timeout path
       limits = { max_lines = 1000, exclude = {}, exclude_gitignored = false, max_lenses = 50 },
     })
 
@@ -71,7 +37,7 @@ describe("executor provider timeout fallback rendering", function()
       "function b() end",
     })
 
-    -- Functions discovered (2) so pending_functions will stay > 0
+    -- Functions discovered (2) so pending_functions will stay > 0 (never decremented)
     local discovered_funcs = {
       { line = 1, end_line = 1, name = "a" },
       { line = 2, end_line = 2, name = "b" },
@@ -79,14 +45,17 @@ describe("executor provider timeout fallback rendering", function()
 
     local render_calls = {}
     local should_skip_lenses_calls = 0
+    local handler_invocations = 0
 
     -- Provider whose handler never calls callback and returns nothing (async path unresolved)
     local provider_mod = {
       name = "p_timeout",
-      handler = function() end,  -- neither return value nor async callback
+      handler = function()
+        handler_invocations = handler_invocations + 1
+        -- intentionally no return value & no async cb
+      end,
       event = { "BufWritePost" },
     }
-
 
     with_stub("lensline.providers", {
       get_enabled_providers = function()
@@ -102,7 +71,7 @@ describe("executor provider timeout fallback rendering", function()
         function_cache = {},
         cleanup_cache = function() end,
         discover_functions_async = function(_, _, _, cb)
-          -- Provide functions immediately
+          -- Provide functions immediately (no delay)
           cb(discovered_funcs)
         end,
       }, function()
@@ -133,8 +102,9 @@ describe("executor provider timeout fallback rendering", function()
 
             executor.execute_all_providers(buf)
 
-            -- Wait for timeout branch to trigger render (fast simulated)
-            vim.wait(400, function()
+            -- Wait for timeout branch to trigger render (timeout_ms + safety margin)
+            local max_wait_ms = 200
+            vim.wait(max_wait_ms, function()
               return #render_calls > 0
             end)
 
@@ -142,7 +112,8 @@ describe("executor provider timeout fallback rendering", function()
             eq(1, #render_calls)                          -- Only timeout render
             eq("p_timeout", render_calls[1].provider)
             eq(0, render_calls[1].count)                  -- No items collected (timeout path)
-            assert.is_true(should_skip_lenses_calls >= 1)  -- limits consulted
+            assert.is_true(should_skip_lenses_calls >= 1) -- limits consulted
+            eq(#discovered_funcs, handler_invocations)    -- handler invoked once per discovered function
 
             vim.api.nvim_buf_delete(buf, { force = true })
           end)
