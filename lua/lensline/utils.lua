@@ -23,8 +23,12 @@ end
 
 function M.is_using_nerdfonts()
     local config = require("lensline.config")
-    local opts = config.get()
-    return opts.style.use_nerdfont or false
+    local ok, opts = pcall(config.get)
+    if not ok or type(opts) ~= "table" then
+        return false
+    end
+    local style = opts.style or {}
+    return style.use_nerdfont == true
 end
 
 function M.if_nerdfont_else(nerdfont_value, fallback_value)
@@ -50,14 +54,14 @@ function M.get_function_lines(bufnr, func_info)
     local estimated_end = start_line
     
     for i, line in ipairs(lines) do
-        -- Count braces to find function end
+        -- Count braces to find function end (simple heuristic; includes braces in comments/strings)
         local open_braces = select(2, line:gsub("[{(]", ""))
         local close_braces = select(2, line:gsub("[})]", ""))
-        
+
         if open_braces > 0 then
             found_opening = true
         end
-        
+
         if found_opening then
             brace_count = brace_count + open_braces - close_braces
             if brace_count <= 0 and i > 1 then
@@ -65,7 +69,7 @@ function M.get_function_lines(bufnr, func_info)
                 break
             end
         end
-        
+
         -- Safety limit to avoid analyzing huge chunks
         if i > 100 then
             estimated_end = start_line + i - 1

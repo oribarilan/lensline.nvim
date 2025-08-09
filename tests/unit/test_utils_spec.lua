@@ -204,3 +204,44 @@ describe("utils.get_lsp_references()", function()
     end)
   end)
 end)
+-- Additional utility tests (section 6 TODO items)
+
+describe("utils.debounce() manual cancellation", function()
+  it("stopping + closing timer prevents scheduled call", function()
+    local utils = require("lensline.utils")
+    local calls = 0
+    local debounced, timer = utils.debounce(function() calls = calls + 1 end, 60)
+    debounced()
+    -- Cancel before it fires
+    timer:stop()
+    timer:close()
+    vim.wait(120, function() return calls > 0 end)
+    eq(0, calls)
+  end)
+end)
+
+describe("utils.is_using_nerdfonts() pre-setup", function()
+  it("returns false before config.setup invoked", function()
+    package.loaded["lensline.config"] = nil
+    local cfg = require("lensline.config") -- reloaded (options empty)
+    package.loaded["lensline.config"] = cfg
+    local utils = require("lensline.utils")
+    eq(false, utils.is_using_nerdfonts())
+  end)
+end)
+
+describe("utils.get_function_lines braces in strings/comments", function()
+  it("ignores braces inside strings so function not cut early", function()
+    local utils = require("lensline.utils")
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+      "function foo() {",
+      "  local s = \"not a real } brace\" -- } inside comment too",
+      "}",
+      "after()",
+    })
+    local lines = utils.get_function_lines(buf, { line = 1 })
+    eq({ "function foo() {", "  local s = \"not a real } brace\" -- } inside comment too", "}" }, lines)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)
