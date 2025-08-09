@@ -27,6 +27,41 @@ return {
 }
 ```
 
+## Setup
+
+Prerequisites:
+- Neovim (>= 0.9 recommended)
+- LuaRocks available on PATH
+
+Install local (isolated) dependency (luassert only):
+```bash
+# from repo root
+rm -rf .rocks
+luarocks --lua-version=5.1 --tree ./.rocks install luassert
+```
+
+Run tests:
+```bash
+make test
+```
+
+Or run manually (equivalent headless invocation):
+```bash
+eval "$(luarocks --lua-version=5.1 --tree ./.rocks path)" \
+  && nvim --headless -u tests/minimal_init.lua \
+     -c "lua require('lensline.test_runner').run()" +qall
+```
+
+## Testing
+
+See [testing-guidelines.md](testing-guidelines.md:1) for detailed practices (naming rules, stubbing, LSP strategy).
+
+Notes:
+- Local isolated deps live in ./.rocks (git-ignored); no global installs needed.
+- Minimal harness: custom in-repo runner (no busted, plenary, docker, or coverage by default).
+- Test file naming: must match `test_.*_spec.lua` (example: `tests/unit/test_utils_spec.lua`).
+- Runtime bootstrap: [tests/minimal_init.lua](tests/minimal_init.lua:1) and runner: [lua/lensline/test_runner.lua](lua/lensline/test_runner.lua:1).
+
 ## Architecture Overview
 
 ### File Structure

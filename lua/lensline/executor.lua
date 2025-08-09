@@ -227,7 +227,9 @@ function M.execute_provider_with_functions(bufnr, provider_module, provider_conf
   
   -- Timeout safety net for async providers
   local timeout_timer = vim.loop.new_timer()
-  timeout_timer:start(5000, 0, function()
+  -- Allow configurable provider timeout (test override via config.provider_timeout_ms)
+  local timeout_ms = (config.get().provider_timeout_ms or 5000)
+  timeout_timer:start(timeout_ms, 0, function()
     timeout_timer:close()
     if not completed then
       completed = true
