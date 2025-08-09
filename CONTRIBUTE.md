@@ -27,19 +27,40 @@ return {
 }
 ```
 
-## Testing
+## Setup
 
-Harness uses [tests/minimal_init.lua](tests/minimal_init.lua:1) to set a minimal runtime.
+Prerequisites:
+- Neovim (>= 0.9 recommended)
+- LuaRocks available on PATH
 
-Install busted (LuaRocks):
+Install local (isolated) dependencies (busted only):
 ```bash
-luarocks install busted
+# from repo root
+rm -rf .rocks
+luarocks --lua-version=5.1 --tree ./.rocks install busted
 ```
 
-Run:
+Run tests:
 ```bash
 make test
 ```
+
+Or run manually (equivalent headless invocation):
+```bash
+eval "$(luarocks --lua-version=5.1 --tree ./.rocks path)" \
+  && nvim --headless -u tests/minimal_init.lua \
+     -c "lua require('busted.runner')({ paths={'tests/unit'}, pattern='test_.*_spec.lua', standalone=true })" +qall
+```
+
+## Testing
+
+See [testing-guidelines.md](testing-guidelines.md:1) for detailed practices (naming rules, stubbing, LSP strategy).
+
+Notes:
+- Local isolated deps live in ./.rocks (git-ignored); no global installs needed.
+- Minimal harness: pure busted (no plenary, docker, or coverage by default).
+- All test files must match: `test_.*_spec.lua` (example: `tests/unit/test_utils_spec.lua`).
+- Runtime bootstrap: [tests/minimal_init.lua](tests/minimal_init.lua:1).
 
 ## Architecture Overview
 

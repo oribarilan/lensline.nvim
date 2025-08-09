@@ -48,5 +48,6 @@ luacov.*
 luacov.report.out
 luacov.stats.out
 
-# Optional local rocks tree (created by `make deps`)
+# Local dependency trees
 .rocks/
+vendor/

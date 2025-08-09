@@ -102,6 +102,16 @@ describe("utils.get_function_lines()", function()
       "}",
     }, lines)
   end)
+
+  it("applies safety limit when no closing brace within 100 lines", function()
+    local lines_tbl = { "function long_fn() {" }
+    for i = 1, 120 do
+      lines_tbl[#lines_tbl + 1] = "  print('x')"
+    end
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines_tbl)
+    local lines = utils.get_function_lines(bufnr, { line = 1 })
+    eq(101, #lines) -- 1 function line + 100 additional due to safety cap
+  end)
 end)
 
 describe("utils.has_lsp_references_capability()", function()
@@ -168,6 +178,28 @@ describe("utils.get_lsp_references()", function()
         utils.get_lsp_references(0, { line = 3, name = "foo" }, function(res) got = res end)
         eq(mock_result, got)
         eq("textDocument/references", requested[1].method)
+      end)
+    end)
+  end)
+
+  it("invokes callback with nil on LSP error", function()
+    local debug_msgs = {}
+    vim.lsp.buf_request = function(_, _, _, handler)
+      handler({ code = 123, message = "boom" }, nil, {})
+    end
+    with_stub("lensline.debug", {
+      log_context = function(_, msg) table.insert(debug_msgs, msg) end,
+    }, function()
+      with_stub("lensline.lens_explorer", {
+        get_lsp_clients = function() return { { name = "dummy" } } end,
+        has_lsp_capability = function() return true end,
+      }, function()
+        local got = "unset"
+        utils.get_lsp_references(0, { line = 5, name = "err_fn" }, function(res) got = res end)
+        eq(nil, got)
+        -- Ensure an error log line was produced
+        local joined = table.concat(debug_msgs, "\n")
+        eq(true, joined:match("request error") ~= nil)
       end)
     end)
   end)

@@ -1,9 +1,25 @@
-# Minimal test harness (requires busted installed; optional local install via `make deps`)
+# Minimal test harness (local LuaRocks tree in .rocks + busted for Lua 5.1 / Neovim LuaJIT)
 NVIM ?= nvim
-TEST_DIR := tests/unit
+TEST_DIR := $(shell pwd)/tests/unit
 ROCKS_TREE := .rocks
 LUA_VERSION := 5.1
 
+
 .PHONY: test
 test:
-	@$(NVIM) --headless -u tests/minimal_init.lua -c "lua require('busted.runner')({ paths={'$(TEST_DIR)'}, standalone=true })" +qall || { echo '[test] failures'; exit 1; }
+	@eval "$$(luarocks --lua-version=$(LUA_VERSION) --tree ./$(ROCKS_TREE) path)" \
+	  && $(NVIM) --headless -u tests/minimal_init.lua \
+	    -c "lua do \
+local busted = require('busted') \
+local files = vim.fn.globpath('tests/unit','**/*_spec.lua',0,1) \
+table.sort(files) \
+for _,f in ipairs(files) do dofile(f) end \
+local ok, err = pcall(function() require('busted.runner')() end) \
+if not ok then print('[busted error]', err) vim.cmd('cq 1') else vim.cmd('qa') end \
+end" \
+	  || { echo '[test] failures'; exit 1; }
+
+.PHONY: clean-rocks
+clean-rocks:
+	@rm -rf ./$(ROCKS_TREE)
+	@echo "[clean-rocks] Removed local rocks tree ./$(ROCKS_TREE)"
