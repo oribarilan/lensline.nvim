@@ -9,18 +9,7 @@ local function with_patch(tbl, key, new_impl, fn)
   if not ok then error(err) end
 end
 
-local function with_patches(target, patch_map, fn)
-  local originals = {}
-  for k,v in pairs(patch_map) do
-    originals[k] = target[k]
-    target[k] = v
-  end
-  local ok, err = pcall(fn)
-  for k,v in pairs(originals) do
-    target[k] = v
-  end
-  if not ok then error(err) end
-end
+-- (with_patches helper removed as unused)
 
 -- Fabricate blame porcelain block for a single final line
 local function blame_block(final_line, author, time)
@@ -38,7 +27,6 @@ describe("blame_cache core behavior", function()
 
   -- Provide deterministic time
   local fake_mtime = { sec = 123456 }
-  local now_time = 999999 -- not used directly here, but could be
 
   local function reset()
     blame_cache.clear_cache()
@@ -115,6 +103,8 @@ describe("blame_cache core behavior", function()
       end)
     end
   end
+
+  -- No explicit deletion of temp files; rely on OS tmp cleanup policy.
 
   it("cache miss then hit (single file) increments stats appropriately", function()
     reset()
