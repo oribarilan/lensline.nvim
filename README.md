@@ -404,11 +404,6 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### Potential Features (post v1.0.0)
 - [ ] Additional built-in providers (e.g., test coverage)
-=======
-- [ ] Test coverage provider
-- [x] Test suite + CI
-
-### Potential Features (post v1.0.0)
 - [ ] References - some LSP count self, some don't, address this
 - [ ] Class level lens
 
