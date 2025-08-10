@@ -30,7 +30,7 @@
 # What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
-![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
+![lensline demo](https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c)
 
 ## Why use lensline?
 
@@ -227,6 +227,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **What it shows**: Function complexity indicators using language-aware research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
 Note that complexity is calculated using a heuristic that may evolve over time, but will always be documented in the changelog.
 You are welcome to open issues or PRs to improve the heuristic for specific languages / patterns.
+
+![Complexity Provider Demo](https://github.com/user-attachments/assets/f6f5af14-237c-4cd2-b1ba-700ae0014ab3)
 
 **Display Format**: `Cx: S/M/L/XL` where:
 - **S** (Small) - Simple sequential functions
