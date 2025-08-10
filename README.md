@@ -269,7 +269,6 @@ Here are a few examples for inspiration. For comprehensive provider  guidance, s
 <details>
 <summary><strong>Zero Reference Warning</strong> - Modify existing ref_count behavior</summary>
 
-**Category**: Modifying existing providers
 ![lensline demo](https://github.com/user-attachments/assets/c5910040-370b-49c9-95a8-97d15fd9109c)
 
 Shows a warning when functions have zero references, helping identify unused code.
@@ -314,8 +313,6 @@ require("lensline").setup({
 
 <details>
 <summary><strong>Function Length</strong> - Show function line count</summary>
-
-**Category**: Custom provider
 
 Displays the number of lines in each function, helping identify long functions that might need refactoring.
 
@@ -397,12 +394,13 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Graduate `complexity` provider from beta - **COMPLETED in v0.2.1**
 - [ ] Graduate `diag_summary` provider from beta
 - [x] Streamlined provider API - **COMPLETED in v0.2.0**
+- [ ] Guaranteed end_line in provider API
+- [x] Test suite + CI
 
 ### Potential Features (post v1.0.0)
-
-- [ ] Test coverage provider
-- [ ] Class level lens
+- [ ] Additional built-in providers (e.g., test coverage)
 - [ ] References - some LSP count self, some don't, address this
+- [ ] Class level lens
 
 ## Contribute
 
