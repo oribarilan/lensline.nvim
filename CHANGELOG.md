@@ -8,12 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Language-specific complexity pattern detection for Lua, JavaScript, TypeScript, Python, and Go
+- Comprehensive buffer and file validation for complexity provider
 - Initial automated test suite covering core executor, renderer, limits, and provider logic
 - PR CI gate (GitHub Actions) executing test suite and requiring passing status before merge
 
 ### Changed
+- Graduated `complexity` provider from beta with enhanced language-aware algorithm
+- Improved complexity provider performance with single-pass parsing
+- Enhanced complexity provider error handling and validation following common provider patterns
 
 ### Fixed
+- Fixed missing configuration requirement in complexity provider
+- Fixed inconsistent error handling in complexity provider
 
 ### Removed
 

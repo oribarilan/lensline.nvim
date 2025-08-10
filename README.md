@@ -30,7 +30,7 @@
 # What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
-![lensline demo](https://github.com/user-attachments/assets/fa6870bd-b8b0-4b8e-a6f7-6077d835f11c)
+![lensline demo](https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c)
 
 ## Why use lensline?
 
@@ -123,7 +123,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         {
           name = "complexity",
-          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
+          enabled = false,    -- disabled by default - enable explicitly to use
           min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
         },
       },
@@ -218,21 +218,40 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>complexity Provider (BETA)</strong> - Code complexity analysis</summary>
-
-> **⚠️ Beta Feature**: This provider is currently in beta. While the complexity analysis uses research-based heuristics, it may have edge cases, performance considerations, and may need refinement for different coding styles and languages. Feedback and bug reports are welcome!
+<summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
 
 **Provider Name**: `complexity`
 
 **Events**: `BufWritePost`, `TextChanged`
 
-**What it shows**: Function complexity indicators using research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
+**What it shows**: Function complexity indicators using language-aware research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
+Note that complexity is calculated using a heuristic that may evolve over time, but will always be documented in the changelog.
+You are welcome to open issues or PRs to improve the heuristic for specific languages / patterns.
+
+![Complexity Provider Demo](https://github.com/user-attachments/assets/f6f5af14-237c-4cd2-b1ba-700ae0014ab3)
 
 **Display Format**: `Cx: S/M/L/XL` where:
 - **S** (Small) - Simple sequential functions
 - **M** (Medium) - Functions with basic branching
 - **L** (Large) - Functions with significant complexity
 - **XL** (Extra Large) - Highly complex functions
+
+**Language Support**: Automatically detects and uses language-specific patterns for:
+- Lua, JavaScript, TypeScript, Python, Go
+- Falls back to generic patterns for other languages
+
+**Heuristic**:
+- Counts decision points: `if / elseif / switch / case / try / catch / finally`, loops, and exception-ish constructs (e.g. `pcall`, `try`, `catch`)
+- Logical operators inside condition headers (`and`, `or`, `not`, `&&`, `||`, ternary markers) add conditional weight
+- Loops are weighted higher than simple branches; exception constructs add to branch weight
+- Indentation depth (max leading spaces) adds a small nesting penalty; line count adds a tiny capped contribution (capped at 30 LOC, low weight)
+- Plain `else` is not counted (no added decision)
+- Language-specific weight multiplier adjusts overall score slightly (e.g. Python < JS due to typical verbosity differences)
+- Thresholds (raw score → label): `<=5 => S`, `<=12 => M`, `<=20 => L`, else `XL`
+- Goal: highlight genuinely complex control flow, not just long or indented code; small helpers with a single branch can still remain S if overall score stays low
+
+**Stability**:
+- Heuristic may evolve; future changes will be versioned in the changelog if thresholds or weights shift.
 
 **Configuration**:
 - `enabled`: Enable/disable the provider (default: `false`)
@@ -272,7 +291,6 @@ Here are a few examples for inspiration. For comprehensive provider  guidance, s
 <details>
 <summary><strong>Zero Reference Warning</strong> - Modify existing ref_count behavior</summary>
 
-**Category**: Modifying existing providers
 ![lensline demo](https://github.com/user-attachments/assets/c5910040-370b-49c9-95a8-97d15fd9109c)
 
 Shows a warning when functions have zero references, helping identify unused code.
@@ -317,8 +335,6 @@ require("lensline").setup({
 
 <details>
 <summary><strong>Function Length</strong> - Show function line count</summary>
-
-**Category**: Custom provider
 
 Displays the number of lines in each function, helping identify long functions that might need refactoring.
 
@@ -397,16 +413,16 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
 
 ### v0.2.x
-- [ ] Graduate beta providers (`complexity`, `diag_summary`)
-- [x] Streamlined provider API - **COMPLETED in v0.2.0**
+- [x] Graduate `complexity` provider from beta
+- [ ] Graduate `diag_summary` provider from beta
+- [x] Streamlined provider API
 - [ ] Guaranteed end_line in provider API
-- [ ] Test coverage provider
 - [x] Test suite + CI
 
 ### Potential Features (post v1.0.0)
-
-- [ ] Class level lens
+- [ ] Additional built-in providers (e.g., test coverage)
 - [ ] References - some LSP count self, some don't, address this
+- [ ] Class level lens
 
 ## Contribute
 
