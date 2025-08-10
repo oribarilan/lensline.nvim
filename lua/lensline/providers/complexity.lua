@@ -136,13 +136,17 @@ local function estimate_complexity(lines, filetype)
     ::continue::
   end
 
-  -- Indentation contribution: only large when there is structural control flow.
-  -- Purely indented sequential code should remain Small; cap modestly in that case.
+  -- Indentation contribution: scale with structural density.
+  --  * structural_count == 0: tiny cap so pure sequential code stays Small
+  --  * 1-2 structural points (very simple function): gentle scaling (avoid inflating to Large)
+  --  * >2: full scaling (nested / multi-branch logic)
   local structural_count = branch_count + loop_count + conditional_count
   local indent_component
   if structural_count == 0 then
     -- Cap at 0.4 (max_indent 4 * 0.1) to avoid inflating trivial functions
     indent_component = math.min(max_indent, 4) * 0.1
+  elseif structural_count <= 2 then
+    indent_component = max_indent * 0.3
   else
     indent_component = max_indent * 0.5
   end
@@ -169,6 +173,11 @@ local function estimate_complexity(lines, filetype)
 
   -- Post-adjustment: ensure minimal classification for any branching/conditionals
   if label == "S" and (branch_count > 0 or conditional_count > 0 or loop_count > 0) then
+    label = "M"
+  end
+
+  -- Normalize: a single simple branch (optionally with one simple condition) should not escalate to Large
+  if label == "L" and branch_count <= 1 and loop_count == 0 and conditional_count <= 1 then
     label = "M"
   end
 

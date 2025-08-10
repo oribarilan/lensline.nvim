@@ -259,6 +259,22 @@ describe("providers.complexity.estimate_complexity", function()
     local label_alias = (estimate_complexity(lines, "csharp"))
     eq(label_cs, label_alias)
   end)
+  it("csharp: single if with deep indentation normalizes to Medium", function()
+    local lines = {
+      'public void GetMarried() {',
+      '    Console.WriteLine("start");',
+      '    if (Age < 18) {',
+      '                Console.WriteLine("Too young");',
+      '    } else {',
+      '                Console.WriteLine("Congrats");',
+      '    }',
+      '    GrowOld();',
+      '    GrowOld();',
+      '}',
+    }
+    local label = (estimate_complexity(lines, "cs"))
+    eq("M", label)
+  end)
 end)
 
 describe("providers.complexity.handler", function()
