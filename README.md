@@ -225,6 +225,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **Events**: `BufWritePost`, `TextChanged`
 
 **What it shows**: Function complexity indicators using language-aware research-based scoring that analyzes control flow patterns (branches, loops, conditionals) rather than superficial metrics like line count.
+Note that complexity is calculated using a heuristic that may evolve over time, but will always be documented in the changelog.
+You are welcome to open issues or PRs to improve the heuristic for specific languages / patterns.
 
 **Display Format**: `Cx: S/M/L/XL` where:
 - **S** (Small) - Simple sequential functions
@@ -235,6 +237,19 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **Language Support**: Automatically detects and uses language-specific patterns for:
 - Lua, JavaScript, TypeScript, Python, Go
 - Falls back to generic patterns for other languages
+
+**Heuristic**:
+- Counts decision points: `if / elseif / switch / case / try / catch / finally`, loops, and exception-ish constructs (e.g. `pcall`, `try`, `catch`)
+- Logical operators inside condition headers (`and`, `or`, `not`, `&&`, `||`, ternary markers) add conditional weight
+- Loops are weighted higher than simple branches; exception constructs add to branch weight
+- Indentation depth (max leading spaces) adds a small nesting penalty; line count adds a tiny capped contribution (capped at 30 LOC, low weight)
+- Plain `else` is not counted (no added decision)
+- Language-specific weight multiplier adjusts overall score slightly (e.g. Python < JS due to typical verbosity differences)
+- Thresholds (raw score → label): `<=5 => S`, `<=12 => M`, `<=20 => L`, else `XL`
+- Goal: highlight genuinely complex control flow, not just long or indented code; small helpers with a single branch can still remain S if overall score stays low
+
+**Stability**:
+- Heuristic may evolve; future changes will be versioned in the changelog if thresholds or weights shift.
 
 **Configuration**:
 - `enabled`: Enable/disable the provider (default: `false`)
@@ -396,9 +411,9 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
 
 ### v0.2.x
-- [x] Graduate `complexity` provider from beta - **COMPLETED in v0.2.1**
+- [x] Graduate `complexity` provider from beta
 - [ ] Graduate `diag_summary` provider from beta
-- [x] Streamlined provider API - **COMPLETED in v0.2.0**
+- [x] Streamlined provider API
 - [ ] Guaranteed end_line in provider API
 - [x] Test suite + CI
 
