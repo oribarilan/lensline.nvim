@@ -3,8 +3,13 @@
 # lensline.nvim
 ##### A status bar for your functions
 
-[![Neovim](https://img.shields.io/badge/Neovim%200.8+-green.svg?style=for-the-badge&logo=neovim)](https://neovim.io)
+[![Neovim v0.8.3](https://img.shields.io/github/actions/workflow/status/oribarilan/lensline.nvim/ci.yml?branch=main&label=Neovim%20v0.8.3)](https://github.com/oribarilan/lensline.nvim/actions/workflows/ci.yml?query=branch%3Amain) [![Neovim stable](https://img.shields.io/github/actions/workflow/status/oribarilan/lensline.nvim/ci.yml?branch=main&label=Neovim%20stable)](https://github.com/oribarilan/lensline.nvim/actions/workflows/ci.yml?query=branch%3Amain)
+ 
+
 <p>
+
+[![Neovim](https://img.shields.io/badge/Neovim%200.8+-green.svg?style=for-the-badge&logo=neovim)](https://neovim.io)
+
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
 </a>
@@ -399,6 +404,11 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### Potential Features (post v1.0.0)
 - [ ] Additional built-in providers (e.g., test coverage)
+=======
+- [ ] Test coverage provider
+- [x] Test suite + CI
+
+### Potential Features (post v1.0.0)
 - [ ] References - some LSP count self, some don't, address this
 - [ ] Class level lens
 

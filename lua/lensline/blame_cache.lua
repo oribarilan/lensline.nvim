@@ -174,36 +174,26 @@ local function estimate_function_end(bufnr, start_line)
   
   for i, line in ipairs(lines) do
     local current_line = start_line + i - 1
-    
-    -- Skip empty lines
-    if line:match("^%s*$") then
-      goto continue
-    end
-    
-    -- Get indentation of current line
-    local current_indent = #line:match("^%s*")
-    
-    -- Set base indentation from first non-empty line (function declaration)
-    if indent_level == nil then
-      indent_level = current_indent
-      goto continue
-    end
-    
-    -- If we find a line with same or less indentation than function declaration, it's likely the end
-    if current_indent <= indent_level and i > 1 then
-      -- Make sure it's not just a continuation of the function signature
-      if not line:match("^%s*[%w_(),:%s]*:?%s*$") then
-        end_line = current_line - 1
-        break
+
+    if not line:match("^%s*$") then
+      local current_indent = #line:match("^%s*")
+
+      if indent_level == nil then
+        indent_level = current_indent
+      else
+        if current_indent <= indent_level and i > 1 then
+          -- Make sure it's not just a continuation of the function signature
+          if not line:match("^%s*[%w_(),:%s]*:?%s*$") then
+            end_line = current_line - 1
+            break
+          end
+        end
+
+        if current_indent > indent_level then
+          end_line = current_line
+        end
       end
     end
-    
-    -- Update end_line to include function body
-    if current_indent > indent_level then
-      end_line = current_line
-    end
-    
-    ::continue::
   end
   
   -- Add a safety margin if we reached the scan limit

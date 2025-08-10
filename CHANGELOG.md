@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed inconsistent error handling in complexity provider
 
 ### Added
+- Initial automated test suite covering core executor, renderer, limits, and provider logic
+- PR CI gate (GitHub Actions) executing test suite and requiring passing status before merge
 
 ### Changed
 
