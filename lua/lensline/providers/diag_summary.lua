@@ -1,10 +1,10 @@
 -- Diagnostic Summary Provider
 -- Aggregates and displays diagnostic counts per function
--- Reuses logic from the legacy diagnostics collector but in modern provider format
+local config = require("lensline.config")
 
 return {
   name = "diag_summary",
-  event = { "DiagnosticChanged", "BufReadPost" },  -- BufReadPost avoids conflicts with buffer switching
+  event = { "DiagnosticChanged", "BufReadPost" },
   handler = function(bufnr, func_info, provider_config, callback)
     -- Buffer validation like other providers
     local utils = require("lensline.utils")
@@ -12,8 +12,6 @@ return {
       callback(nil)
       return
     end
-
-    local debug = require("lensline.debug")
 
     -- Configuration with defaults - matches config.lua default
     local min_level = (provider_config and provider_config.min_level) or "WARN"
@@ -32,35 +30,26 @@ return {
     -- Get diagnostic icons based on nerdfonts config
     local opts = config.get()
     local diagnostic_icons = {
-      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
-      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
-      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
-      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
+      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
+      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
+      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
+      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
     }
 
     -- Helper to check if diagnostic is within function range
-    local function is_in_function_range(diagnostic, func_range)
-      if not func_range then
+    -- func_info.line and func_info.end_line are 1-based (converted from LSP 0-based)
+    -- diagnostic.lnum is 0-based
+    local function is_in_function_range(diagnostic, func_info)
+      if not func_info.line then
         return false
       end
 
-      local diag_line = diagnostic.lnum
-      local diag_col = diagnostic.col or 0
+      local diag_line = diagnostic.lnum  -- 0-based
+      local func_start_line = func_info.line - 1  -- Convert to 0-based
+      local func_end_line = (func_info.end_line or func_info.line) - 1  -- Convert to 0-based
 
-      local start_line = func_range.start.line
-      local end_line = func_range["end"].line
-      local start_char = func_range.start.character
-      local end_char = func_range["end"].character
-
-      if diag_line > start_line and diag_line < end_line then
-        return true
-      elseif diag_line == start_line and diag_col >= start_char then
-        return true
-      elseif diag_line == end_line and diag_col <= end_char then
-        return true
-      end
-
-      return false
+      -- Simple line-based range check
+      return diag_line >= func_start_line and diag_line <= func_end_line
     end
 
     -- Format diagnostic counts into display string, filtering by min_level
@@ -105,7 +94,7 @@ return {
     local highest_severity = vim.diagnostic.severity.HINT
 
     for _, diagnostic in ipairs(diagnostics) do
-      if is_in_function_range(diagnostic, func_info.range) then
+      if is_in_function_range(diagnostic, func_info) then
         if counts[diagnostic.severity] then
           counts[diagnostic.severity] = counts[diagnostic.severity] + 1
           total_count = total_count + 1
@@ -117,12 +106,9 @@ return {
       end
     end
 
-    debug.log_context("DiagSummary", "found " .. total_count .. " diagnostics")
-
     -- Check if we should show diagnostics based on min_level
     -- Only show if highest severity is at or above the minimum level
     if total_count == 0 or highest_severity > min_level then
-      debug.log_context("DiagSummary", "skipping - no diagnostics or below min_level")
       callback(nil)
       return
     end
@@ -142,4 +128,3 @@ return {
     callback(result)
   end,
 }
-
