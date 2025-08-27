@@ -27,20 +27,20 @@
 
 </div>
 
-# What is lensline?
+# 🤔 What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
 <p align="center">
   <img alt="lensline demo" src="https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c" width="50%" />
 </p>
 
-## Why use lensline?
+## 🎯 Why use lensline?
 
 - **🔍 Glanceable insights**: Instantly see relevant context such as references, git authorship, and complexity, shown right above the function you’re working on.
 - **🧘 Seamless & distraction-free**: Lenses appear automatically as you code, blending into your workflow without stealing focus or requiring interaction.
 - **🧩 Modular & customizable**: Lens attributes are independent and configurable. Choose which ones to use, arrange them how you like, and customize their appearance, or define your own.
 
-## Install
+## 📦 Install
 
 We recommend using the latest tagged release (`tag = '0.2.0'`) or the `release/0.2.x` branch.
 
@@ -95,7 +95,7 @@ use {
 ```
 </details>
 
-## Configure
+## ⚙️ Configure
 
 lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers. 
 
@@ -114,14 +114,15 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
         },
         {
-          name = "diagnostics",
-          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
-          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
-        },
-        {
           name = "last_author",
           enabled = true,         -- enabled by default with caching optimization
           cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
+        },
+        -- built-in providers that are diabled by default:
+        {
+          name = "diagnostics",
+          enabled = false,    -- disabled by default - enable explicitly to use
+          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
         {
           name = "complexity",
@@ -375,7 +376,7 @@ require("lensline").setup({
 
 For detailed guidelines and more examples, see [providers.md](providers.md).
 
-## Commands
+## 💻 Commands
 
 ### `:LenslineToggle`
 
@@ -403,7 +404,7 @@ lensline.disable()
 lensline.toggle()
 ```
 
-## Roadmap
+## 🗺️ Roadmap
 
 Currently we are focused on making out first v1.0.0 release, which focuses on core functionality and performance.
 
@@ -419,23 +420,23 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.2.x
 - [x] Graduate `complexity` provider from beta
-- [ ] Graduate `diagnostics` provider from beta
+- [x] Graduate `diagnostics` provider from beta
 - [x] Streamlined provider API
-- [ ] Guaranteed end_line in provider API
 - [x] Test suite + CI
 
 ### Potential Features (post v1.0.0)
+- [ ] Guaranteed end_line in provider API
 - [ ] Additional built-in providers (e.g., test coverage)
 - [ ] References - some LSP count self, some don't, address this
 - [ ] Class level lens
 
-## Contribute
+## 🤝 Contribute
 
 PRs, issues, and suggestions welcome.
 
 For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
-## Thanks to
+## 🙏 Thanks to
 
 - [lazy.nvim](https://github.com/folke/lazy.nvim) & [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for inspiration on a (hopefully) good README.md
 
