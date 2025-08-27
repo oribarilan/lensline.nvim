@@ -215,7 +215,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 {
   name = "diagnostics",
   enabled = true,      -- Must be explicitly enabled
-  min_level = "ERROR", -- Only show errors and above
+  min_level = "ERROR", -- Only show errors
 }
 ```
 
