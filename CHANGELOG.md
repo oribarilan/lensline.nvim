@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.1] - 2025-08-27
+
 ### Added
 - Language-specific complexity pattern detection for Lua, JavaScript, TypeScript, Python, and Go
 - Comprehensive buffer and file validation for complexity provider
