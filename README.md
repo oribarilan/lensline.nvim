@@ -42,7 +42,7 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## Install
 
-We recommend using the latest tagged release (`tag = '0.2.x'`) or the `release/0.2.x` branch.
+We recommend using the latest tagged release (`tag = '0.2.0'`) or the `release/0.2.x` branch.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -174,6 +174,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 - `enabled`: Enable/disable the provider (default: `true`)
 - `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occures with Pyright in combination with noice.nvim or fidget.nvim.
 
+<img width="370" height="127" alt="Image" src="https://github.com/user-attachments/assets/1573f29d-0bed-4a13-947b-15d8b530904c" />
+
 </details>
 
 <details>
@@ -185,12 +187,12 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **What it shows**: Most recent git author and relative time for each function
 
+<img width="406" height="233" alt="Image" src="https://github.com/user-attachments/assets/673b87ec-b39c-4ce9-bff8-53e1a1ac4ef0" />
+
 </details>
 
 <details>
-<summary><strong>diagnostics Provider (BETA)</strong> - Diagnostic aggregation</summary>
-
-> **⚠️ Beta Feature**: This provider is currently in beta. While functional, it may have edge cases or performance considerations. Feedback and bug reports are welcome!
+<summary><strong>diagnostics Provider</strong> - Diagnostic aggregation</summary>
 
 **Provider Name**: `diagnostics`
 
@@ -220,6 +222,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 <details>
 <summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
+
+> **Note**: The complexity heuristic is evolving and needs more real-world usage to fine-tune the scoring. Feedback is welcomed to improve accuracy across different languages and patterns.
 
 **Provider Name**: `complexity`
 
