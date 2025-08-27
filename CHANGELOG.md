@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [v0.3.0] - 2025-08-27
-
 ### Added
 - Language-specific complexity pattern detection for Lua, JavaScript, TypeScript, Python, and Go
 - Comprehensive buffer and file validation for complexity provider
@@ -16,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR CI gate (GitHub Actions) executing test suite and requiring passing status before merge
 
 ### Changed
-- Graduated `diagnostics` (and renamed from `diag_summary`) 
+- Renamed `ref_count` provider to `references` for clarity
+- Graduated `diagnostics` provider from beta (renamed from `diag_summary`)
 - Graduated `complexity` provider from beta with enhanced language-aware algorithm
 - Improved complexity provider performance with single-pass parsing
 - Enhanced complexity provider error handling and validation following common provider patterns
@@ -30,10 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed old `diag_summary` provider (replaced by `diagnostics`)
-
-### Migration Guide
-- **Provider Rename**: Update your configuration from `{ name = "diag_summary" }` to `{ name = "diagnostics" }`
-- All functionality remains identical, only the provider name has changed
 
 ## [v0.2.0] - 2025-08-07
 
@@ -87,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Core lensline plugin with modular provider system
-- **ref_count** provider - displays LSP reference counts above functions
+- **references** provider - displays LSP reference counts above functions
 - **last_author** provider - shows git blame information for function authors
 - **complexity** provider (beta) - analyzes and displays function complexity metrics
 - **diagnostics** provider (beta) - summarizes LSP diagnostics for functions

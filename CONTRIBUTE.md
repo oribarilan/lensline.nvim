@@ -19,7 +19,7 @@ return {
     require("lensline").setup({
       debug_mode = true,  -- enable debug logging and LenslineDebug command
       providers = {
-        { name = "ref_count", enabled = true },
+        { name = "references", enabled = true },
         { name = "last_author", enabled = true },
       }
     })
@@ -82,7 +82,7 @@ lensline.nvim/
 │       ├── limits.lua         -- File processing limits and exclusions
 │       └── providers/
 │           ├── init.lua       -- Provider coordination and registry
-│           ├── ref_count.lua  -- LSP reference counting provider
+│           ├── references.lua -- LSP reference counting provider
 │           ├── last_author.lua -- Git blame provider
 │           ├── complexity.lua -- Code complexity analysis provider (beta)
 │           └── diagnostics.lua -- LSP diagnostics aggregation provider (beta)

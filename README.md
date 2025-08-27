@@ -109,8 +109,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
     require("lensline").setup({
       providers = {  -- Array format: order determines display sequence
         {
-          name = "ref_count",
-          enabled = true,     -- enable reference count provider
+          name = "references",
+          enabled = true,     -- enable references provider
           quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
         },
         {
@@ -162,9 +162,9 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 ### Built-in Providers
 
 <details>
-<summary><strong>ref_count Provider</strong> - LSP reference counting</summary>
+<summary><strong>references Provider</strong> - LSP reference counting</summary>
 
-**Provider Name**: `ref_count`
+**Provider Name**: `references`
 
 **Events**: `LspAttach`, `BufWritePost`
 
@@ -290,7 +290,7 @@ lensline supports custom providers for unlimited extensibility:
 Here are a few examples for inspiration. For comprehensive provider  guidance, see [`providers.md`](providers.md).
 
 <details>
-<summary><strong>Zero Reference Warning</strong> - Modify existing ref_count behavior</summary>
+<summary><strong>Zero Reference Warning</strong> - Modify existing references behavior</summary>
 
 ![lensline demo](https://github.com/user-attachments/assets/c5910040-370b-49c9-95a8-97d15fd9109c)
 
@@ -299,9 +299,9 @@ Shows a warning when functions have zero references, helping identify unused cod
 ```lua
 require("lensline").setup({
   providers = {
-    -- Replace the default ref_count with this enhanced version
+    -- Replace the default references with this enhanced version
     {
-      name = "ref_count_with_warning",
+      name = "references_with_warning",
       enabled = true,
       event = { "LspAttach", "BufWritePost" },
       handler = function(bufnr, func_info, provider_config, callback)
@@ -344,7 +344,7 @@ Displays the number of lines in each function, helping identify long functions t
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "ref_count", enabled = true },
+    { name = "references", enabled = true },
     
     {
       name = "function_length",
@@ -407,7 +407,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.1.x
 - [x] Core lensline plugin with modular provider system
-- [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diagnostics` (beta)
+- [x] 4 built-in providers: `references`, `last_author`, `complexity` (beta), `diagnostics` (beta)
 - [x] Customizable styling and layout options
 - [x] Efficient sync function discovery
 - [x] Async function discovery
