@@ -30,10 +30,10 @@ return {
     -- Get diagnostic icons based on nerdfonts config
     local opts = config.get()
     local diagnostic_icons = {
-      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
-      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
-      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
-      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
+      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
+      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
+      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
+      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
     }
 
     -- Helper to check if diagnostic is within function range
@@ -52,31 +52,20 @@ return {
       return diag_line >= func_start_line and diag_line <= func_end_line
     end
 
-    -- Format diagnostic counts into display string, filtering by min_level
-    local function format_diagnostic_counts(counts, min_level)
-      local parts = {}
-
-      -- Show severities in order, only if count > 0 and severity meets min_level
-      local severities = {
-        vim.diagnostic.severity.ERROR,
-        vim.diagnostic.severity.WARN,
-        vim.diagnostic.severity.INFO,
-        vim.diagnostic.severity.HINT,
-      }
-
-      for _, severity in ipairs(severities) do
-        local count = counts[severity]
-        -- Only show if count > 0 AND severity is at or above min_level (lower number = higher severity)
-        if count and count > 0 and severity <= min_level then
-          table.insert(parts, count .. diagnostic_icons[severity])
-        end
-      end
-
-      if #parts == 0 then
+    -- Format diagnostic counts into display string, showing only highest severity that passes filter
+    local function format_diagnostic_counts(counts, min_level, highest_severity)
+      -- Only show the highest severity that passes the min_level filter
+      if highest_severity > min_level then
         return nil
       end
 
-      return table.concat(parts, " ") -- single space between different severities
+      -- Return count of the highest severity type only (not total count)
+      local highest_severity_count = counts[highest_severity] or 0
+      if highest_severity_count == 0 then
+        return nil
+      end
+
+      return highest_severity_count .. diagnostic_icons[highest_severity]
     end
 
     -- Get all diagnostics for the buffer
@@ -113,7 +102,7 @@ return {
       return
     end
 
-    local text = format_diagnostic_counts(counts, min_level)
+    local text = format_diagnostic_counts(counts, min_level, highest_severity)
     if not text then
       callback(nil)
       return

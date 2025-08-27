@@ -28,10 +28,11 @@ config.setup({
 
 local provider = require("lensline.providers.diag_summary")
 
--- Reusable function range covering lines 0..20 fully
-local func_range = {
-  start = { line = 0, character = 0 },
-  ["end"] = { line = 20, character = 200 },
+-- Reusable function info covering lines 1..21 (1-based from lens_explorer)
+local func_info = {
+  line = 1,     -- 1-based
+  end_line = 21, -- 1-based
+  name = "test_function",
 }
 
 describe("providers.diag_summary", function()
@@ -42,7 +43,7 @@ describe("providers.diag_summary", function()
         is_valid_buffer = function() return true end,
       }, function()
         with_diagnostics({}, function()
-          provider.handler(5, { line = 1, range = func_range }, {}, function(res)
+          provider.handler(5, func_info, {}, function(res)
             called = true
             eq(nil, res)
           end)
@@ -61,7 +62,7 @@ describe("providers.diag_summary", function()
         with_diagnostics({
           { lnum = 2, col = 0, severity = vim.diagnostic.severity.WARN },
         }, function()
-          provider.handler(3, { line = 1, range = func_range }, { min_level = "ERROR" }, function(res)
+          provider.handler(3, func_info, { min_level = "ERROR" }, function(res)
             out = res
           end)
         end)
@@ -85,13 +86,14 @@ describe("providers.diag_summary", function()
           { lnum = 5, col = 0, severity = vim.diagnostic.severity.INFO },
           { lnum = 6, col = 0, severity = vim.diagnostic.severity.HINT },
         }, function()
-          provider.handler(9, { line = 1, range = func_range }, { min_level = "WARN" }, function(res)
+          provider.handler(9, func_info, { min_level = "WARN" }, function(res)
             out = res
           end)
         end)
       end)
     end)
-    eq({ line = 1, text = "2E 1W" }, out)
+    -- With min_level WARN: Shows count of highest severity type (ERROR=2), not total
+    eq({ line = 1, text = "2E" }, out)
   end)
 
   it("includes INFO when numeric min_level = vim.diagnostic.severity.INFO", function()
@@ -108,13 +110,13 @@ describe("providers.diag_summary", function()
           { lnum = 4, col = 0, severity = vim.diagnostic.severity.INFO },
           { lnum = 7, col = 0, severity = vim.diagnostic.severity.HINT },
         }, function()
-          provider.handler(11, { line = 1, range = func_range }, { min_level = vim.diagnostic.severity.INFO }, function(res)
+          provider.handler(11, func_info, { min_level = vim.diagnostic.severity.INFO }, function(res)
             out = res
           end)
         end)
       end)
     end)
-    -- HINT excluded because severity.HINT (4) > min_level (3)
-    eq({ line = 1, text = "1E 2W 1I" }, out)
+    -- Shows count of highest severity type (ERROR=1), not total
+    eq({ line = 1, text = "1E" }, out)
   end)
 end)
