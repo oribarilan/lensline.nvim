@@ -97,9 +97,10 @@ use {
 
 ## ⚙️ Configure
 
-lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers. 
+lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers.
 
-### Default Configuration
+<details>
+<summary><strong>Default Configuration</strong></summary>
 
 ```lua
 {
@@ -137,8 +138,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
       limits = {
-        exclude = { 
-            -- see config.lua for extensive list of default patterns 
+        exclude = {
+            -- see config.lua for extensive list of default patterns
         },
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
@@ -151,7 +152,10 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 }
 ```
 
-### Design Philosophy
+</details>
+
+<details>
+<summary><strong>Design Philosophy</strong></summary>
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
@@ -159,6 +163,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 - **Extension over configuration**: Provider expose a minimal set of configs. For customization, lensline encourages writing custom providers
 
 This design keeps the plugin lightweight while enabling unlimited customization. The provider based approach scales better than trying to support everything through configuration.
+
+</details>
 
 ### Built-in Providers
 
