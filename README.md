@@ -219,6 +219,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 }
 ```
 
+<img width="1105" height="143" alt="Image" src="https://github.com/user-attachments/assets/fedff22b-82ec-4177-938f-188a6afae542" />
+
 </details>
 
 <details>
