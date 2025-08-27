@@ -194,13 +194,12 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **Provider Name**: `diag_summary`
 
-**Events**: `DiagnosticChanged`, `BufEnter`
+**Events**: `DiagnosticChanged`, `BufReadPost`
 
-**What it shows**: Aggregated diagnostic counts per function (errors, warnings, info, hints)
+**What it shows**: Shows the count of the highest severity diagnostic type within each function (that passes the severity filter). 
 
 **Display Format**:
-- With nerdfonts: `1 2 3 4` (using diagnostic icons)
-- Without nerdfonts: `1E 2W 3I 4H` (E=Error, W=Warning, I=Info, H=Hint)
+- `2E`, `3W`, `1I`, `4H` (E=Error, W=Warning, I=Info, H=Hint) or uses nerd font icons if enabled
 
 **Configuration**:
 - `enabled`: Enable/disable the provider (default: `false` - disabled by default)
@@ -213,7 +212,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 {
   name = "diag_summary",
   enabled = true,      -- Must be explicitly enabled
-  min_level = "ERROR", -- Only show errors
+  min_level = "ERROR", -- Only show errors and above
 }
 ```
 

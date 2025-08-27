@@ -30,10 +30,10 @@ return {
     -- Get diagnostic icons based on nerdfonts config
     local opts = config.get()
     local diagnostic_icons = {
-      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "" or "E",
-      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "" or "W",
-      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "" or "I",
-      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "" or "H",
+      [vim.diagnostic.severity.ERROR] = opts.style.use_nerdfont and "󰅚" or "E",
+      [vim.diagnostic.severity.WARN] = opts.style.use_nerdfont and "󰀪" or "W",
+      [vim.diagnostic.severity.INFO] = opts.style.use_nerdfont and "󰋽" or "I",
+      [vim.diagnostic.severity.HINT] = opts.style.use_nerdfont and "󰌶" or "H",
     }
 
     -- Helper to check if diagnostic is within function range
