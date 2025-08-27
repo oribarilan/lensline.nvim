@@ -22,7 +22,7 @@ return {
   event = { "BufWritePost" },  -- events that trigger this provider
   handler = function(bufnr, func_info, provider_config, callback)
     -- bufnr: buffer number
-    -- func_info: { line = number, name = string, character = number, range = table, end_line = number? }
+    -- func_info: { line = number, name = string, character = number, end_line = number? }
     -- provider_config: this provider's configuration from setup()
     -- callback: function to call with result
     
@@ -53,7 +53,6 @@ The `func_info` parameter contains:
 - **`line`**: Function start line number (1-based)
 - **`name`**: Function name
 - **`character`**: Character position in line
-- **`range`**: LSP range object
 - **`end_line`**: Function end line number (optional - may be `nil` if unknown)
 
 **Note**: `end_line` may be `nil` in several scenarios:
@@ -145,7 +144,7 @@ require("lensline").setup({
     { name = "ref_count", enabled = true },
     { name = "last_author", enabled = true },
     { name = "complexity", enabled = true },
-    { name = "diag_summary", enabled = true },
+    { name = "diagnostics", enabled = true },
   }
 })
 ```

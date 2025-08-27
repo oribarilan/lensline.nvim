@@ -7,7 +7,7 @@ local M = {}
 -- Available providers following the new architecture
 M.available_providers = {
   ref_count = require("lensline.providers.ref_count"),
-  diag_summary = require("lensline.providers.diag_summary"),
+  diagnostics = require("lensline.providers.diagnostics"),
   last_author = require("lensline.providers.last_author"),
   complexity = require("lensline.providers.complexity"),
 }

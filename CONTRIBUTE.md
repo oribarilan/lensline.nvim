@@ -85,7 +85,7 @@ lensline.nvim/
 │           ├── ref_count.lua  -- LSP reference counting provider
 │           ├── last_author.lua -- Git blame provider
 │           ├── complexity.lua -- Code complexity analysis provider (beta)
-│           └── diag_summary.lua -- LSP diagnostics aggregation provider (beta)
+│           └── diagnostics.lua -- LSP diagnostics aggregation provider (beta)
 ├── README.md                  -- User documentation
 ├── CONTRIBUTE.md              -- This file
 ├── CHANGELOG.md               -- Release notes and version history
