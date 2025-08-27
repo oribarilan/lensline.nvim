@@ -3,8 +3,8 @@ local M = {}
 M.defaults = {
   providers = {  -- Array format: order determines display sequence
     {
-      name = "ref_count",
-      enabled = true,     -- enable reference count provider
+      name = "references",
+      enabled = true,     -- enable references provider
       quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
     {
@@ -108,7 +108,7 @@ function M.setup_lsp_handlers()
   -- Check if any LSP provider has quiet_lsp enabled
   local should_setup_filtering = false
   for _, provider in ipairs(opts.providers) do
-    if provider.name == "ref_count" and provider.quiet_lsp ~= false then
+    if provider.name == "references" and provider.quiet_lsp ~= false then
       should_setup_filtering = true
       break
     end

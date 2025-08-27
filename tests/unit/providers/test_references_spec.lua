@@ -8,8 +8,8 @@ local function with_stub(mod, stub, fn)
   if not ok then error(err) end
 end
 
-describe("providers.ref_count", function()
-  local provider = require("lensline.providers.ref_count")
+describe("providers.references", function()
+  local provider = require("lensline.providers.references")
 
   it("nerdfont: counts references", function()
     local calls = {}

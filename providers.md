@@ -141,7 +141,7 @@ Built-in providers are automatically available:
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "ref_count", enabled = true },
+    { name = "references", enabled = true },
     { name = "last_author", enabled = true },
     { name = "complexity", enabled = true },
     { name = "diagnostics", enabled = true },
@@ -156,7 +156,7 @@ For simple custom providers, define them directly in your config:
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "ref_count", enabled = true },
+    { name = "references", enabled = true },
     
     -- Simple line counter
     {
@@ -266,7 +266,7 @@ providers.available_providers.my_custom_provider = require("path.to.custom_provi
 
 require("lensline").setup({
   providers = {
-    { name = "ref_count", enabled = true },
+    { name = "references", enabled = true },
     { name = "my_custom_provider", enabled = true },
   }
 })
@@ -279,7 +279,7 @@ For simple providers, use the **inline provider** approach - define them directl
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "ref_count", enabled = true },
+    { name = "references", enabled = true },
     
     -- Custom inline provider
     {
