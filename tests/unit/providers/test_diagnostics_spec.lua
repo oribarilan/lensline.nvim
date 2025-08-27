@@ -26,7 +26,7 @@ config.setup({
   },
 })
 
-local provider = require("lensline.providers.diag_summary")
+local provider = require("lensline.providers.diagnostics")
 
 -- Reusable function info covering lines 1..21 (1-based from lens_explorer)
 local func_info = {
@@ -35,7 +35,7 @@ local func_info = {
   name = "test_function",
 }
 
-describe("providers.diag_summary", function()
+describe("providers.diagnostics", function()
   it("returns nil when there are no diagnostics", function()
     local called = false
     with_stub("lensline.debug", { log_context = function() end }, function()

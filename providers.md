@@ -144,7 +144,7 @@ require("lensline").setup({
     { name = "ref_count", enabled = true },
     { name = "last_author", enabled = true },
     { name = "complexity", enabled = true },
-    { name = "diag_summary", enabled = true },
+    { name = "diagnostics", enabled = true },
   }
 })
 ```

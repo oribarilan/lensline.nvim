@@ -114,7 +114,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
         },
         {
-          name = "diag_summary",
+          name = "diagnostics",
           enabled = false,    -- (BETA) disabled by default - enable explicitly to use
           min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
@@ -188,11 +188,11 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 </details>
 
 <details>
-<summary><strong>diag_summary Provider (BETA)</strong> - Diagnostic aggregation</summary>
+<summary><strong>diagnostics Provider (BETA)</strong> - Diagnostic aggregation</summary>
 
 > **⚠️ Beta Feature**: This provider is currently in beta. While functional, it may have edge cases or performance considerations. Feedback and bug reports are welcome!
 
-**Provider Name**: `diag_summary`
+**Provider Name**: `diagnostics`
 
 **Events**: `DiagnosticChanged`, `BufReadPost`
 
@@ -210,7 +210,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **Example Configuration**:
 ```lua
 {
-  name = "diag_summary",
+  name = "diagnostics",
   enabled = true,      -- Must be explicitly enabled
   min_level = "ERROR", -- Only show errors and above
 }
@@ -407,7 +407,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.1.x
 - [x] Core lensline plugin with modular provider system
-- [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diag_summary` (beta)
+- [x] 4 built-in providers: `ref_count`, `last_author`, `complexity` (beta), `diagnostics` (beta)
 - [x] Customizable styling and layout options
 - [x] Efficient sync function discovery
 - [x] Async function discovery
@@ -415,7 +415,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.2.x
 - [x] Graduate `complexity` provider from beta
-- [ ] Graduate `diag_summary` provider from beta
+- [ ] Graduate `diagnostics` provider from beta
 - [x] Streamlined provider API
 - [ ] Guaranteed end_line in provider API
 - [x] Test suite + CI

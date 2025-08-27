@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ref_count** provider - displays LSP reference counts above functions
 - **last_author** provider - shows git blame information for function authors
 - **complexity** provider (beta) - analyzes and displays function complexity metrics
-- **diag_summary** provider (beta) - summarizes LSP diagnostics for functions
+- **diagnostics** provider (beta) - summarizes LSP diagnostics for functions
 - Customizable styling and layout options
 - Automatic function detection using treesitter
 - Modular design allowing easy addition of custom providers

@@ -1,9 +1,9 @@
--- Diagnostic Summary Provider
+-- Diagnostics Provider
 -- Aggregates and displays diagnostic counts per function
 local config = require("lensline.config")
 
 return {
-  name = "diag_summary",
+  name = "diagnostics",
   event = { "DiagnosticChanged", "BufReadPost" },
   handler = function(bufnr, func_info, provider_config, callback)
     -- Buffer validation like other providers
