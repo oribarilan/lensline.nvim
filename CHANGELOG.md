@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.0] - 2025-08-27
+
 ### Added
 - Language-specific complexity pattern detection for Lua, JavaScript, TypeScript, Python, and Go
 - Comprehensive buffer and file validation for complexity provider
@@ -14,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR CI gate (GitHub Actions) executing test suite and requiring passing status before merge
 
 ### Changed
+- Graduated `diagnostics` (and renamed from `diag_summary`) 
 - Graduated `complexity` provider from beta with enhanced language-aware algorithm
 - Improved complexity provider performance with single-pass parsing
 - Enhanced complexity provider error handling and validation following common provider patterns
@@ -21,8 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed missing configuration requirement in complexity provider
 - Fixed inconsistent error handling in complexity provider
+- Fixed missing configuration requirement in diagnostics provider
+- Fixed critical range access bug in diagnostics provider (func_info.range doesn't exist)
+- Fixed diagnostics provider coordinate system handling (0-based vs 1-based)
 
 ### Removed
+- Removed old `diag_summary` provider (replaced by `diagnostics`)
+
+### Migration Guide
+- **Provider Rename**: Update your configuration from `{ name = "diag_summary" }` to `{ name = "diagnostics" }`
+- All functionality remains identical, only the provider name has changed
 
 ## [v0.2.0] - 2025-08-07
 
