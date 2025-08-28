@@ -27,22 +27,22 @@
 
 </div>
 
-# What is lensline?
+# 💡 What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
 <p align="center">
   <img alt="lensline demo" src="https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c" width="50%" />
 </p>
 
-## Why use lensline?
+## 🎯 Why use lensline?
 
 - **🔍 Glanceable insights**: Instantly see relevant context such as references, git authorship, and complexity, shown right above the function you’re working on.
 - **🧘 Seamless & distraction-free**: Lenses appear automatically as you code, blending into your workflow without stealing focus or requiring interaction.
 - **🧩 Modular & customizable**: Lens attributes are independent and configurable. Choose which ones to use, arrange them how you like, and customize their appearance, or define your own.
 
-## Install
+## 📦 Install
 
-We recommend using the latest tagged release (`tag = '0.2.x'`) or the `release/0.2.x` branch.
+We recommend using the latest tagged release (`tag = '0.2.1'`) or the `release/0.2.x` branch.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -59,7 +59,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.2.0', -- or: branch = 'release/0.2.x'
+  tag = '0.2.1', -- or: branch = 'release/0.2.x'
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -73,7 +73,7 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.2.0' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '0.2.1' }
 ``` 
 
 or
@@ -90,16 +90,17 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.2.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.2.0', -- or: branch = 'release/0.2.x'
+    tag = '0.2.1', -- or: branch = 'release/0.2.x'
 }
 ```
 </details>
 
-## Configure
+## ⚙️ Configure
 
-lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers. 
+lensline.nvim works out of the box with sensible defaults. You can customize it to your liking either with simple configuration or by writing custom providers.
 
-### Default Configuration
+<details>
+<summary><strong>Default Configuration</strong></summary>
 
 ```lua
 {
@@ -114,14 +115,15 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
         },
         {
-          name = "diagnostics",
-          enabled = false,    -- (BETA) disabled by default - enable explicitly to use
-          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
-        },
-        {
           name = "last_author",
           enabled = true,         -- enabled by default with caching optimization
           cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
+        },
+        -- built-in providers that are diabled by default:
+        {
+          name = "diagnostics",
+          enabled = false,    -- disabled by default - enable explicitly to use
+          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
         },
         {
           name = "complexity",
@@ -136,8 +138,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
       limits = {
-        exclude = { 
-            -- see config.lua for extensive list of default patterns 
+        exclude = {
+            -- see config.lua for extensive list of default patterns
         },
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
@@ -150,7 +152,10 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 }
 ```
 
-### Design Philosophy
+</details>
+
+<details>
+<summary><strong>Design Philosophy</strong></summary>
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
@@ -158,6 +163,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 - **Extension over configuration**: Provider expose a minimal set of configs. For customization, lensline encourages writing custom providers
 
 This design keeps the plugin lightweight while enabling unlimited customization. The provider based approach scales better than trying to support everything through configuration.
+
+</details>
 
 ### Built-in Providers
 
@@ -174,6 +181,8 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 - `enabled`: Enable/disable the provider (default: `true`)
 - `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occures with Pyright in combination with noice.nvim or fidget.nvim.
 
+<img width="370" height="127" alt="Image" src="https://github.com/user-attachments/assets/1573f29d-0bed-4a13-947b-15d8b530904c" />
+
 </details>
 
 <details>
@@ -185,12 +194,12 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **What it shows**: Most recent git author and relative time for each function
 
+<img width="406" height="233" alt="Image" src="https://github.com/user-attachments/assets/673b87ec-b39c-4ce9-bff8-53e1a1ac4ef0" />
+
 </details>
 
 <details>
-<summary><strong>diagnostics Provider (BETA)</strong> - Diagnostic aggregation</summary>
-
-> **⚠️ Beta Feature**: This provider is currently in beta. While functional, it may have edge cases or performance considerations. Feedback and bug reports are welcome!
+<summary><strong>diagnostics Provider</strong> - Diagnostic aggregation</summary>
 
 **Provider Name**: `diagnostics`
 
@@ -212,14 +221,18 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 {
   name = "diagnostics",
   enabled = true,      -- Must be explicitly enabled
-  min_level = "ERROR", -- Only show errors and above
+  min_level = "ERROR", -- Only show errors
 }
 ```
+
+<img width="1105" height="143" alt="Image" src="https://github.com/user-attachments/assets/fedff22b-82ec-4177-938f-188a6afae542" />
 
 </details>
 
 <details>
 <summary><strong>complexity Provider</strong> - Code complexity analysis</summary>
+
+> **Note**: The complexity heuristic is evolving and needs more real-world usage to fine-tune the scoring. Feedback is welcomed to improve accuracy across different languages and patterns.
 
 **Provider Name**: `complexity`
 
@@ -371,7 +384,7 @@ require("lensline").setup({
 
 For detailed guidelines and more examples, see [providers.md](providers.md).
 
-## Commands
+## 💻 Commands
 
 ### `:LenslineToggle`
 
@@ -399,7 +412,7 @@ lensline.disable()
 lensline.toggle()
 ```
 
-## Roadmap
+## 🗺️ Roadmap
 
 Currently we are focused on making out first v1.0.0 release, which focuses on core functionality and performance.
 
@@ -415,23 +428,23 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.2.x
 - [x] Graduate `complexity` provider from beta
-- [ ] Graduate `diagnostics` provider from beta
+- [x] Graduate `diagnostics` provider from beta
 - [x] Streamlined provider API
-- [ ] Guaranteed end_line in provider API
 - [x] Test suite + CI
 
 ### Potential Features (post v1.0.0)
+- [ ] Guaranteed end_line in provider API
 - [ ] Additional built-in providers (e.g., test coverage)
 - [ ] References - some LSP count self, some don't, address this
 - [ ] Class level lens
 
-## Contribute
+## 🤝 Contribute
 
 PRs, issues, and suggestions welcome.
 
 For development setup, debugging, and technical details, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
-## Thanks to
+## 🙏 Thanks to
 
 - [lazy.nvim](https://github.com/folke/lazy.nvim) & [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for inspiration on a (hopefully) good README.md
 
