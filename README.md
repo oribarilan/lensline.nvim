@@ -27,7 +27,7 @@
 
 </div>
 
-# 🤔 What is lensline?
+# 💡 What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
 
 <p align="center">
