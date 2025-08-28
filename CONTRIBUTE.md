@@ -147,5 +147,6 @@ Example:
 2. **Create fresh Unreleased section**: Add a new empty `[Unreleased]` section at the top for future changes
 3. **Update Version**: Increment the version in `README.md` in the `install` section
 4. **Merge**: Merge changes into the main branch
-5. **Merge to release branch**: Merge the main branch into the `release/0.1.x` branch
-6. **Tag Release**: Create a new tag for the release (e.g., `v0.1.2`) on the `release/0.1.x` branch
+5. **Merge to release branch**: Merge the main branch into the appropriate release branch:
+   - For v1.x releases: merge into `release/1.x` branch
+6. **Tag Release**: Create a new tag for the release (e.g., `v1.0.0`, `v1.1.0`) on the appropriate release branch
