@@ -48,16 +48,10 @@ We recommend using a specific tagged release (`tag = '1.0.0'`) for stability, or
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
 </a>
 
-**For v1.x (recommended):**
+Or
 
 <a href="https://github.com/oribarilan/lensline.nvim/tree/release/1.x">
   <img alt="Branch release/1.x" src="https://img.shields.io/static/v1?label=Branch&message=release/1.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
-</a>
-
-**For legacy v0.2.x:**
-
-<a href="https://github.com/oribarilan/lensline.nvim/tree/release/0.2.x">
-  <img alt="Branch release/0.2.x" src="https://img.shields.io/static/v1?label=Branch&message=release/0.2.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
 </a>
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
