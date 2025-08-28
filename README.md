@@ -42,13 +42,19 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## 📦 Install
 
-We recommend using the latest tagged release (`tag = '0.2.1'`) or the `release/0.2.x` branch.
+We recommend using a specific tagged release (`tag = '1.0.0'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
 </a>
 
-or
+**For v1.x (recommended):**
+
+<a href="https://github.com/oribarilan/lensline.nvim/tree/release/1.x">
+  <img alt="Branch release/1.x" src="https://img.shields.io/static/v1?label=Branch&message=release/1.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
+</a>
+
+**For legacy v0.2.x:**
 
 <a href="https://github.com/oribarilan/lensline.nvim/tree/release/0.2.x">
   <img alt="Branch release/0.2.x" src="https://img.shields.io/static/v1?label=Branch&message=release/0.2.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
@@ -59,7 +65,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '0.2.1', -- or: branch = 'release/0.2.x'
+  tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -73,13 +79,13 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '0.2.1' }
-``` 
+Plug 'oribarilan/lensline.nvim', { 'tag': '1.0.0' }
+```
 
 or
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.2.x' }
+Plug 'oribarilan/lensline.nvim', { 'branch': 'release/1.x' }
 ```
 
 </details>
@@ -90,7 +96,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/0.2.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '0.2.1', -- or: branch = 'release/0.2.x'
+    tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
 }
 ```
 </details>
