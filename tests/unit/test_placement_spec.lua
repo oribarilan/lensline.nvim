@@ -225,4 +225,22 @@ describe("placement configuration", function()
       vim.api.nvim_buf_delete(buf, { force = true })
     end
   end)
+
+  it("validates configuration and function existence", function()
+    local config = require("lensline.config")
+    local renderer = require("lensline.renderer")
+    
+    -- Test inline placement config
+    config.setup({ style = { placement = "inline" } })
+    local opts = config.get()
+    eq("inline", opts.style.placement)
+    
+    -- Test render_inline_lenses function exists
+    eq("function", type(renderer.render_inline_lenses))
+    
+    -- Test default fallback when placement not specified
+    config.setup({ style = { separator = " | " } })
+    opts = config.get()
+    eq("above", opts.style.placement)
+  end)
 end)
