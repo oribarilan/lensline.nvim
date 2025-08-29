@@ -71,10 +71,7 @@ function M.render_lens_item(bufnr, line, text)
     return
   end
   
-  local extmark_opts = {
-    virt_lines = { virt_text },
-    virt_lines_above = true,
-  }
+  local extmark_opts = create_extmark_opts(virt_text, line_content)
   
   -- If there's an existing extmark, use its ID to replace it
   if existing then
@@ -121,6 +118,37 @@ function M.render_provider_lenses(bufnr, provider_name, lens_items)
   
   -- Render combined results from all providers
   M.render_combined_lenses(bufnr)
+end
+
+local function create_extmark_opts(placement, texts, separator, highlight, prefix, line_content)
+  local combined_text = table.concat(texts, separator)
+  
+  if placement == "inline" then
+    -- Inline: virtual text at end of line, no prefix
+    return {
+      virt_text = { { " " .. combined_text, highlight } },
+      virt_text_pos = "eol"
+    }
+  else
+    -- Above: virtual lines above function, with prefix and indentation
+    local leading_whitespace = line_content:match("^%s*") or ""
+    local virt_text = {}
+    
+    if leading_whitespace ~= "" then
+      table.insert(virt_text, { leading_whitespace, highlight })
+    end
+    
+    if prefix and prefix ~= "" then
+      table.insert(virt_text, { prefix, highlight })
+    end
+    
+    table.insert(virt_text, { combined_text, highlight })
+    
+    return {
+      virt_lines = { virt_text },
+      virt_lines_above = true
+    }
+  end
 end
 
 function M.render_combined_lenses(bufnr)
@@ -185,48 +213,31 @@ function M.render_combined_lenses(bufnr)
     end
   end
   
-  -- Prepare extmark operations
+  local placement = opts.style.placement or "above"
+  local lines_to_render = {}
   local extmark_operations = {}
-  local lines_needing_updates = {}
   
   -- Only update lines with changed content
   for line, texts in pairs(combined_lines) do
     lines_to_render[line - 1] = true
     
     local line_content = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
-    local leading_whitespace = line_content:match("^%s*") or ""
-    
-    local virt_text = {}
-    
-    -- Add indentation
-    if leading_whitespace ~= "" then
-      table.insert(virt_text, { leading_whitespace, highlight })
-    end
-    
-    -- Add prefix if configured
-    if prefix and prefix ~= "" then
-      table.insert(virt_text, { prefix, highlight })
-    end
-    
-    -- Join all texts from all providers with separator
-    local combined_text = table.concat(texts, separator)
-    table.insert(virt_text, { combined_text, highlight })
+    local extmark_opts = create_extmark_opts(placement, texts, separator, highlight, prefix, line_content)
     
     -- Check if content has changed
     local existing = existing_by_line[line - 1]
-    if not (existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text})) then
-      lines_needing_updates[line] = true
-      local extmark_opts = {
-        virt_lines = { virt_text },
-        virt_lines_above = true,
-      }
-      
+    local content_key = placement == "inline" and "virt_text" or "virt_lines"
+    local expected_content = placement == "inline" and extmark_opts.virt_text or extmark_opts.virt_lines
+    
+    if not (existing and existing[4] and existing[4][content_key] and vim.deep_equal(existing[4][content_key], expected_content)) then
       if existing then
         extmark_opts.id = existing[1]
       end
       
+      local col = placement == "inline" and #line_content or 0
       table.insert(extmark_operations, {
         line = line - 1,
+        col = col,
         opts = extmark_opts
       })
     end
@@ -234,7 +245,7 @@ function M.render_combined_lenses(bufnr)
   
   -- Apply all extmark updates
   for _, op in ipairs(extmark_operations) do
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, M.namespace, op.line, 0, op.opts)
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, M.namespace, op.line, op.col, op.opts)
   end
   
   -- Clean up extmarks for lines that no longer have lens data
@@ -298,10 +309,7 @@ function M.render_buffer_lenses(bufnr, lens_data)
     -- Skip if content hasn't changed
     local existing = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, {line - 1, 0}, {line - 1, 0}, { details = true })[1]
     if not (existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text})) then
-      local extmark_opts = {
-        virt_lines = { virt_text },
-        virt_lines_above = true,
-      }
+      local extmark_opts = create_extmark_opts(virt_text, line_content)
       
       if existing then
         extmark_opts.id = existing[1]

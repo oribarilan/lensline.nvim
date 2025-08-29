@@ -27,6 +27,7 @@ M.defaults = {
     separator = " • ",
     highlight = "Comment",
     prefix = "┃ ",
+    placement = "above",   -- "above" | "inline" - where to render lenses
     use_nerdfont = true,   -- enable nerd font icons in built-in providers
   },
   limits = {

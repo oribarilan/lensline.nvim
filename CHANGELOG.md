@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Lens placement can now be configured with "above" (existing) and "inline" (new) modes for another style option
+
 ## [v0.2.1] - 2025-08-27
 
 ### Added
