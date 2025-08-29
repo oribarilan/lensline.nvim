@@ -243,4 +243,66 @@ describe("placement configuration", function()
     opts = config.get()
     eq("above", opts.style.placement)
   end)
+
+  it("renders inline placement on first line of multi-line function signature", function()
+    reset_config("inline")
+    local buf = new_buf({
+      "function multiline_func(",
+      "  param1,",
+      "  param2,",
+      "  param3",
+      ")",
+      "  return param1 + param2 + param3",
+      "end"
+    })
+
+    renderer.render_provider_lenses(buf, "p1", {
+      { line = 1, text = "3 refs" },
+    })
+
+    local by_line = collect_extmarks(buf)
+    
+    -- Should render on line 1 (first line of function signature)
+    eq(" 3 refs", by_line[1].text)
+    eq("inline", by_line[1].placement)
+    
+    -- Should not render on other lines
+    eq(nil, by_line[2])
+    eq(nil, by_line[3])
+    eq(nil, by_line[4])
+    eq(nil, by_line[5])
+
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("renders above placement correctly for multi-line function signature", function()
+    reset_config("above")
+    local buf = new_buf({
+      "function multiline_func(",
+      "  param1,",
+      "  param2,",
+      "  param3",
+      ")",
+      "  return param1 + param2 + param3",
+      "end"
+    })
+
+    renderer.render_provider_lenses(buf, "p1", {
+      { line = 1, text = "3 refs" },
+    })
+
+    local by_line = collect_extmarks(buf)
+    
+    -- Should render above line 1 (first line of function signature)
+    eq("3 refs", by_line[1].text)
+    eq("above", by_line[1].placement)
+    
+    -- Should not render on other lines
+    eq(nil, by_line[2])
+    eq(nil, by_line[3])
+    eq(nil, by_line[4])
+    eq(nil, by_line[5])
+
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
 end)
