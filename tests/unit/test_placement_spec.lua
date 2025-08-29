@@ -226,7 +226,7 @@ describe("placement configuration", function()
     end
   end)
 
-  it("validates configuration and function existence", function()
+  it("validates configuration and unified rendering", function()
     local config = require("lensline.config")
     local renderer = require("lensline.renderer")
     
@@ -235,8 +235,8 @@ describe("placement configuration", function()
     local opts = config.get()
     eq("inline", opts.style.placement)
     
-    -- Test render_inline_lenses function exists
-    eq("function", type(renderer.render_inline_lenses))
+    -- Test render_combined_lenses function exists (unified rendering)
+    eq("function", type(renderer.render_combined_lenses))
     
     -- Test default fallback when placement not specified
     config.setup({ style = { separator = " | " } })
