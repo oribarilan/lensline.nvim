@@ -234,7 +234,7 @@ describe("blame_cache core behavior", function()
     local _, harness = stub_environment{ blame_lines = lines }
     harness(function()
       local info = blame_cache.get_function_author(f1, 0, { line = 1, end_line = 1 })
-      eq({ author = "uncommitted", time = 1000 }, info)
+      eq({ author = "uncommitted", time = nil }, info)
     end)
   end)
 

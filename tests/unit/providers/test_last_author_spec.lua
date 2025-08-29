@@ -197,6 +197,25 @@ describe("providers.last_author", function()
     end)
     eq({ line = 3, text = "󰊢 Dave, 2y ago" }, out)
     cleanup_buf(bufnr)
+  end)
+
+  it("handles uncommitted changes without timestamp", function()
+    local bufnr = mk_buf()
+    local out
+    with_stub("lensline.debug", { log_context = function() end }, function()
+      with_module_patches("lensline.blame_cache", {
+        configure = function() end,
+        get_function_author = function() return { author = "uncommitted", time = nil } end,
+      }, function()
+        with_stub("lensline.utils", {
+          if_nerdfont_else = function(a, b) return a end,
+        }, function()
+          provider.handler(bufnr, { line = 1 }, {}, function(res) out = res end)
+        end)
+      end)
+    end)
+    eq({ line = 1, text = "󰊢 uncommitted" }, out)
+    cleanup_buf(bufnr)
     cleanup_all_files()
   end)
 end)

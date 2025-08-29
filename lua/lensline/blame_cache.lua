@@ -231,9 +231,12 @@ function M.get_function_author(filename, bufnr, func_info)
   end
   
   if latest_author and latest_time > 0 then
-    -- Handle uncommitted changes
+    -- Handle uncommitted changes - don't include misleading timestamp
     if latest_author == "Not Committed Yet" then
-      latest_author = "uncommitted"
+      return {
+        author = "uncommitted",
+        time = nil  -- No meaningful timestamp for uncommitted changes
+      }
     end
     
     return {

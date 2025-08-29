@@ -63,9 +63,16 @@ return {
     end
     
     -- Format the result
-    local relative_time = format_relative_time(author_info.time)
     local icon = utils.if_nerdfont_else("󰊢 ", "")
-    local result_text = icon .. author_info.author .. ", " .. relative_time
+    local result_text
+    
+    if author_info.time then
+      local relative_time = format_relative_time(author_info.time)
+      result_text = icon .. author_info.author .. ", " .. relative_time
+    else
+      -- Uncommitted changes don't have a meaningful timestamp
+      result_text = icon .. author_info.author
+    end
     
     local result = {
       line = func_info.line,
