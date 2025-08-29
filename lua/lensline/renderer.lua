@@ -71,10 +71,7 @@ function M.render_lens_item(bufnr, line, text)
     return
   end
   
-  local extmark_opts = {
-    virt_lines = { virt_text },
-    virt_lines_above = true,
-  }
+  local extmark_opts = create_extmark_opts(virt_text, line_content)
   
   -- If there's an existing extmark, use its ID to replace it
   if existing then
@@ -312,10 +309,7 @@ function M.render_buffer_lenses(bufnr, lens_data)
     -- Skip if content hasn't changed
     local existing = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, {line - 1, 0}, {line - 1, 0}, { details = true })[1]
     if not (existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text})) then
-      local extmark_opts = {
-        virt_lines = { virt_text },
-        virt_lines_above = true,
-      }
+      local extmark_opts = create_extmark_opts(virt_text, line_content)
       
       if existing then
         extmark_opts.id = existing[1]
