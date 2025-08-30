@@ -56,7 +56,14 @@ body:
     id: config
     attributes:
       label: nvim/LSP Configuration (or at least LSP info)
-      render: lua
+      description: "Paste your init.lua config or describe your LSP setup"
+      placeholder: |
+        -- Example:
+        require('lspconfig').lua_ls.setup({...})
+        
+        -- Or describe your setup:
+        -- Using Mason with lua_ls, typescript-language-server
+        -- Custom lensline config: {...}
     validations:
       required: true
 
