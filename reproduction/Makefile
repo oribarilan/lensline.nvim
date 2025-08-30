@@ -20,7 +20,7 @@ help:
 	@echo "Usage:"
 	@echo "  1. git clone https://github.com/orbarila/lensline.nvim.git"
 	@echo "  2. make run"
-	@echo "  3. nvim -u init.lua sample.py"
+	@echo "  3. Neovim starts automatically with lensline configured"
 	@echo ""
 	@echo "Note: Uses x86_64 Neovim (works on all platforms including ARM via emulation)"
 
@@ -32,7 +32,7 @@ build:
 
 # Build and run the reproduction environment
 run: build
-	@echo "Starting reproduction environment. Run: nvim -u init.lua sample.py"
+	@echo "Starting reproduction environment with Neovim..."
 	docker run -it --rm lensline-repro
 
 # Clean up Docker image

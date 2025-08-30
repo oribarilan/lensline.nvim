@@ -62,20 +62,5 @@ RUN nvim --headless -u init.lua \
     "+MasonInstall lua-language-server" \
     "+qall"
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-echo "=== Lensline Bug Reproduction Environment ==="\n\
-echo "Files available:"\n\
-ls -la\n\
-echo ""\n\
-echo "To reproduce the issue:"\n\
-echo "1. nvim -u init.lua sample.lua"\n\
-echo "2. Follow your bug reproduction steps"\n\
-echo "3. Use :LenslineDebug to check debug logs"\n\
-echo "4. Use :messages to see LSP debug output"\n\
-echo ""\n\
-echo "Starting bash shell..."\n\
-exec bash\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+# Set default command to always start Neovim with init.lua
+CMD ["nvim", "-u", "init.lua"]
