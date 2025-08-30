@@ -1,0 +1,73 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **To help us fix this:**
+        - (required) Provide your nvim and lensline versions (and lensline config if customized)
+        - (required) Provide your nvim/lsp config (or at least the lsp info)
+        - (optional) Screenshots/videos of the issue
+        - (optional) Share your debug logs: enable `debug_mode = true`, use `:LenslineDebug`
+        - (optional) Reproduction set: see `repro/README.md`. Adjust our repro env to make a repro file set for your issue
+        The more info you provide, the easier it is to fix the issue!
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues
+          required: true
+        - label: I can reproduce this consistently
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened vs what you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open file...
+        2. Move cursor to...
+        3. See error...
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Neovim and lensline versions (and lensline config if customized)
+      placeholder: "nvim 0.9.4, lensline v1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: nvim/LSP Configuration (or at least LSP info)
+      render: lua
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots/Logs/Reproduction
+      description: "Attach screenshots, debug logs, or reproduction files"
+
+  - type: textarea
+    id: reproset
+    attributes:
+      label: Reproduction Set
+      description: "Attach a repro set if possible (see repro/README.md)"
