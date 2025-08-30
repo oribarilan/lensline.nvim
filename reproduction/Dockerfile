@@ -41,15 +41,14 @@ RUN set -eux; \
     ln -s "/opt/nvim-${NVIM_SUFFIX}/bin/nvim" /usr/local/bin/nvim; \
     rm /tmp/nvim.tgz
 
-# Install Python language server
-RUN pip3 install pyright
+# No need to install LSP manually - Mason will handle it
 
 # Create working directory
 WORKDIR /repro
 
 # Copy reproduction files
 COPY init.lua .
-COPY sample.py .
+COPY sample.lua .
 
 # Set up minimal Neovim config directory
 RUN mkdir -p /root/.config/nvim
@@ -61,9 +60,10 @@ echo "Files available:"\n\
 ls -la\n\
 echo ""\n\
 echo "To reproduce the issue:"\n\
-echo "1. nvim -u init.lua sample.py"\n\
+echo "1. nvim -u init.lua sample.lua"\n\
 echo "2. Follow your bug reproduction steps"\n\
 echo "3. Use :LenslineDebug to check debug logs"\n\
+echo "4. Use :messages to see LSP debug output"\n\
 echo ""\n\
 echo "Starting bash shell..."\n\
 exec bash\n\
