@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Lens placement can now be configured with "above" (existing) and "inline" (new) modes for another style option
+- Docker-based bug reproduction environment
+- GitHub issue template for streamlined bug reporting
 
 ## [v0.2.1] - 2025-08-27
 
