@@ -44,8 +44,6 @@ RUN set -eux; \
     ln -s "/opt/nvim-${NVIM_SUFFIX}/bin/nvim" /usr/local/bin/nvim; \
     rm /tmp/nvim.tgz
 
-# No need to install LSP manually - Mason will handle it
-
 # Create working directory
 WORKDIR /repro
 
@@ -63,4 +61,4 @@ RUN nvim --headless -u init.lua \
     "+qall"
 
 # Set default command to always start Neovim with init.lua
-CMD ["nvim", "-u", "init.lua"]
+CMD ["nvim", "-u", "init.lua", "sample.lua"]

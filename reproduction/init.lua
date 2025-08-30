@@ -40,7 +40,6 @@ require("lazy").setup({
     "williamboman/mason.nvim",
     config = function()
       require("mason").setup()
-      print("Mason initialized. Installing lua-language-server...")
     end,
   },
   {
@@ -51,7 +50,6 @@ require("lazy").setup({
         ensure_installed = { "lua_ls" },
         automatic_installation = true,
       })
-      print("Mason-lspconfig setup complete. LSP servers will install automatically.")
     end,
   },
   {
@@ -80,29 +78,18 @@ require("lazy").setup({
         }
       })
       
-      -- Add autocmd to check LSP status when opening Lua files
+      -- LSP status check for debugging
       vim.api.nvim_create_autocmd("FileType", {
         pattern = "lua",
         callback = function()
           vim.defer_fn(function()
             local clients = vim.lsp.get_clients({bufnr = 0})
-            if #clients > 0 then
-              print("✓ LSP clients active:", vim.tbl_map(function(c) return c.name end, clients))
-            else
-              print("⚠ No LSP clients yet. Mason may still be installing lua_ls.")
-              print("  Run :Mason to check installation status")
-              print("  Wait a moment and reopen the file")
+            if #clients == 0 then
+              print("⚠ No LSP clients. Use :Mason to check status or :LenslineDebug for logs")
             end
           end, 2000)
         end,
       })
-      
-      print("LSP configured with Mason. Installing lua_ls automatically...")
-      print("DEBUG: To see debug output, use:")
-      print("  - :messages (to see print() output)")
-      print("  - :LspLog (to see LSP logs)")
-      print("  - :LenslineDebug (for lensline debug info)")
-      print("  - :Mason (to see Mason status)")
     end,
   },
   -- Telescope for file navigation
@@ -116,8 +103,6 @@ require("lazy").setup({
       local builtin = require("telescope.builtin")
       vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "Search files" })
       vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "Search grep" })
-      
-      print("Telescope configured: <leader>sf (find files), <leader>sg (live grep)")
     end,
   },
   {
@@ -131,7 +116,6 @@ require("lazy").setup({
           { name = "last_author", enabled = true },
         }
       })
-      print("Lensline loaded with debug mode enabled. Use :LenslineDebug for logs.")
     end,
   }
 }, {

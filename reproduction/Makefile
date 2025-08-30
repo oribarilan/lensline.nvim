@@ -22,7 +22,7 @@ help:
 	@echo "  2. make run"
 	@echo "  3. Neovim starts automatically with lensline configured"
 	@echo ""
-	@echo "Note: Uses x86_64 Neovim (works on all platforms including ARM via emulation)"
+	@echo "Note: Multi-architecture support (ARM64/x86_64)"
 
 # Build the Docker image
 build:
