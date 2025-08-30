@@ -11,7 +11,7 @@ body:
         - (required) Provide your nvim/lsp config (or at least the lsp info)
         - (optional) Screenshots/videos of the issue
         - (optional) Share your debug logs: enable `debug_mode = true`, use `:LenslineDebug`
-        - (optional) Reproduction set: see `repro/README.md`. Adjust our repro env to make a repro file set for your issue
+        - (optional) Reproduction set: see `repro/README.md`. Use our repro environment to create a minimal reproduction
         The more info you provide, the easier it is to fix the issue!
 
   - type: checkboxes
