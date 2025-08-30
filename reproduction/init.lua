@@ -53,32 +53,24 @@ require("lazy").setup({
     config = function()
       local lspconfig = require("lspconfig")
       
-      -- Setup handler for when servers are ready
-      require("mason-lspconfig").setup_handlers({
-        function(server_name)
-          lspconfig[server_name].setup({})
-        end,
-        ["lua_ls"] = function()
-          lspconfig.lua_ls.setup({
-            settings = {
-              Lua = {
-                runtime = {
-                  version = 'LuaJIT',
-                },
-                diagnostics = {
-                  globals = {'vim'},
-                },
-                workspace = {
-                  library = vim.api.nvim_get_runtime_file("", true),
-                },
-                telemetry = {
-                  enable = false,
-                },
-              },
-            }
-          })
-          print("✓ Lua LS configured and ready!")
-        end,
+      -- Setup LSP directly - simpler and more reliable
+      lspconfig.lua_ls.setup({
+        settings = {
+          Lua = {
+            runtime = {
+              version = 'LuaJIT',
+            },
+            diagnostics = {
+              globals = {'vim'},
+            },
+            workspace = {
+              library = vim.api.nvim_get_runtime_file("", true),
+            },
+            telemetry = {
+              enable = false,
+            },
+          },
+        }
       })
       
       -- Add autocmd to check LSP status when opening Lua files

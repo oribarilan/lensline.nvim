@@ -53,6 +53,12 @@ COPY sample.lua .
 # Set up minimal Neovim config directory
 RUN mkdir -p /root/.config/nvim
 
+# Pre-install LSP servers with Mason to avoid runtime delays
+RUN nvim --headless -u init.lua \
+    "+MasonUpdate" \
+    "+MasonInstall lua-language-server" \
+    "+qall"
+
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\
 echo "=== Lensline Bug Reproduction Environment ==="\n\
