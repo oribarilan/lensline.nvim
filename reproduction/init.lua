@@ -5,6 +5,13 @@
 vim.opt.number = true
 vim.opt.signcolumn = "yes"
 
+-- Clipboard settings - share with OS clipboard
+vim.opt.clipboard = "unnamedplus"
+
+-- Leader key
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
 -- Disable built-in plugins that might interfere
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
@@ -96,6 +103,21 @@ require("lazy").setup({
       print("  - :LspLog (to see LSP logs)")
       print("  - :LenslineDebug (for lensline debug info)")
       print("  - :Mason (to see Mason status)")
+    end,
+  },
+  -- Telescope for file navigation
+  {
+    "nvim-telescope/telescope.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("telescope").setup({})
+      
+      -- Key bindings
+      local builtin = require("telescope.builtin")
+      vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "Search files" })
+      vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "Search grep" })
+      
+      print("Telescope configured: <leader>sf (find files), <leader>sg (live grep)")
     end,
   },
   {

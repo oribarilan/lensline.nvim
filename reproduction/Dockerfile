@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     unzip \
+    xclip \
+    wl-clipboard \
+    ripgrep \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Neovim (native architecture detection)
