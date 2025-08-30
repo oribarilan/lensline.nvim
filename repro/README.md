@@ -16,19 +16,20 @@ make run NVIM_VERSION=latest   # Latest version
 
 ## Files
 
-- `Dockerfile` - Clean Ubuntu + Neovim + Python LSP
+- `Dockerfile` - Clean Ubuntu + Neovim + Lua LSP
 - `init.lua` - Lazy package manager setup with lensline auto-installation
-- `sample.py` - Python file with various function patterns
+- `sample.lua` - Lua file with various function patterns
 - `Makefile` - Simple build/run commands
 
 ## Usage
 
-- nvim will come preloaded with latest lensline.nvim, mason & lua LSP server
-- nvim will also come preloaded with telescope (space-s-f for file search, space-s-g for grep)
-- running `make run` will build and run the docker container, and open nvim with the init.lua config
-- note the by default the lensline config has `debug_mode = true` enabled, be aware that it has some impact on performance.
+- Neovim comes preloaded with latest lensline.nvim, Mason & Lua LSP server
+- Telescope included for navigation (`<Space>sf` for files, `<Space>sg` for grep)
+- Running `make run` builds and runs the container, automatically opening Neovim
+- Debug mode enabled by default (`debug_mode = true`) - may impact performance
 
-## Instructions 
+## Customization
 
-- Edit `init.lua` to add the required LSPs, customize lensline config or add other plugins
-- **Use `:LenslineDebug`** to get debug logs
+- Edit `init.lua` to add required LSPs, customize lensline config, or add plugins
+- Use `:LenslineDebug` for debug logs
+- Use `:Mason` to check LSP installation status
