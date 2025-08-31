@@ -138,6 +138,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
+      render = "all",           -- "all" | "focused" (only active window's focused function)
       limits = {
         exclude = {
             -- see config.lua for extensive list of default patterns

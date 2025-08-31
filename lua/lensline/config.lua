@@ -74,6 +74,7 @@ M.defaults = {
     max_lines = 1000,
     max_lenses = 70,
   },
+  render = "all",     -- "all" (existing behavior) | "focused" (only active window's focused function)
   debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   provider_timeout_ms = 5000, -- provider execution timeout (ms) for async safety net (test override supported)
   debug_mode = false,

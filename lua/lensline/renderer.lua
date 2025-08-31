@@ -163,6 +163,60 @@ local function create_extmark_opts(placement, texts, separator, highlight, prefi
   end
 end
 
+-- NEW: expose a pure-compute helper (no extmarks) for focused renderer
+function M.compute_combined_lines(bufnr)
+  if not utils.is_valid_buffer(bufnr) then
+    return {}
+  end
+  
+  -- Ensure initialization
+  M.ensure_provider_data_initialized()
+  
+  if not M.provider_lens_data[bufnr] then
+    return {}
+  end
+  
+  local opts = config.get()
+  
+  -- Combine lens data from all providers in config order (same logic as render_combined_lenses)
+  local combined_lines = {}
+  local data_to_iterate = M.provider_lens_data[bufnr] or {}
+  
+  -- Get provider order from config to preserve display sequence
+  local provider_order = {}
+  for _, provider_config in ipairs(opts.providers) do
+    if provider_config.enabled ~= false and data_to_iterate[provider_config.name] then
+      table.insert(provider_order, provider_config.name)
+    end
+  end
+  
+  -- Process providers in config order
+  for _, provider_name in ipairs(provider_order) do
+    local lens_items = data_to_iterate[provider_name]
+    if lens_items and type(lens_items) == "table" then
+      -- Robust iteration: handle sparse arrays (nil gaps) while preserving numeric order
+      local numeric_indices = {}
+      for k, _ in pairs(lens_items) do
+        if type(k) == "number" then
+          table.insert(numeric_indices, k)
+        end
+      end
+      table.sort(numeric_indices)
+      for _, idx in ipairs(numeric_indices) do
+        local item = lens_items[idx]
+        if item and item.line and item.text then
+          if not combined_lines[item.line] then
+            combined_lines[item.line] = {}
+          end
+          table.insert(combined_lines[item.line], item.text)
+        end
+      end
+    end
+  end
+  
+  return combined_lines -- { [1-based line] = { "txt1", "txt2", ... } }
+end
+
 function M.render_combined_lenses(bufnr)
   if not utils.is_valid_buffer(bufnr) then
     return
@@ -172,6 +226,14 @@ function M.render_combined_lenses(bufnr)
   if not (config.is_enabled() and config.is_visible()) then
     -- Clear any existing lenses when not visible
     M.clear_buffer(bufnr)
+    return
+  end
+  
+  -- Level 3 selective rendering: Skip regular rendering in focused mode
+  local opts = config.get()
+  if opts.render == "focused" then
+    -- In focused mode, decoration provider handles all rendering
+    -- Don't create buffer-scoped extmarks that would show in all windows
     return
   end
   
