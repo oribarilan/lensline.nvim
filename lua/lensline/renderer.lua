@@ -1,5 +1,6 @@
 local config = require("lensline.config")
 local utils = require("lensline.utils")
+local presenter = require("lensline.presenter")
 
 local M = {}
 
@@ -43,8 +44,8 @@ function M.render_lens_item(bufnr, line, text)
   end
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
   
   local virt_text = {}
   
@@ -120,47 +121,24 @@ function M.render_provider_lenses(bufnr, provider_name, lens_items)
   M.render_combined_lenses(bufnr)
 end
 
-local function create_extmark_opts(placement, texts, separator, highlight, prefix, line_content)
-  local combined_text = table.concat(texts, separator)
-  
-  if placement == "inline" then
-    -- Inline: virtual text at end of line, with prefix if configured
-    local virt_text = {}
-    
-    -- Add prefix if configured
-    if prefix and prefix ~= "" then
-      table.insert(virt_text, { prefix, highlight })
-    end
-    
-    table.insert(virt_text, { combined_text, highlight })
-    
-    -- Combine all parts into a single string with a leading space
-    local inline_text = " " .. table.concat(vim.tbl_map(function(t) return t[1] end, virt_text), "")
-    
-    return {
-      virt_text = { { inline_text, highlight } },
-      virt_text_pos = "eol"
-    }
-  else
-    -- Above: virtual lines above function, with prefix and indentation
-    local leading_whitespace = line_content:match("^%s*") or ""
-    local virt_text = {}
-    
-    if leading_whitespace ~= "" then
-      table.insert(virt_text, { leading_whitespace, highlight })
-    end
-    
-    if prefix and prefix ~= "" then
-      table.insert(virt_text, { prefix, highlight })
-    end
-    
-    table.insert(virt_text, { combined_text, highlight })
-    
-    return {
-      virt_lines = { virt_text },
-      virt_lines_above = true
-    }
+
+-- NEW: expose a pure-compute helper (no extmarks) for focused renderer
+function M.compute_combined_lines(bufnr)
+  if not utils.is_valid_buffer(bufnr) then
+    return {}
   end
+  
+  -- Ensure initialization
+  M.ensure_provider_data_initialized()
+  
+  if not M.provider_lens_data[bufnr] then
+    return {}
+  end
+  
+  local opts = config.get()
+  
+  -- Use presenter to combine provider data with proper ordering
+  return presenter.combine_provider_data(M.provider_lens_data[bufnr], opts.providers)
 end
 
 function M.render_combined_lenses(bufnr)
@@ -175,6 +153,14 @@ function M.render_combined_lenses(bufnr)
     return
   end
   
+  -- Level 3 selective rendering: Skip regular rendering in focused mode
+  local opts = config.get()
+  if opts.render == "focused" then
+    -- In focused mode, decoration provider handles all rendering
+    -- Don't create buffer-scoped extmarks that would show in all windows
+    return
+  end
+  
   -- Ensure initialization
   M.ensure_provider_data_initialized()
   
@@ -183,9 +169,9 @@ function M.render_combined_lenses(bufnr)
   end
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
-  local separator = opts.style.separator or " • "
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
+  local separator = opts.style.separator
   
   -- Get existing extmarks for comparison
   local existing_extmarks = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, 0, -1, { details = true })
@@ -195,44 +181,10 @@ function M.render_combined_lenses(bufnr)
     existing_by_line[line] = mark
   end
   
-  -- Combine lens data from all providers
-  local combined_lines = {}
-  local lines_to_render = {}
-  local data_to_iterate = M.provider_lens_data[bufnr] or {}
+  -- Use presenter to combine lens data from all providers
+  local combined_lines = presenter.combine_provider_data(M.provider_lens_data[bufnr], opts.providers)
   
-  -- Get provider order from config to preserve display sequence
-  local provider_order = {}
-  for _, provider_config in ipairs(opts.providers) do
-    if provider_config.enabled ~= false and data_to_iterate[provider_config.name] then
-      table.insert(provider_order, provider_config.name)
-    end
-  end
-  
-  -- Process providers in config order
-  for _, provider_name in ipairs(provider_order) do
-    local lens_items = data_to_iterate[provider_name]
-    if lens_items and type(lens_items) == "table" then
-      -- Robust iteration: handle sparse arrays (nil gaps) while preserving numeric order
-      local numeric_indices = {}
-      for k, _ in pairs(lens_items) do
-        if type(k) == "number" then
-          table.insert(numeric_indices, k)
-        end
-      end
-      table.sort(numeric_indices)
-      for _, idx in ipairs(numeric_indices) do
-        local item = lens_items[idx]
-        if item and item.line and item.text then
-          if not combined_lines[item.line] then
-            combined_lines[item.line] = {}
-          end
-          table.insert(combined_lines[item.line], item.text)
-        end
-      end
-    end
-  end
-  
-  local placement = opts.style.placement or "above"
+  local placement = opts.style.placement
   local lines_to_render = {}
   local extmark_operations = {}
   
@@ -246,7 +198,15 @@ function M.render_combined_lenses(bufnr)
     lines_to_render[line - 1] = true
     
     local line_content = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
-    local extmark_opts = create_extmark_opts(placement, texts, separator, highlight, prefix, line_content)
+    local extmark_opts = presenter.compute_extmark_opts({
+      placement = placement,
+      texts = texts,
+      separator = separator,
+      highlight = highlight,
+      prefix = prefix,
+      line_content = line_content,
+      ephemeral = false
+    })
     
     -- Check if content has changed
     local existing = existing_by_line[line - 1]
@@ -294,9 +254,9 @@ function M.render_buffer_lenses(bufnr, lens_data)
   M.clear_buffer(bufnr)
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
-  local separator = opts.style.separator or " • "
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
+  local separator = opts.style.separator
   
   -- Group lens items by line
   local lines_data = {}
@@ -312,29 +272,24 @@ function M.render_buffer_lenses(bufnr, lens_data)
   
   for line, texts in pairs(lines_data) do
     local line_content = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
-    local leading_whitespace = line_content:match("^%s*") or ""
     
-    local virt_text = {}
-    
-    -- Add indentation
-    if leading_whitespace ~= "" then
-      table.insert(virt_text, { leading_whitespace, highlight })
-    end
-    
-    -- Add prefix if configured
-    if prefix and prefix ~= "" then
-      table.insert(virt_text, { prefix, highlight })
-    end
-    
-    -- Join multiple texts with separator
-    local combined_text = table.concat(texts, separator)
-    table.insert(virt_text, { combined_text, highlight })
+    -- Use presenter to create extmark options
+    local extmark_opts = presenter.compute_extmark_opts({
+      placement = opts.style.placement,
+      texts = texts,
+      separator = separator,
+      highlight = highlight,
+      prefix = prefix,
+      line_content = line_content,
+      ephemeral = false
+    })
     
     -- Skip if content hasn't changed
     local existing = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, {line - 1, 0}, {line - 1, 0}, { details = true })[1]
-    if not (existing and existing[4] and existing[4].virt_lines and vim.deep_equal(existing[4].virt_lines, {virt_text})) then
-      local extmark_opts = create_extmark_opts(virt_text, line_content)
-      
+    local content_key = (opts.style.placement == "inline") and "virt_text" or "virt_lines"
+    local expected_content = (opts.style.placement == "inline") and extmark_opts.virt_text or extmark_opts.virt_lines
+    
+    if not (existing and existing[4] and existing[4][content_key] and vim.deep_equal(existing[4][content_key], expected_content)) then
       if existing then
         extmark_opts.id = existing[1]
       end

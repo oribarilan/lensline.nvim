@@ -74,12 +74,14 @@ M.defaults = {
     max_lines = 1000,
     max_lenses = 70,
   },
+  render = "all",     -- "all" (existing behavior) | "focused" (only active window's focused function)
   debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
+  focused_debounce_ms = 150,  -- debounce delay for focus tracking in focused mode (in milliseconds)
   provider_timeout_ms = 5000, -- provider execution timeout (ms) for async safety net (test override supported)
   debug_mode = false,
 }
 
-M.options = {}
+M.options = M.defaults
 M._enabled = false  -- global toggle state - Level 1: Engine control
 M._visible = true   -- global visibility state - Level 2: View control
 

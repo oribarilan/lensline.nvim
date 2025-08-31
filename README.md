@@ -138,6 +138,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
         use_nerdfont = true,    -- enable nerd font icons in built-in providers
       },
+      render = "all",           -- "all" | "focused" (only active window's focused function)
       limits = {
         exclude = {
             -- see config.lua for extensive list of default patterns
@@ -147,6 +148,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         max_lenses = 70,          -- skip rendering if too many lenses generated
       },
       debounce_ms = 500,        -- unified debounce delay for all providers
+      focused_debounce_ms = 150, -- debounce delay for focus tracking in focused mode
       debug_mode = false,       -- enable debug output for development, see CONTRIBUTE.md
     })
   end,

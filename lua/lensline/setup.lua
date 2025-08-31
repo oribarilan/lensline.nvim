@@ -3,10 +3,13 @@ local utils = require("lensline.utils")
 local renderer = require("lensline.renderer")
 local executor = require("lensline.executor")
 local debug = require("lensline.debug")
+local focused_renderer = require("lensline.focused_renderer")
+local focus = require("lensline.focus")
 
 local M = {}
 
 local autocmd_group = nil
+local focused_mode_group = nil
 
 function M.initialize()
   local opts = config.get()
@@ -23,6 +26,13 @@ function M.initialize()
   
   -- Setup provider event listeners via executor
   executor.setup_event_listeners()
+  
+  -- Setup render mode (focused vs all)
+  if opts.render == "focused" then
+    M.enable_focused_mode()
+  else
+    M.disable_focused_mode()  -- Ensure focused mode is disabled
+  end
   
   debug.log_context("Core", "plugin initialized successfully")
 end
@@ -57,6 +67,51 @@ function M.setup_core_autocommands()
   debug.log_context("Core", "core autocommands initialized")
 end
 
+-- Enable focused mode with proper event handlers
+function M.enable_focused_mode()
+  focused_renderer.enable()
+
+  -- Clean up any existing focused mode autocommands
+  if focused_mode_group then
+    vim.api.nvim_del_augroup_by_id(focused_mode_group)
+  end
+
+  focused_mode_group = vim.api.nvim_create_augroup("LenslineFocusedMode", { clear = true })
+
+  -- Track active window changes
+  vim.api.nvim_create_autocmd({ "WinEnter" }, {
+    group = focused_mode_group,
+    callback = function(args)
+      focus.set_active_win(args.win or vim.api.nvim_get_current_win())
+    end,
+  })
+
+  -- Track cursor movements for focus updates
+  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+    group = focused_mode_group,
+    callback = function()
+      focus.on_cursor_moved()
+    end,
+  })
+  
+  -- Initialize focus tracking for current window/cursor position
+  vim.schedule(function()
+    focus.set_active_win(vim.api.nvim_get_current_win())
+  end)
+  
+  debug.log_context("Core", "focused mode enabled")
+end
+
+-- Disable focused mode and clean up resources
+function M.disable_focused_mode()
+  if focused_mode_group then
+    vim.api.nvim_del_augroup_by_id(focused_mode_group)
+    focused_mode_group = nil
+  end
+  
+  focused_renderer.disable()
+  debug.log_context("Core", "focused mode disabled")
+end
 
 function M.refresh_current_buffer()
   local bufnr = vim.api.nvim_get_current_buf()
@@ -76,12 +131,21 @@ end
 function M.enable()
   config.set_enabled(true)
   M.initialize()
+  
+  -- Apply render mode after enabling
+  local opts = config.get()
+  if opts.render == "focused" then
+    M.enable_focused_mode()
+  end
 end
 
 function M.disable()
   config.set_enabled(false)
   
   debug.log_context("Core", "disabling lensline")
+  
+  -- Cleanup focused mode resources
+  M.disable_focused_mode()
   
   -- Cleanup provider resources (debounce timers and event listeners) via executor
   executor.cleanup()
