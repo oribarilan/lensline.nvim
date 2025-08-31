@@ -63,6 +63,13 @@ function M.trigger_unified_update(bufnr)
     return
   end
   
+  -- Check if engine is enabled
+  if not config.is_enabled() then
+    local debug = require("lensline.debug")
+    debug.log_context("Executor", "skipping unified update for buffer " .. bufnr .. " - engine disabled")
+    return
+  end
+  
   -- Prevent recursive executions during active provider runs
   if execution_in_progress[bufnr] then
     local debug = require("lensline.debug")
@@ -126,6 +133,12 @@ end
 -- Execute all enabled providers for a buffer
 function M.execute_all_providers(bufnr)
   local debug = require("lensline.debug")
+  
+  -- Check if engine is enabled
+  if not config.is_enabled() then
+    debug.log_context("Executor", "skipping execution for buffer " .. bufnr .. " - engine disabled")
+    return
+  end
   
   -- Track execution state to prevent recursive provider calls
   if execution_in_progress[bufnr] then

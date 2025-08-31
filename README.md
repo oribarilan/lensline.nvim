@@ -387,31 +387,67 @@ For detailed guidelines and more examples, see [providers.md](providers.md).
 
 ## 💻 Commands
 
-### `:LenslineToggle`
+lensline provides separate control over engine functionality and visual display through distinct commands:
 
-Toggle the entire lensline functionality on and off. When disabled, ALL extension functionality is turned off and no resources are used for collecting lens attributes.
+### Engine Control
+
+**`:LenslineEnable`** / **`:LenslineDisable`** / **`:LenslineToggleEngine`**
+Control the entire lensline engine (providers, autocommands, resource allocation).
 
 ```vim
-:LenslineToggle
+:LenslineEnable        " Start all providers and functionality
+:LenslineDisable       " Stop all providers and free resources
+:LenslineToggleEngine  " Toggle enable/disable engine
+:LenslineToggle        " DEPRECATED: Will be removed in v2, currently toggles view
 ```
 
-You can also control this programmatically:
+<details>
+<summary><strong>Programmatic API - Engine Control</strong></summary>
 
 ```lua
 local lensline = require("lensline")
 
--- check current state
-if lensline.is_enabled() then
-  print("Lensline is enabled")
-end
-
--- manually enable/disable
+-- Engine control (full functionality)
 lensline.enable()
 lensline.disable()
+lensline.toggle_engine()
+if lensline.is_enabled() then
+  print("Engine is running")
+end
 
--- toggle
-lensline.toggle()
+-- Legacy (deprecated)
+lensline.toggle()  -- Shows warning, calls toggle_view()
 ```
+
+</details>
+
+### Visual Display Control
+
+**`:LenslineShow`** / **`:LenslineHide`** / **`:LenslineToggleView`**
+Control visual rendering while keeping providers running in background.
+
+```vim
+:LenslineShow        " Show lens visual display
+:LenslineHide        " Hide lens visual display (providers still active)
+:LenslineToggleView  " Toggle show/hide visual display (most common)
+```
+
+<details>
+<summary><strong>Programmatic API - Visual Display</strong></summary>
+
+```lua
+local lensline = require("lensline")
+
+-- View control (visibility only)
+lensline.show()
+lensline.hide()
+lensline.toggle_view()
+if lensline.is_visible() then
+  print("Lenses are visible")
+end
+```
+
+</details>
 
 ## 🗺️ Roadmap
 
