@@ -124,9 +124,21 @@ local function create_extmark_opts(placement, texts, separator, highlight, prefi
   local combined_text = table.concat(texts, separator)
   
   if placement == "inline" then
-    -- Inline: virtual text at end of line, no prefix
+    -- Inline: virtual text at end of line, with prefix if configured
+    local virt_text = {}
+    
+    -- Add prefix if configured
+    if prefix and prefix ~= "" then
+      table.insert(virt_text, { prefix, highlight })
+    end
+    
+    table.insert(virt_text, { combined_text, highlight })
+    
+    -- Combine all parts into a single string with a leading space
+    local inline_text = " " .. table.concat(vim.tbl_map(function(t) return t[1] end, virt_text), "")
+    
     return {
-      virt_text = { { " " .. combined_text, highlight } },
+      virt_text = { { inline_text, highlight } },
       virt_text_pos = "eol"
     }
   else

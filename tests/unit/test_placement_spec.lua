@@ -39,17 +39,17 @@ local function collect_extmarks(bufnr)
   return by_line, marks
 end
 
-local function reset_config(placement, providers)
+local function reset_config(placement, providers, prefix)
   config.setup({
     providers = providers or {
       { name = "p1", enabled = true },
     },
-    style = { 
-      prefix = "", 
-      separator = " • ", 
-      highlight = "Comment", 
+    style = {
+      prefix = prefix or "",
+      separator = " • ",
+      highlight = "Comment",
       placement = placement,
-      use_nerdfont = false 
+      use_nerdfont = false
     },
   })
   renderer.provider_lens_data = {}
@@ -304,5 +304,109 @@ describe("placement configuration", function()
     eq(nil, by_line[5])
 
     vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  describe("prefix behavior", function()
+    it("respects prefix configuration in inline mode", function()
+      reset_config("inline", nil, "┃ ")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "test inline" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq(" ┃ test inline", by_line[1].text)
+      eq("inline", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
+
+    it("respects prefix configuration in above mode", function()
+      reset_config("above", nil, "┃ ")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "test above" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq("┃ test above", by_line[1].text)
+      eq("above", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
+
+    it("allows empty prefix override in inline mode", function()
+      reset_config("inline", nil, "")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "test inline" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq(" test inline", by_line[1].text)
+      eq("inline", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
+
+    it("allows empty prefix override in above mode", function()
+      reset_config("above", nil, "")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "test above" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq("test above", by_line[1].text)
+      eq("above", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
+
+    it("combines providers with prefix in inline mode", function()
+      reset_config("inline", {
+        { name = "p1", enabled = true },
+        { name = "p2", enabled = true },
+      }, ">>> ")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "A" },
+      })
+      renderer.render_provider_lenses(buf, "p2", {
+        { line = 1, text = "B" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq(" >>> A • B", by_line[1].text)
+      eq("inline", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
+
+    it("combines providers with prefix in above mode", function()
+      reset_config("above", {
+        { name = "p1", enabled = true },
+        { name = "p2", enabled = true },
+      }, ">>> ")
+      local buf = new_buf({ "function test()", "  return 1", "end" })
+
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "A" },
+      })
+      renderer.render_provider_lenses(buf, "p2", {
+        { line = 1, text = "B" },
+      })
+
+      local by_line = collect_extmarks(buf)
+      eq(">>> A • B", by_line[1].text)
+      eq("above", by_line[1].placement)
+
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
   end)
 end)
