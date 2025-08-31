@@ -44,8 +44,8 @@ function M.render_lens_item(bufnr, line, text)
   end
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
   
   local virt_text = {}
   
@@ -169,9 +169,9 @@ function M.render_combined_lenses(bufnr)
   end
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
-  local separator = opts.style.separator or " • "
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
+  local separator = opts.style.separator
   
   -- Get existing extmarks for comparison
   local existing_extmarks = vim.api.nvim_buf_get_extmarks(bufnr, M.namespace, 0, -1, { details = true })
@@ -184,7 +184,7 @@ function M.render_combined_lenses(bufnr)
   -- Use presenter to combine lens data from all providers
   local combined_lines = presenter.combine_provider_data(M.provider_lens_data[bufnr], opts.providers)
   
-  local placement = opts.style.placement or "above"
+  local placement = opts.style.placement
   local lines_to_render = {}
   local extmark_operations = {}
   
@@ -254,9 +254,9 @@ function M.render_buffer_lenses(bufnr, lens_data)
   M.clear_buffer(bufnr)
   
   local opts = config.get()
-  local highlight = opts.style.highlight or "Comment"
-  local prefix = opts.style.prefix or ""
-  local separator = opts.style.separator or " • "
+  local highlight = opts.style.highlight
+  local prefix = opts.style.prefix
+  local separator = opts.style.separator
   
   -- Group lens items by line
   local lines_data = {}
