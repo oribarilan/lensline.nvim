@@ -1,4 +1,6 @@
 local eq = assert.are.same
+local test_utils = require("tests.test_utils")
+local with_stub = test_utils.with_stub
 
 -- Test executor timeout path (provider async never completes)
 -- Enhancements:
@@ -8,14 +10,6 @@ local eq = assert.are.same
 -- Paths exercised:
 --   timeout timer branch ([lua/lensline/executor.lua:229]-[lua/lensline/executor.lua:248]) using config.provider_timeout_ms override
 --   limits.should_skip_lenses check with zero lens_items ([lua/lensline/executor.lua:268])
-
-local function with_stub(mod_name, stub, fn)
-  local orig = package.loaded[mod_name]
-  package.loaded[mod_name] = stub
-  local ok, err = pcall(fn)
-  package.loaded[mod_name] = orig
-  if not ok then error(err) end
-end
 
 describe("executor provider timeout fallback rendering (configurable timeout)", function()
   it("renders empty lens set on timeout when provider never completes", function()
@@ -94,9 +88,9 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
             end,
             get_truncated_end_line = function(_, requested) return requested end,
           }, function()
-            package.loaded["lensline.debug"] = { log_context = function() end }
-
-            local executor = require("lensline.executor")
+            test_utils.stub_debug_silent()
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
             -- Force no stale cache to avoid early rendering
             executor.get_stale_cache_if_available = function() return nil end
 
@@ -116,6 +110,7 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
             eq(#discovered_funcs, handler_invocations)    -- handler invoked once per discovered function
 
             vim.api.nvim_buf_delete(buf, { force = true })
+            end)
           end)
         end)
       end)

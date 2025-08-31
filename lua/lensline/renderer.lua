@@ -156,6 +156,13 @@ function M.render_combined_lenses(bufnr)
     return
   end
   
+  -- Check both enabled and visible states
+  if not (config.is_enabled() and config.is_visible()) then
+    -- Clear any existing lenses when not visible
+    M.clear_buffer(bufnr)
+    return
+  end
+  
   -- Ensure initialization
   M.ensure_provider_data_initialized()
   

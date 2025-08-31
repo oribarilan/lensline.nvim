@@ -1,17 +1,11 @@
 local eq = assert.are.same
+local test_utils = require("tests.test_utils")
+local with_stub = test_utils.with_stub
 
 -- Test: executor uses stale cache for immediate render, then updates with fresh async results
 -- Focus areas:
 --   - Immediate pass over stale functions ([lua/lensline/executor.lua:155])
 --   - Subsequent async discovery triggers second render ([lua/lensline/executor.lua:186])
-
-local function with_stub(mod_name, stub, fn)
-  local orig = package.loaded[mod_name]
-  package.loaded[mod_name] = stub
-  local ok, err = pcall(fn)
-  package.loaded[mod_name] = orig
-  if not ok then error(err) end
-end
 
 describe("executor stale cache immediate render followed by fresh async update", function()
   it("renders twice: once from stale cache, then from async discovery", function()
@@ -101,9 +95,9 @@ describe("executor stale cache immediate render followed by fresh async update",
             get_truncated_end_line = function(_, requested) return requested end,
             clear_cache = function() end,
           }, function()
-            package.loaded["lensline.debug"] = { log_context = function() end }
-
-            local executor = require("lensline.executor")
+            test_utils.stub_debug_silent()
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
             executor.get_stale_cache_if_available = executor.get_stale_cache_if_available -- keep original
 
             executor.execute_all_providers(buf)
@@ -145,6 +139,7 @@ describe("executor stale cache immediate render followed by fresh async update",
             assert.is_true(#handler_call_lines >= #first, "expected at least one handler call per stale function")
 
             vim.api.nvim_buf_delete(buf, { force = true })
+            end)
           end)
         end)
       end)

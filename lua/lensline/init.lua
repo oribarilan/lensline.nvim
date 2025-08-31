@@ -2,58 +2,24 @@ local M = {}
 
 local config = require("lensline.config")
 local setup = require("lensline.setup")
+local commands = require("lensline.commands")
 
 function M.setup(opts)
     config.setup(opts or {})
     setup.initialize()
-    
-    -- create the toggle command
-    vim.api.nvim_create_user_command("LenslineToggle", function()
-        M.toggle()
-    end, {
-        desc = "Toggle lensline functionality on/off"
-    })
-    
-    -- create debug command to view debug logs (only if debug_mode is enabled)
-    if config.get().debug_mode then
-        vim.api.nvim_create_user_command("LenslineDebug", function()
-            local debug = require("lensline.debug")
-            local debug_file = debug.get_debug_file()
-            if debug_file and vim.fn.filereadable(debug_file) == 1 then
-                vim.cmd("tabnew " .. debug_file)
-            else
-                vim.notify("No debug file found. Make sure debug_mode = true in your config.", vim.log.levels.WARN)
-            end
-        end, {
-            desc = "Open lensline debug log file"
-        })
-    end
+    commands.register_commands()
 end
 
-function M.enable()
-    setup.enable()
-end
-
-function M.disable()
-    setup.disable()
-end
-
-function M.toggle()
-    if config.is_enabled() then
-        M.disable()
-        vim.notify("Lensline disabled", vim.log.levels.INFO)
-    else
-        M.enable()
-        vim.notify("Lensline enabled", vim.log.levels.INFO)
-    end
-end
-
-function M.is_enabled()
-    return config.is_enabled()
-end
-
-function M.refresh()
-    setup.refresh_current_buffer()
-end
+-- export all command functions 
+M.enable = commands.enable
+M.disable = commands.disable
+M.show = commands.show
+M.hide = commands.hide
+M.toggle_view = commands.toggle_view
+M.toggle_engine = commands.toggle_engine
+M.toggle = commands.toggle
+M.is_enabled = commands.is_enabled
+M.is_visible = commands.is_visible
+M.refresh = commands.refresh
 
 return M

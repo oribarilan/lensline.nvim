@@ -80,11 +80,13 @@ M.defaults = {
 }
 
 M.options = {}
-M._enabled = false  -- global toggle state
+M._enabled = false  -- global toggle state - Level 1: Engine control
+M._visible = true   -- global visibility state - Level 2: View control
 
 function M.setup(opts)
   M.options = vim.tbl_deep_extend("force", M.defaults, opts)
   M._enabled = true  -- enable by default when setup is called
+  M._visible = true  -- visible by default when setup is called
 end
 
 function M.get()
@@ -97,6 +99,14 @@ end
 
 function M.set_enabled(enabled)
   M._enabled = enabled
+end
+
+function M.is_visible()
+  return M._visible
+end
+
+function M.set_visible(visible)
+  M._visible = visible
 end
 
 -- LSP message filtering - surgical "Finding references" suppression

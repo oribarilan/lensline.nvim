@@ -1,13 +1,6 @@
 local eq = assert.are.same
-
--- Stubs and helpers
-local function with_stub(mod_name, stub, fn)
-  local orig = package.loaded[mod_name]
-  package.loaded[mod_name] = stub
-  local ok, err = pcall(fn)
-  package.loaded[mod_name] = orig
-  if not ok then error(err) end
-end
+local test_utils = require("tests.test_utils")
+local with_stub = test_utils.with_stub
 
 -- Provide minimal config for debounce + defaults
 local config = require("lensline.config")
@@ -64,8 +57,9 @@ describe("executor core behaviors", function()
             should_skip = function() return false end,
             should_skip_lenses = function() return false end,
           }, function()
-            package.loaded["lensline.debug"] = { log_context = function() end }
-            local executor = require("lensline.executor")
+            test_utils.stub_debug_silent()
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
             -- Force no stale cache path to ensure single provider pass
             executor.get_stale_cache_if_available = function() return nil end
             local buf = vim.api.nvim_create_buf(false, true)
@@ -77,6 +71,7 @@ describe("executor core behaviors", function()
             table.sort(rendered["p_exec"], function(a,b) return a.line < b.line end)
             eq({ { line = 1, text = "L1" }, { line = 3, text = "L3" } }, rendered["p_exec"])
             vim.api.nvim_buf_delete(buf, { force = true })
+            end)
           end)
         end)
       end)
@@ -123,7 +118,8 @@ describe("executor core behaviors", function()
           }, function()
             local debug_msgs = {}
             package.loaded["lensline.debug"] = { log_context = function(_, msg) table.insert(debug_msgs, msg) end }
-            local executor = require("lensline.executor")
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
             executor.get_stale_cache_if_available = function() return nil end
             local buf = vim.api.nvim_create_buf(false, true)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "x" })
@@ -135,6 +131,7 @@ describe("executor core behaviors", function()
             eq(0, #rendered_items)
             vim.api.nvim_buf_delete(buf, { force = true })
             assert.is_truthy(table.concat(debug_msgs, "\n"):match("failed for function"))
+            end)
           end)
         end)
       end)
@@ -181,8 +178,9 @@ describe("executor core behaviors", function()
             should_skip = function() return false end,
             should_skip_lenses = function() return false end,
           }, function()
-            package.loaded["lensline.debug"] = { log_context = function() end }
-            local executor = require("lensline.executor")
+            test_utils.stub_debug_silent()
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
             executor.get_stale_cache_if_available = function() return nil end
             local buf = vim.api.nvim_create_buf(false, true)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two", "three", "four", "five" })
@@ -202,6 +200,7 @@ describe("executor core behaviors", function()
               assert.is_truthy(it.text:match("^X%d+$"))
             end
             vim.api.nvim_buf_delete(buf, { force = true })
+            end)
           end)
         end)
       end)
