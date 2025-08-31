@@ -156,7 +156,7 @@ function M.render_combined_lenses(bufnr)
     return
   end
   
-  -- Check both enabled and visible states
+  -- Level 2 selective rendering. Use global visibility flag
   if not (config.is_enabled() and config.is_visible()) then
     -- Clear any existing lenses when not visible
     M.clear_buffer(bufnr)
@@ -223,6 +223,11 @@ function M.render_combined_lenses(bufnr)
   local placement = opts.style.placement or "above"
   local lines_to_render = {}
   local extmark_operations = {}
+  
+  -- TODO: Level 3 Selective rendering will be implemented here
+  -- This will filter entire lenses (complete function lens lines) based on criteria
+  -- e.g., focused-function feature: only show lenses for functions matching certain conditions
+  -- while keeping all providers running and data collected for quick re-showing
   
   -- Only update lines with changed content
   for line, texts in pairs(combined_lines) do
