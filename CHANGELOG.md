@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New commands: `:LenslineShow`, `:LenslineHide`, `:LenslineToggleView`, `:LenslineToggleEngine` with programmatic API equivalents
 - Lens placement can now be configured with "above" (existing) and "inline" (new) modes for another style option (consider `prefix = ""` for inline)
+- Added Focused lens rendering mode: the option to only render a lens on the function that contains the cursor in the active window
 - Docker-based bug reproduction environment
 - GitHub issue template for streamlined bug reporting
 

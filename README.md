@@ -148,6 +148,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         max_lenses = 70,          -- skip rendering if too many lenses generated
       },
       debounce_ms = 500,        -- unified debounce delay for all providers
+      focused_debounce_ms = 150, -- debounce delay for focus tracking in focused mode
       debug_mode = false,       -- enable debug output for development, see CONTRIBUTE.md
     })
   end,

@@ -10,7 +10,7 @@ local state = {
 
 -- Debounced recomputation of the focused function for the active window
 local debounced_update = (function()
-  local delay = function() return (config.get().debounce_ms or 500) end
+  local delay = function() return config.get().focused_debounce_ms end
   local debounce_fn, timer = utils.debounce(function()
     local win = state.active_win
     if not win or not vim.api.nvim_win_is_valid(win) then 
