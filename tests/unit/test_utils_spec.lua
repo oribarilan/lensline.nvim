@@ -221,12 +221,12 @@ describe("utils.debounce() manual cancellation", function()
 end)
 
 describe("utils.is_using_nerdfonts() pre-setup", function()
-  it("returns false before config.setup invoked", function()
+  it("returns true with defaults before config.setup invoked", function()
     package.loaded["lensline.config"] = nil
-    local cfg = require("lensline.config") -- reloaded (options empty)
+    local cfg = require("lensline.config") -- reloaded (options = defaults)
     package.loaded["lensline.config"] = cfg
     local utils = require("lensline.utils")
-    eq(false, utils.is_using_nerdfonts())
+    eq(true, utils.is_using_nerdfonts())
   end)
 end)
 
