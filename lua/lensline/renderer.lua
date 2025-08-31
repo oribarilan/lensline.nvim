@@ -275,7 +275,7 @@ function M.render_buffer_lenses(bufnr, lens_data)
     
     -- Use presenter to create extmark options
     local extmark_opts = presenter.compute_extmark_opts({
-      placement = opts.style.placement or "above",
+      placement = opts.style.placement,
       texts = texts,
       separator = separator,
       highlight = highlight,

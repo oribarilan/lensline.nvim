@@ -50,11 +50,11 @@ function M.on_line(winid, bufnr, lnum)
 
   local line_text = vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1] or ""
   local extopts = presenter.compute_extmark_opts({
-    placement = opts.style.placement or "above",
+    placement = opts.style.placement,
     texts = texts,
-    separator = opts.style.separator or " • ",
-    highlight = opts.style.highlight or "Comment",
-    prefix = opts.style.prefix or "",
+    separator = opts.style.separator,
+    highlight = opts.style.highlight,
+    prefix = opts.style.prefix,
     line_content = line_text,
     ephemeral = true
   })
