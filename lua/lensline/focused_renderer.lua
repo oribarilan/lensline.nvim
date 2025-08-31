@@ -115,7 +115,7 @@ function M.enable()
   end
   
   debug.log_context("FocusedRenderer", "enabling decoration provider")
-  M._prov = vim.api.nvim_set_decoration_provider(M.ns, {
+  local result = vim.api.nvim_set_decoration_provider(M.ns, {
     on_win  = function (_, winid, bufnr, _top, _bot)
       return M.on_win(winid, bufnr)
     end,
@@ -123,7 +123,9 @@ function M.enable()
       M.on_line(winid, bufnr, lnum)
     end,
   })
-  debug.log_context("FocusedRenderer", "decoration provider enabled")
+  -- Mark as enabled even if result is nil (decoration provider was set)
+  M._prov = result or true
+  debug.log_context("FocusedRenderer", "decoration provider enabled, result: " .. tostring(result) .. ", _prov: " .. tostring(M._prov))
 end
 
 function M.disable()
@@ -140,6 +142,11 @@ end
 -- Test helper: check if decoration provider is enabled
 function M._is_enabled_for_test()
   return M._prov ~= nil
+end
+
+-- Test helper: reset state for unit tests
+function M._reset_state_for_test()
+  M._prov = nil
 end
 
 return M

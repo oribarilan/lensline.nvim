@@ -35,12 +35,10 @@ describe("focused rendering setup integration", function()
   before_each(function()
     setup_vim_mocks()
     
-    -- Reset modules to clean state
-    package.loaded["lensline.focus"] = nil
-    package.loaded["lensline.focused_renderer"] = nil
-    
-    -- Reload modules
-    focused_renderer = require("lensline.focused_renderer")
+    -- Reset module state
+    local focus = require("lensline.focus")
+    focus._reset_state_for_test()
+    focused_renderer._reset_state_for_test()
   end)
   
   describe("initialization with render modes", function()
