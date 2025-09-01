@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Commands extracted to dedicated `commands.lua` module for better code organization
 
+### Improved
+- Debug system now uses buffered logging for better performance when debug mode is enabled
+
 ### Deprecated
 - `:LenslineToggle` command (will be removed in v2.0) - use `:LenslineToggleView` or `:LenslineToggleEngine` instead
 

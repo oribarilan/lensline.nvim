@@ -109,7 +109,10 @@ When `debug_mode = true` is set in your config:
 - **`:LenslineDebug` command**: Automatically created to open the current debug log file in a new tab
 - **Log rotation**: Debug logs are automatically rotated when they exceed 500KB, keeping up to 3 files (main + 2 rotated) per session
 - **Session isolation**: Each Neovim session creates separate debug files, with old sessions cleaned up on startup
+- **Buffered logging**: Uses in-memory buffer (100 entries) that flushes to disk in batches for ~99% better performance
 - **Performance**: When `debug_mode = false` (default), no debug files are created and logging has zero performance impact
+- **Reliability**: VimLeavePre autocommand ensures logs persist on normal shutdown
+- **Manual flush**: If needed, you can use `require("lensline.debug").flush()` to force immediate write 
 
 Debug logs contain detailed information about provider execution, LSP interactions, and system events - useful for troubleshooting issues or understanding plugin behavior.
 

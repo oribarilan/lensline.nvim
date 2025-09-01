@@ -7,6 +7,12 @@ local session_id = nil
 local MAX_LOG_SIZE = 512000  -- 500KB in bytes
 local MAX_ROTATED_FILES = 2  -- Keep .log.1 and .log.2
 
+-- Buffered logging state
+local log_buffer = {}           -- Array of formatted log lines
+local buffer_count = 0          -- Current buffer size (more efficient than #log_buffer)
+local BUFFER_SIZE_LIMIT = 100   -- Flush threshold
+local exit_handler_registered = false
+
 -- generate unique session id for this neovim instance
 local function generate_session_id()
     return os.date("%Y%m%d_%H%M%S") .. "_" .. math.random(1000, 9999)
@@ -54,6 +60,69 @@ local function rotate_if_needed()
     end
 end
 
+-- flush buffer to file (internal function)
+local function flush_buffer_to_file()
+    if buffer_count == 0 or not debug_file_path then
+        return true -- Nothing to flush or debug disabled
+    end
+    
+    -- Check if rotation needed before writing buffer
+    rotate_if_needed()
+    
+    -- Atomic operation: copy buffer, reset state, then write
+    local lines_to_write = {}
+    for i = 1, buffer_count do
+        lines_to_write[i] = log_buffer[i]
+    end
+    
+    -- Reset buffer state immediately
+    log_buffer = {}
+    buffer_count = 0
+    
+    -- Write all lines in single file operation
+    local file = io.open(debug_file_path, "a")
+    if not file then
+        -- Restore buffer on failure
+        log_buffer = lines_to_write
+        buffer_count = #lines_to_write
+        return false
+    end
+    
+    for _, line in ipairs(lines_to_write) do
+        file:write(line)
+    end
+    file:close()
+    return true
+end
+
+-- add log line to buffer and flush if needed
+local function add_to_buffer(formatted_line)
+    buffer_count = buffer_count + 1
+    log_buffer[buffer_count] = formatted_line
+    
+    -- Flush if buffer limit reached
+    if buffer_count >= BUFFER_SIZE_LIMIT then
+        vim.schedule(function()
+            flush_buffer_to_file()
+        end)
+    end
+end
+
+-- ensure exit handler is registered to flush on shutdown
+local function ensure_exit_handler()
+    if exit_handler_registered then
+        return
+    end
+    
+    vim.api.nvim_create_autocmd("VimLeavePre", {
+        callback = function()
+            flush_buffer_to_file()
+        end,
+        desc = "Flush lensline debug buffer on exit"
+    })
+    exit_handler_registered = true
+end
+
 -- init debug logging for new session
 function M.init()
     local config = require("lensline.config")
@@ -95,7 +164,7 @@ function M.init()
     M.log("==========================================")
 end
 
--- log a debug message to file
+-- log a debug message using buffered approach
 function M.log(message, level)
     local config = require("lensline.config")
     local opts = config.get()
@@ -113,19 +182,23 @@ function M.log(message, level)
         return -- init failed, still no debug_file_path
     end
     
-    -- Check if rotation is needed before writing
-    rotate_if_needed()
+    -- Ensure exit handler is registered
+    ensure_exit_handler()
     
     level = level or "INFO"
     local timestamp = os.date("%H:%M:%S.") .. string.format("%03d", math.floor((os.clock() * 1000) % 1000))
     local log_line = string.format("[%s] [%s] %s\n", timestamp, level, message)
     
-    -- write to the debug file
-    local file = io.open(debug_file_path, "a")
-    if file then
-        file:write(log_line)
-        file:close()
+    -- Add to buffer instead of immediate write
+    add_to_buffer(log_line)
+end
+
+-- manually flush the log buffer (useful for testing)
+function M.flush()
+    if buffer_count > 0 then
+        return flush_buffer_to_file()
     end
+    return true
 end
 
 -- log with context like function name, buffer etc
@@ -173,7 +246,9 @@ function M.get_session_info()
     return {
         id = session_id,
         file_path = debug_file_path,
-        exists = debug_file_path and vim.fn.filereadable(debug_file_path) == 1
+        exists = debug_file_path and vim.fn.filereadable(debug_file_path) == 1,
+        buffer_count = buffer_count,  -- Add buffer state info
+        buffer_limit = BUFFER_SIZE_LIMIT
     }
 end
 

@@ -21,7 +21,7 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
       },
       style = { use_nerdfont = false },
       debounce_ms = 5,
-      provider_timeout_ms = 30,  -- override (default 5000ms) to accelerate timeout path
+      provider_timeout_ms = 10,  -- override (default 5000ms) to accelerate timeout path
       limits = { max_lines = 1000, exclude = {}, exclude_gitignored = false, max_lenses = 50 },
     })
 
