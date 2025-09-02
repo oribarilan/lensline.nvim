@@ -325,14 +325,14 @@ To show all complexity levels including simple functions:
 
 
 
-### Custom Providers
+#### Custom Providers
 
 lensline supports custom providers for unlimited extensibility:
 
 - **Create inline providers** - Define simple providers directly in your config 
 - **Use composable utilities** - Leverage built-in utilities for LSP, function analysis, and styling
 
-#### Examples
+##### Examples
 
 Here are a few examples for inspiration. For comprehensive provider  guidance, see [`providers.md`](providers.md).
 
