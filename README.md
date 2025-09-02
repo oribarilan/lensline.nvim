@@ -42,7 +42,7 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## 📦 Install
 
-We recommend using a specific tagged release (`tag = '1.0.0'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
+We recommend using a specific tagged release (`tag = '1.1.0'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -59,7 +59,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
+  tag = '1.1.0', -- or: branch = 'release/1.x' for latest non-breaking updates
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -73,7 +73,7 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '1.0.0' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '1.1.0' }
 ```
 
 or
@@ -90,7 +90,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
+    tag = '1.1.0', -- or: branch = 'release/1.x' for latest non-breaking updates
 }
 ```
 </details>
