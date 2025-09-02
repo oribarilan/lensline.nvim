@@ -54,7 +54,7 @@ eval "$(luarocks --lua-version=5.1 --tree ./.rocks path)" \
 
 ## Testing
 
-See [testing-guidelines.md](testing-guidelines.md:1) for detailed practices (naming rules, stubbing, LSP strategy).
+See [testing_guidelines.md](testing_guidelines.md:1) for detailed practices (naming rules, stubbing, LSP strategy).
 
 Notes:
 - Local isolated deps live in ./.rocks (git-ignored); no global installs needed.
