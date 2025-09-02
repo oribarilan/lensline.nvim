@@ -21,17 +21,13 @@
 </a>
 </p>
 
-<p>
-    <img height="150" alt="lensline ape" src="https://github.com/user-attachments/assets/40235fbf-be12-4f35-ad57-efe49aa244e2" />
-</p>
-
 </div>
 
 # 💡 What is lensline?
 A lightweight Neovim plugin that displays customizable, contextual information directly above (or beside) functions, like references and authorship.
 
 <p align="center">
-  <img alt="lensline demo" src="https://github.com/user-attachments/assets/40235fbf-be12-4f35-ad57-efe49aa244e2" width="50%" />
+  <img alt="lensline demo" src="https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c" width="50%" />
 </p>
 
 ## 🎯 Why use lensline?
