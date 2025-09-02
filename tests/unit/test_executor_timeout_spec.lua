@@ -1,37 +1,69 @@
+-- tests/unit/test_executor_timeout_spec.lua
+-- Test executor timeout path (provider async never completes)
+
 local eq = assert.are.same
 local test_utils = require("tests.test_utils")
-local with_stub = test_utils.with_stub
 
--- Test executor timeout path (provider async never completes)
--- Enhancements:
---  - Uses configurable provider_timeout_ms (override via config) instead of timer patch heuristics
---  - Asserts provider handler invoked for each function (verifies pending_functions & legit timeout)
---  - Reduced overall wait for faster suite execution
--- Paths exercised:
---   timeout timer branch ([lua/lensline/executor.lua:229]-[lua/lensline/executor.lua:248]) using config.provider_timeout_ms override
---   limits.should_skip_lenses check with zero lens_items ([lua/lensline/executor.lua:268])
+describe("executor provider timeout fallback rendering", function()
+  local config = require("lensline.config")
+  local created_buffers = {}
 
-describe("executor provider timeout fallback rendering (configurable timeout)", function()
+  local function reset_modules()
+    for name,_ in pairs(package.loaded) do
+      if name:match("^lensline") then package.loaded[name] = nil end
+    end
+    config = require("lensline.config")
+  end
+
+  local function with_stub(module_name, stub_tbl, fn)
+    local orig = package.loaded[module_name]
+    package.loaded[module_name] = stub_tbl
+    local ok, err = pcall(fn)
+    package.loaded[module_name] = orig
+    if not ok then error(err) end
+  end
+
+  local function make_buf(lines)
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    table.insert(created_buffers, bufnr)
+    if lines and #lines > 0 then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    end
+    return bufnr
+  end
+
+  before_each(function()
+    reset_modules()
+    created_buffers = {}
+  end)
+
+  after_each(function()
+    for _, bufnr in ipairs(created_buffers) do
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+    end
+    reset_modules()
+  end)
+
   it("renders empty lens set on timeout when provider never completes", function()
-    -- Configure single provider with short provider_timeout_ms for deterministic test
-    local config = require("lensline.config")
+    -- Configure single provider with short timeout for deterministic test
     config.setup({
       providers = {
         { name = "p_timeout", enabled = true },
       },
       style = { use_nerdfont = false },
       debounce_ms = 5,
-      provider_timeout_ms = 30,  -- override (default 5000ms) to accelerate timeout path
+      provider_timeout_ms = 30,  -- short timeout for test speed
       limits = { max_lines = 1000, exclude = {}, exclude_gitignored = false, max_lenses = 50 },
     })
 
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    local bufnr = make_buf({
       "function a() end",
       "function b() end",
     })
 
-    -- Functions discovered (2) so pending_functions will stay > 0 (never decremented)
+    -- Functions that will be discovered
     local discovered_funcs = {
       { line = 1, end_line = 1, name = "a" },
       { line = 2, end_line = 2, name = "b" },
@@ -41,12 +73,12 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
     local should_skip_lenses_calls = 0
     local handler_invocations = 0
 
-    -- Provider whose handler never calls callback and returns nothing (async path unresolved)
+    -- Provider whose handler never calls callback (simulates timeout)
     local provider_mod = {
       name = "p_timeout",
       handler = function()
         handler_invocations = handler_invocations + 1
-        -- intentionally no return value & no async cb
+        -- intentionally no return value & no async callback
       end,
       event = { "BufWritePost" },
     }
@@ -65,7 +97,6 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
         function_cache = {},
         cleanup_cache = function() end,
         discover_functions_async = function(_, _, _, cb)
-          -- Provide functions immediately (no delay)
           cb(discovered_funcs)
         end,
       }, function()
@@ -83,34 +114,31 @@ describe("executor provider timeout fallback rendering (configurable timeout)", 
             should_skip = function() return false end,
             should_skip_lenses = function(count, _)
               should_skip_lenses_calls = should_skip_lenses_calls + 1
-              -- never skip in this test
               return false, nil
             end,
             get_truncated_end_line = function(_, requested) return requested end,
           }, function()
             test_utils.stub_debug_silent()
-            test_utils.with_enabled_config(config, function()
-              local executor = require("lensline.executor")
-            -- Force no stale cache to avoid early rendering
-            executor.get_stale_cache_if_available = function() return nil end
+              test_utils.with_enabled_config(config, function()
+                local executor = require("lensline.executor")
+                -- Force no stale cache to ensure fresh execution
+                executor.get_stale_cache_if_available = function() return nil end
 
-            executor.execute_all_providers(buf)
+                executor.execute_all_providers(bufnr)
 
-            -- Wait for timeout branch to trigger render (timeout_ms + safety margin)
-            local max_wait_ms = 200
-            vim.wait(max_wait_ms, function()
-              return #render_calls > 0
-            end)
+              -- Wait for timeout to trigger render
+              local max_wait_ms = 200
+              vim.wait(max_wait_ms, function()
+                return #render_calls > 0
+              end)
 
-            -- Assertions
-            eq(1, #render_calls)                          -- Only timeout render
-            eq("p_timeout", render_calls[1].provider)
-            eq(0, render_calls[1].count)                  -- No items collected (timeout path)
-            assert.is_true(should_skip_lenses_calls >= 1) -- limits consulted
-            eq(#discovered_funcs, handler_invocations)    -- handler invoked once per discovered function
-
-            vim.api.nvim_buf_delete(buf, { force = true })
-            end)
+              -- Verify timeout behavior
+              eq(1, #render_calls, "Should have exactly one render call from timeout")
+              eq("p_timeout", render_calls[1].provider, "Provider name should match configured provider")
+              eq(0, render_calls[1].count, "Should render empty lens set on timeout")
+              assert.is_true(should_skip_lenses_calls >= 1, "Should consult limits")
+              eq(#discovered_funcs, handler_invocations, "Handler should be invoked for each function")
+              end)
           end)
         end)
       end)
