@@ -47,10 +47,10 @@ describe("executor provider timeout fallback rendering", function()
   end)
 
   it("renders empty lens set on timeout when provider never completes", function()
-    -- Configure single provider with short timeout for deterministic test
+    -- Configure provider with unique name for this test to avoid state conflicts
     config.setup({
       providers = {
-        { name = "p_timeout", enabled = true },
+        { name = "timeout_test_provider", enabled = true },
       },
       style = { use_nerdfont = false },
       debounce_ms = 5,
@@ -75,7 +75,7 @@ describe("executor provider timeout fallback rendering", function()
 
     -- Provider whose handler never calls callback (simulates timeout)
     local provider_mod = {
-      name = "p_timeout",
+      name = "timeout_test_provider",
       handler = function()
         handler_invocations = handler_invocations + 1
         -- intentionally no return value & no async callback
@@ -86,7 +86,7 @@ describe("executor provider timeout fallback rendering", function()
     with_stub("lensline.providers", {
       get_enabled_providers = function()
         return {
-          p_timeout = {
+          timeout_test_provider = {
             module = provider_mod,
             config = {},
           }
@@ -119,12 +119,12 @@ describe("executor provider timeout fallback rendering", function()
             get_truncated_end_line = function(_, requested) return requested end,
           }, function()
             test_utils.stub_debug_silent()
-              test_utils.with_enabled_config(config, function()
-                local executor = require("lensline.executor")
-                -- Force no stale cache to ensure fresh execution
-                executor.get_stale_cache_if_available = function() return nil end
+            test_utils.with_enabled_config(config, function()
+              local executor = require("lensline.executor")
+              -- Force no stale cache to ensure fresh execution
+              executor.get_stale_cache_if_available = function() return nil end
 
-                executor.execute_all_providers(bufnr)
+              executor.execute_all_providers(bufnr)
 
               -- Wait for timeout to trigger render
               local max_wait_ms = 200
@@ -134,11 +134,11 @@ describe("executor provider timeout fallback rendering", function()
 
               -- Verify timeout behavior
               eq(1, #render_calls, "Should have exactly one render call from timeout")
-              eq("p_timeout", render_calls[1].provider, "Provider name should match configured provider")
+              eq("timeout_test_provider", render_calls[1].provider, "Provider name should match configured provider")
               eq(0, render_calls[1].count, "Should render empty lens set on timeout")
               assert.is_true(should_skip_lenses_calls >= 1, "Should consult limits")
               eq(#discovered_funcs, handler_invocations, "Handler should be invoked for each function")
-              end)
+            end)
           end)
         end)
       end)
