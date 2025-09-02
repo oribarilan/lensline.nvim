@@ -11,8 +11,7 @@ return {
       if references then
         local count = #references
         local icon = utils.if_nerdfont_else("󰌹 ", "")
-        -- Add trailing space after count in nerdfont mode to satisfy tests
-        local suffix = utils.if_nerdfont_else(" ", " refs")
+        local suffix = utils.if_nerdfont_else("", " refs")
         callback({
           line = func_info.line,
           text = icon .. count .. suffix
