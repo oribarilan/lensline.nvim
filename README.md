@@ -153,8 +153,41 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 
 </details>
 
+### Style Customizations
+
 <details>
-<summary><strong>Design Philosophy</strong></summary>
+<summary><strong>Minimalistic</strong> - Inline rendering with focused mode</summary>
+
+For a more subtle, distraction-free experience, try this minimal configuration that renders lenses inline with your code and only shows them for the currently focused function:
+
+<p align="center">
+  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/834cc34c-76dd-4a15-af76-eeab4774f106" width="50%" />
+</p>
+
+```lua
+{
+  'oribarilan/lensline.nvim',
+  tag = '1.1.0',
+  event = 'LspAttach',
+  config = function()
+    require("lensline").setup({
+      style = {
+        placement = 'inline',
+        prefix = '',
+      },
+      render = "focused", -- or "all" for showing lenses in all functions
+    })
+  end,
+}
+```
+
+</details>
+
+### Lens Attribute Customization
+
+#### Design Philosophy
+
+<details>
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
@@ -165,7 +198,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 </details>
 
-### Built-in Providers
+#### Built-in Providers
 
 <details>
 <summary><strong>references Provider</strong> - LSP reference counting</summary>
@@ -289,35 +322,7 @@ To show all complexity levels including simple functions:
 ```
 
 </details>
-### Style Customizations
 
-<details>
-<summary><strong>Minimalistic</strong> - Inline rendering with focused mode</summary>
-
-For a more subtle, distraction-free experience, try this minimal configuration that renders lenses inline with your code and only shows them for the currently focused function:
-
-<p align="center">
-  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/834cc34c-76dd-4a15-af76-eeab4774f106" width="50%" />
-</p>
-
-```lua
-{
-  'oribarilan/lensline.nvim',
-  tag = '1.1.0',
-  event = 'LspAttach',
-  config = function()
-    require("lensline").setup({
-      style = {
-        placement = 'inline',
-        prefix = '',
-      },
-      render = "focused", -- or "all" for showing lenses in all functions
-    })
-  end,
-}
-```
-
-</details>
 
 
 ### Custom Providers
