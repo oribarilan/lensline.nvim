@@ -4,8 +4,7 @@
 local eq = assert.are.same
 
 describe("limits.should_skip and get_truncated_end_line", function()
-  local limits = require("lensline.limits")
-  local config = require("lensline.config")
+  local limits, config
   local created_buffers = {}
 
   local function reset_modules()
@@ -16,20 +15,6 @@ describe("limits.should_skip and get_truncated_end_line", function()
     config = require("lensline.config")
   end
 
-  local function setup_cfg(max_lines)
-    config.setup({
-      limits = {
-        max_lines = max_lines,
-        exclude = {},
-        exclude_gitignored = false,
-        max_lenses = 9999,
-      },
-      providers = {}, -- minimize unrelated processing
-      debug_mode = false,
-    })
-    limits.clear_cache()
-  end
-
   local function make_buf(lines)
     local bufnr = vim.api.nvim_create_buf(false, true)
     table.insert(created_buffers, bufnr)
@@ -37,6 +22,20 @@ describe("limits.should_skip and get_truncated_end_line", function()
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
     end
     return bufnr
+  end
+
+  local function setup_limits(max_lines)
+    config.setup({
+      limits = {
+        max_lines = max_lines,
+        exclude = {},
+        exclude_gitignored = false,
+        max_lenses = 9999,
+        max_lines_hidden = false,
+      },
+      providers = {},
+    })
+    limits.clear_cache()
   end
 
   before_each(function()
@@ -53,16 +52,17 @@ describe("limits.should_skip and get_truncated_end_line", function()
     reset_modules()
   end)
 
-  -- table-driven tests for threshold scenarios
-  for _, case in ipairs({
-    { name = "below threshold", max_lines = 100, line_count = 5, should_truncate = false },
+  -- table-driven tests for file size scenarios
+  for _, tc in ipairs({
+    { name = "small file", max_lines = 100, line_count = 5, should_truncate = false },
     { name = "at threshold", max_lines = 10, line_count = 10, should_truncate = false },
-    { name = "above threshold", max_lines = 25, line_count = 40, should_truncate = true },
+    { name = "large file", max_lines = 25, line_count = 40, should_truncate = true },
   }) do
-    it(("handles files %s (%d lines, max %d)"):format(case.name, case.line_count, case.max_lines), function()
-      setup_cfg(case.max_lines)
+    it(("handles %s (%d lines, max %d)"):format(tc.name, tc.line_count, tc.max_lines), function()
+      setup_limits(tc.max_lines)
+      
       local lines = {}
-      for i = 1, case.line_count do
+      for i = 1, tc.line_count do
         lines[i] = ("line %d"):format(i)
       end
       local bufnr = make_buf(lines)
@@ -71,37 +71,36 @@ describe("limits.should_skip and get_truncated_end_line", function()
       
       eq(false, skip)
       eq(nil, reason)
-      eq(case.line_count, meta.line_count)
+      eq(tc.line_count, meta.line_count)
       
-      if case.should_truncate then
-        eq(case.max_lines, meta.truncate_to)
-        eq(case.max_lines, limits.get_truncated_end_line(bufnr, case.line_count))
+      if tc.should_truncate then
+        eq(tc.max_lines, meta.truncate_to)
+        eq(tc.max_lines, limits.get_truncated_end_line(bufnr, tc.line_count))
       else
         eq(nil, meta.truncate_to)
-        eq(case.line_count, limits.get_truncated_end_line(bufnr, case.line_count))
+        eq(tc.line_count, limits.get_truncated_end_line(bufnr, tc.line_count))
       end
     end)
   end
 
-  it("handles empty buffer safely", function()
-    setup_cfg(50)
+  it("handles empty buffer", function()
+    setup_limits(50)
     local bufnr = make_buf({})
     
     local skip, reason, meta = limits.should_skip(bufnr)
     
     eq(false, skip)
     eq(nil, reason)
-    -- neovim empty buffer reports 1 line (empty string)
-    eq(1, meta.line_count)
+    eq(1, meta.line_count) -- neovim reports 1 line for empty buffer
     eq(nil, meta.truncate_to)
-    eq(30, limits.get_truncated_end_line(bufnr, 30)) -- arbitrary requested end line preserved
+    eq(30, limits.get_truncated_end_line(bufnr, 30))
   end)
 
-  it("reuses cache until buffer changes", function()
-    setup_cfg(15)
+  it("uses cache on repeated calls", function()
+    setup_limits(15)
     local lines = {}
     for i = 1, 20 do
-      lines[i] = ("x%d"):format(i)
+      lines[i] = ("line%d"):format(i)
     end
     local bufnr = make_buf(lines)
     
