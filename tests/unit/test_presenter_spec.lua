@@ -1,23 +1,43 @@
+-- tests/unit/test_presenter_spec.lua
+-- unit tests for lensline.presenter (data combination and extmark options)
+
 local eq = assert.are.same
 
--- Minimal debug stub to avoid noise
+-- minimal debug stub to avoid noise
 package.loaded["lensline.debug"] = { log_context = function() end }
 
-local presenter = require("lensline.presenter")
-
 describe("presenter", function()
-  describe("combine_provider_data", function()
-    it("returns empty table when provider_lens_data is nil", function()
-      local result = presenter.combine_provider_data(nil, {})
-      eq({}, result)
-    end)
+  local function reset_modules()
+    for name,_ in pairs(package.loaded) do
+      if name:match("^lensline") and name ~= "lensline.debug" then 
+        package.loaded[name] = nil 
+      end
+    end
+  end
 
-    it("returns empty table when provider_lens_data is empty", function()
-      local result = presenter.combine_provider_data({}, {})
-      eq({}, result)
-    end)
+  before_each(function()
+    reset_modules()
+  end)
+
+  after_each(function()
+    reset_modules()
+  end)
+
+  describe("combine_provider_data", function()
+    -- table-driven tests for edge cases
+    for _, tc in ipairs({
+      { name = "nil data", input = nil, providers = {}, expected = {} },
+      { name = "empty data", input = {}, providers = {}, expected = {} },
+    }) do
+      it(("handles %s"):format(tc.name), function()
+        local presenter = require("lensline.presenter")
+        local result = presenter.combine_provider_data(tc.input, tc.providers)
+        eq(tc.expected, result)
+      end)
+    end
 
     it("preserves provider order from config", function()
+      local presenter = require("lensline.presenter")
       local provider_lens_data = {
         provider_b = {
           { line = 1, text = "B1" },
@@ -36,7 +56,6 @@ describe("presenter", function()
       
       local result = presenter.combine_provider_data(provider_lens_data, provider_configs)
       
-      -- Should combine in config order: A first, then B
       eq({
         [1] = { "A1", "B1" },
         [2] = { "A2", "B2" }
@@ -44,6 +63,7 @@ describe("presenter", function()
     end)
 
     it("skips disabled providers", function()
+      local presenter = require("lensline.presenter")
       local provider_lens_data = {
         enabled_provider = {
           { line = 1, text = "enabled" }
@@ -65,7 +85,8 @@ describe("presenter", function()
       }, result)
     end)
 
-    it("handles sparse arrays with numeric indices", function()
+    it("handles sparse arrays", function()
+      local presenter = require("lensline.presenter")
       local provider_lens_data = {
         sparse_provider = {
           [1] = { line = 1, text = "first" },
@@ -80,13 +101,13 @@ describe("presenter", function()
       
       local result = presenter.combine_provider_data(provider_lens_data, provider_configs)
       
-      -- Should preserve numeric order: 1, 3, 5
       eq({
         [1] = { "first", "third", "fifth" }
       }, result)
     end)
 
-    it("ignores invalid items without line or text", function()
+    it("filters invalid items", function()
+      local presenter = require("lensline.presenter")
       local provider_lens_data = {
         mixed_provider = {
           { line = 1, text = "valid" },
@@ -94,7 +115,7 @@ describe("presenter", function()
           { text = "missing_line" }, -- missing line
           { line = 1, text = "also_valid" },
           nil, -- nil item
-          { line = 1, text = "" } -- empty text should be ignored
+          { line = 1, text = "" } -- empty text
         }
       }
       
@@ -109,7 +130,8 @@ describe("presenter", function()
       }, result)
     end)
 
-    it("groups multiple texts by line", function()
+    it("groups texts by line", function()
+      local presenter = require("lensline.presenter")
       local provider_lens_data = {
         multi_provider = {
           { line = 1, text = "line1_first" },
@@ -135,11 +157,9 @@ describe("presenter", function()
 
   describe("compute_extmark_opts", function()
     describe("above placement", function()
-      it("creates virt_lines with default values", function()
-        local args = {
-          texts = { "test text" }
-        }
-        
+      it("creates basic virt_lines", function()
+        local presenter = require("lensline.presenter")
+        local args = { texts = { "test text" } }
         local result = presenter.compute_extmark_opts(args)
         
         eq({
@@ -150,6 +170,7 @@ describe("presenter", function()
       end)
 
       it("handles custom separator and highlight", function()
+        local presenter = require("lensline.presenter")
         local args = {
           placement = "above",
           texts = { "text1", "text2" },
@@ -166,7 +187,8 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("adds prefix when configured", function()
+      it("adds prefix", function()
+        local presenter = require("lensline.presenter")
         local args = {
           texts = { "test" },
           prefix = ">> ",
@@ -182,7 +204,8 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("preserves line indentation", function()
+      it("preserves indentation", function()
+        local presenter = require("lensline.presenter")
         local args = {
           texts = { "test" },
           line_content = "    function foo()",
@@ -201,10 +224,11 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("handles mixed indentation types", function()
+      it("handles mixed indentation", function()
+        local presenter = require("lensline.presenter")
         local args = {
           texts = { "test" },
-          line_content = "\t  function foo()" -- tab + spaces
+          line_content = "\t  function foo()"
         }
         
         local result = presenter.compute_extmark_opts(args)
@@ -219,7 +243,8 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("sets ephemeral when requested", function()
+      it("sets ephemeral flag", function()
+        local presenter = require("lensline.presenter")
         local args = {
           texts = { "test" },
           ephemeral = true
@@ -232,7 +257,8 @@ describe("presenter", function()
     end)
 
     describe("inline placement", function()
-      it("creates virt_text at end of line", function()
+      it("creates virt_text at eol", function()
+        local presenter = require("lensline.presenter")
         local args = {
           placement = "inline",
           texts = { "test" }
@@ -248,6 +274,7 @@ describe("presenter", function()
       end)
 
       it("adds prefix to inline text", function()
+        local presenter = require("lensline.presenter")
         local args = {
           placement = "inline",
           texts = { "test" },
@@ -263,7 +290,8 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("combines multiple texts with separator", function()
+      it("combines texts with separator", function()
+        local presenter = require("lensline.presenter")
         local args = {
           placement = "inline",
           texts = { "first", "second" },
@@ -279,7 +307,8 @@ describe("presenter", function()
         }, result)
       end)
 
-      it("ignores line_content for inline placement", function()
+      it("ignores line_content for inline", function()
+        local presenter = require("lensline.presenter")
         local args = {
           placement = "inline",
           texts = { "test" },
@@ -288,7 +317,6 @@ describe("presenter", function()
         
         local result = presenter.compute_extmark_opts(args)
         
-        -- Should not include indentation for inline
         eq({
           virt_text = { { " test", "Comment" } },
           virt_text_pos = "eol",
@@ -298,49 +326,42 @@ describe("presenter", function()
     end)
 
     describe("edge cases", function()
-      it("handles empty texts array", function()
-        local args = {
-          texts = {}
-        }
-        
-        local result = presenter.compute_extmark_opts(args)
-        
-        eq({
-          virt_lines = { { { "", "Comment" } } },
-          virt_lines_above = true,
-          ephemeral = false
-        }, result)
-      end)
-
-      it("handles nil line_content", function()
-        local args = {
-          texts = { "test" },
-          line_content = nil
-        }
-        
-        local result = presenter.compute_extmark_opts(args)
-        
-        eq({
-          virt_lines = { { { "test", "Comment" } } },
-          virt_lines_above = true,
-          ephemeral = false
-        }, result)
-      end)
-
-      it("handles empty string prefix", function()
-        local args = {
-          texts = { "test" },
-          prefix = ""
-        }
-        
-        local result = presenter.compute_extmark_opts(args)
-        
-        eq({
-          virt_lines = { { { "test", "Comment" } } },
-          virt_lines_above = true,
-          ephemeral = false
-        }, result)
-      end)
+      -- table-driven tests for edge cases
+      for _, tc in ipairs({
+        {
+          name = "empty texts",
+          args = { texts = {} },
+          expected = {
+            virt_lines = { { { "", "Comment" } } },
+            virt_lines_above = true,
+            ephemeral = false
+          }
+        },
+        {
+          name = "nil line_content",
+          args = { texts = { "test" }, line_content = nil },
+          expected = {
+            virt_lines = { { { "test", "Comment" } } },
+            virt_lines_above = true,
+            ephemeral = false
+          }
+        },
+        {
+          name = "empty prefix",
+          args = { texts = { "test" }, prefix = "" },
+          expected = {
+            virt_lines = { { { "test", "Comment" } } },
+            virt_lines_above = true,
+            ephemeral = false
+          }
+        },
+      }) do
+        it(("handles %s"):format(tc.name), function()
+          local presenter = require("lensline.presenter")
+          local result = presenter.compute_extmark_opts(tc.args)
+          eq(tc.expected, result)
+        end)
+      end
     end)
   end)
 end)

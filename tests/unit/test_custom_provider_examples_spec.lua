@@ -1,316 +1,258 @@
--- Tests for the custom provider examples shown in README.md
--- These tests verify that the examples actually work as documented
+-- tests/unit/test_custom_provider_examples_spec.lua
+-- tests for custom provider examples to verify they work as documented
 
 local eq = assert.are.same
-local utils = require("lensline.utils")
-local config = require("lensline.config")
 
--- Helper to stub modules
-local function with_stub(module_name, stub_tbl, fn)
-  local orig = package.loaded[module_name]
-  package.loaded[module_name] = stub_tbl
-  local ok, err = pcall(fn)
-  package.loaded[module_name] = orig
-  if not ok then error(err) end
-end
+describe("custom provider examples", function()
+  local utils = require("lensline.utils")
+  local config = require("lensline.config")
+  local created_buffers = {}
 
-describe("Custom Provider Examples", function()
-  before_each(function()
-    config.setup({})
-  end)
+  local function reset_modules()
+    for name,_ in pairs(package.loaded) do
+      if name:match("^lensline") then package.loaded[name] = nil end
+    end
+    utils = require("lensline.utils")
+    config = require("lensline.config")
+  end
 
-  describe("Zero Reference Warning Example", function()
-    it("should show warning for functions with zero references", function()
-      local handler_called = false
-      local result_text = nil
-      local result_line = nil
+  local function with_stub(module_name, stub_tbl, fn)
+    local orig = package.loaded[module_name]
+    package.loaded[module_name] = stub_tbl
+    local ok, err = pcall(fn)
+    package.loaded[module_name] = orig
+    if not ok then error(err) end
+  end
 
-      -- Mock callback function
-      local callback = function(result)
-        handler_called = true
-        if result then
-          result_text = result.text
-          result_line = result.line
-        end
-      end
+  local function make_buf(lines)
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    table.insert(created_buffers, bufnr)
+    if lines and #lines > 0 then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    end
+    return bufnr
+  end
 
-      -- Mock func_info
-      local func_info = {
-        line = 10,
-        name = "test_function",
-        character = 0
-      }
-
-      -- Setup config for fallback text
-      config.setup({ style = { use_nerdfont = false } })
-
-      -- Create mock utils with get_lsp_references
-      local mock_utils = {
-        get_lsp_references = function(bufnr, func_info_param, callback_param)
-          -- Simulate zero references
-          callback_param({}) -- Empty references array
-        end,
-        if_nerdfont_else = utils.if_nerdfont_else
-      }
-
-      -- Stub utils module
-      with_stub("lensline.utils", mock_utils, function()
-        -- Define the handler from README.md example
-        local handler = function(bufnr, func_info, provider_config, callback)
-          local utils = require("lensline.utils")
-          
-          utils.get_lsp_references(bufnr, func_info, function(references)
-            if references then
-              local count = #references
-              local icon, text
-              
-              if count == 0 then
-                icon = utils.if_nerdfont_else("⚠️ ", "WARN ")
-                text = icon .. "No references"
-              else
-                icon = utils.if_nerdfont_else("󰌹 ", "")
-                local suffix = utils.if_nerdfont_else("", " refs")
-                text = icon .. count .. suffix
-              end
-              
-              callback({ line = func_info.line, text = text })
-            else
-              callback(nil)
-            end
-          end)
-        end
-
-        -- Test the handler
-        handler(1, func_info, {}, callback)
-      end)
-
-      -- Verify results
-      assert.is_true(handler_called, "Handler callback should be called")
-      eq(10, result_line, "Should return correct line number")
-      eq("WARN No references", result_text, "Should show warning for zero references")
-    end)
-
-    it("should show reference count for functions with references", function()
-      local handler_called = false
-      local result_text = nil
-
-      local callback = function(result)
-        handler_called = true
-        if result then
-          result_text = result.text
-        end
-      end
-
-      local func_info = {
-        line = 15,
-        name = "popular_function",
-        character = 0
-      }
-
-      config.setup({ style = { use_nerdfont = false } })
-
-      local mock_utils = {
-        get_lsp_references = function(bufnr, func_info_param, callback_param)
-          callback_param({1, 2, 3, 4, 5}) -- 5 references
-        end,
-        if_nerdfont_else = utils.if_nerdfont_else
-      }
-
-      with_stub("lensline.utils", mock_utils, function()
-        local handler = function(bufnr, func_info, provider_config, callback)
-          local utils = require("lensline.utils")
-          
-          utils.get_lsp_references(bufnr, func_info, function(references)
-            if references then
-              local count = #references
-              local icon, text
-              
-              if count == 0 then
-                icon = utils.if_nerdfont_else("⚠️ ", "WARN ")
-                text = icon .. "No references"
-              else
-                icon = utils.if_nerdfont_else("󰌹 ", "")
-                local suffix = utils.if_nerdfont_else("", " refs")
-                text = icon .. count .. suffix
-              end
-              
-              callback({ line = func_info.line, text = text })
-            else
-              callback(nil)
-            end
-          end)
-        end
-
-        handler(1, func_info, {}, callback)
-      end)
-
-      assert.is_true(handler_called)
-      eq("5 refs", result_text, "Should show reference count")
-    end)
-  end)
-
-  describe("Function Length Example", function()
-    it("should calculate and display function line count", function()
-      local handler_called = false
-      local result_text = nil
-      local result_line = nil
-
-      local callback = function(result)
-        handler_called = true
-        if result then
-          result_text = result.text
-          result_line = result.line
-        end
-      end
-
-      local func_info = {
-        line = 20,
-        name = "test_function",
-        character = 0,
-        end_line = 25 -- Function spans 6 lines (20-25)
-      }
-
-      -- Create a test buffer to get real line count behavior
-      local test_bufnr = vim.api.nvim_create_buf(false, true)
-      local test_lines = {}
-      for i = 1, 100 do
-        table.insert(test_lines, "line " .. i)
-      end
-      vim.api.nvim_buf_set_lines(test_bufnr, 0, -1, false, test_lines)
-
-      local mock_utils = {
-        get_function_lines = function(bufnr, func_info_param)
-          return {
-            "function test_function()",
-            "  local x = 1",
-            "  if x > 0 then",
-            "    return x + 1",
-            "  end",
-            "end"
-          }
-        end
-      }
-
-      with_stub("lensline.utils", mock_utils, function()
-        local handler = function(bufnr, func_info, provider_config, callback)
-          local utils = require("lensline.utils")
-          local function_lines = utils.get_function_lines(bufnr, func_info)
-          local func_line_count = math.max(0, #function_lines - 1) -- Subtract 1 for signature
-          local total_lines = vim.api.nvim_buf_line_count(bufnr)
-          
-          callback({
-            line = func_info.line,
-            text = string.format("(%d/%d lines)", func_line_count, total_lines)
-          })
-        end
-
-        handler(test_bufnr, func_info, {}, callback)
-      end)
-
-      -- Clean up test buffer
-      vim.api.nvim_buf_delete(test_bufnr, { force = true })
-
-      -- Verify results
-      assert.is_true(handler_called, "Handler callback should be called")
-      eq(20, result_line, "Should return correct line number")
-      eq("(5/100 lines)", result_text, "Should show correct line count (6 lines - 1 for signature = 5)")
-    end)
-
-    it("should handle functions without end_line gracefully", function()
-      local handler_called = false
-      local result_text = nil
-
-      local callback = function(result)
-        handler_called = true
-        if result then
-          result_text = result.text
-        end
-      end
-
-      local func_info = {
-        line = 30,
-        name = "incomplete_function",
-        character = 0
-        -- No end_line provided
-      }
-
-      -- Create a test buffer with 100 lines
-      local test_bufnr = vim.api.nvim_create_buf(false, true)
-      local test_lines = {}
-      for i = 1, 100 do
-        table.insert(test_lines, "line " .. i)
-      end
-      vim.api.nvim_buf_set_lines(test_bufnr, 0, -1, false, test_lines)
-
-      local mock_utils = {
-        get_function_lines = function(bufnr, func_info_param)
-          return {
-            "function incomplete_function()",
-            "  -- function body"
-          }
-        end
-      }
-
-      with_stub("lensline.utils", mock_utils, function()
-        local handler = function(bufnr, func_info, provider_config, callback)
-          local utils = require("lensline.utils")
-          local function_lines = utils.get_function_lines(bufnr, func_info)
-          local func_line_count = math.max(0, #function_lines - 1)
-          local total_lines = vim.api.nvim_buf_line_count(bufnr)
-          
-          callback({
-            line = func_info.line,
-            text = string.format("(%d/%d lines)", func_line_count, total_lines)
-          })
-        end
-
-        handler(test_bufnr, func_info, {}, callback)
-      end)
-
-      -- Clean up test buffer
-      vim.api.nvim_buf_delete(test_bufnr, { force = true })
-
-      assert.is_true(handler_called)
-      eq("(1/100 lines)", result_text, "Should handle missing end_line gracefully")
-    end)
-  end)
-
-  describe("Provider Configuration Integration", function()
-    it("should handle provider configuration parameters correctly", function()
-      local handler_called = false
-      local config_used = nil
-
-      local callback = function(result)
-        handler_called = true
-      end
-
-      local func_info = {
-        line = 40,
-        name = "configurable_function",
-        character = 0
-      }
-
-      local provider_config = {
-        custom_prefix = "TEST:",
-        enabled = true
-      }
-
-      -- Test a handler that uses provider_config
-      local handler = function(bufnr, func_info, provider_config, callback)
-        config_used = provider_config
-        local prefix = provider_config.custom_prefix or "DEFAULT:"
+  -- reference counter provider handler from examples
+  local function reference_counter_handler(bufnr, func_info, provider_config, callback)
+    local utils = require("lensline.utils")
+    
+    utils.get_lsp_references(bufnr, func_info, function(references)
+      if references then
+        local count = #references
+        local icon, text
         
-        callback({
-          line = func_info.line,
-          text = prefix .. " configured"
-        })
+        if count == 0 then
+          icon = utils.if_nerdfont_else("⚠️ ", "WARN ")
+          text = icon .. "No references"
+        else
+          icon = utils.if_nerdfont_else("󰌹 ", "")
+          local suffix = utils.if_nerdfont_else("", " refs")
+          text = icon .. count .. suffix
+        end
+        
+        callback({ line = func_info.line, text = text })
+      else
+        callback(nil)
       end
-
-      handler(1, func_info, provider_config, callback)
-
-      assert.is_true(handler_called)
-      eq("TEST:", config_used.custom_prefix, "Should receive provider configuration")
-      assert.is_true(config_used.enabled, "Should pass through configuration values")
     end)
+  end
+
+  -- function length provider handler from examples
+  local function function_length_handler(bufnr, func_info, provider_config, callback)
+    local utils = require("lensline.utils")
+    local function_lines = utils.get_function_lines(bufnr, func_info)
+    local func_line_count = math.max(0, #function_lines - 1) -- subtract 1 for signature
+    local total_lines = vim.api.nvim_buf_line_count(bufnr)
+    
+    callback({
+      line = func_info.line,
+      text = string.format("(%d/%d lines)", func_line_count, total_lines)
+    })
+  end
+
+  before_each(function()
+    reset_modules()
+    created_buffers = {}
+  end)
+
+  after_each(function()
+    for _, bufnr in ipairs(created_buffers) do
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+    end
+    reset_modules()
+  end)
+
+  -- table-driven tests for reference counter examples
+  for _, case in ipairs({
+    {
+      name = "shows warning for zero references (no nerdfont)",
+      use_nerdfont = false,
+      references = {},
+      expected_text = "WARN No references"
+    },
+    {
+      name = "shows warning for zero references (with nerdfont)",
+      use_nerdfont = true,
+      references = {},
+      expected_text = "⚠️ No references"
+    },
+    {
+      name = "shows reference count (no nerdfont)",
+      use_nerdfont = false,
+      references = {1, 2, 3, 4, 5},
+      expected_text = "5 refs"
+    },
+    {
+      name = "shows reference count (with nerdfont)",
+      use_nerdfont = true,
+      references = {1, 2, 3, 4, 5},
+      expected_text = "󰌹 5"
+    }
+  }) do
+    it(("reference counter: %s"):format(case.name), function()
+      config.setup({ style = { use_nerdfont = case.use_nerdfont } })
+      
+      local func_info = { line = 10, name = "test_function", character = 0 }
+      local result = nil
+      local called = false
+
+      local mock_utils = {
+        get_lsp_references = function(bufnr, func_info_param, callback_param)
+          callback_param(case.references)
+        end,
+        if_nerdfont_else = utils.if_nerdfont_else
+      }
+
+      with_stub("lensline.utils", mock_utils, function()
+        reference_counter_handler(1, func_info, {}, function(res)
+          called = true
+          result = res
+        end)
+      end)
+
+      eq(true, called)
+      eq({ line = 10, text = case.expected_text }, result)
+    end)
+  end
+
+  it("reference counter handles nil references gracefully", function()
+    config.setup({ style = { use_nerdfont = false } })
+    
+    local func_info = { line = 5, name = "test_function", character = 0 }
+    local result = "unset"
+    local called = false
+
+    local mock_utils = {
+      get_lsp_references = function(bufnr, func_info_param, callback_param)
+        callback_param(nil) -- simulate LSP failure
+      end,
+      if_nerdfont_else = utils.if_nerdfont_else
+    }
+
+    with_stub("lensline.utils", mock_utils, function()
+      reference_counter_handler(1, func_info, {}, function(res)
+        called = true
+        result = res
+      end)
+    end)
+
+    eq(true, called)
+    eq(nil, result)
+  end)
+
+  -- table-driven tests for function length examples
+  for _, case in ipairs({
+    {
+      name = "calculates function length with end_line",
+      func_lines = {
+        "function test_function()",
+        "  local x = 1",
+        "  if x > 0 then",
+        "    return x + 1",
+        "  end",
+        "end"
+      },
+      buffer_total_lines = 100,
+      expected_text = "(5/100 lines)" -- 6 lines - 1 for signature = 5
+    },
+    {
+      name = "handles short functions",
+      func_lines = {
+        "function short()",
+        "  return 42",
+        "end"
+      },
+      buffer_total_lines = 50,
+      expected_text = "(2/50 lines)" -- 3 lines - 1 for signature = 2
+    },
+    {
+      name = "handles single line functions",
+      func_lines = {
+        "function single() end"
+      },
+      buffer_total_lines = 20,
+      expected_text = "(0/20 lines)" -- 1 line - 1 for signature = 0 (max with 0)
+    }
+  }) do
+    it(("function length: %s"):format(case.name), function()
+      local bufnr = make_buf({})
+      -- set up buffer with correct total line count
+      local buffer_lines = {}
+      for i = 1, case.buffer_total_lines do
+        buffer_lines[i] = "line " .. i
+      end
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, buffer_lines)
+      
+      local func_info = { line = 20, name = "test_function", character = 0 }
+      local result = nil
+      local called = false
+
+      local mock_utils = {
+        get_function_lines = function(bufnr, func_info_param)
+          return case.func_lines
+        end
+      }
+
+      with_stub("lensline.utils", mock_utils, function()
+        function_length_handler(bufnr, func_info, {}, function(res)
+          called = true
+          result = res
+        end)
+      end)
+
+      eq(true, called)
+      eq({ line = 20, text = case.expected_text }, result)
+    end)
+  end
+
+  it("provider configuration integration works correctly", function()
+    local func_info = { line = 40, name = "configurable_function", character = 0 }
+    local provider_config = { custom_prefix = "TEST:", enabled = true }
+    local result = nil
+    local called = false
+    local received_config = nil
+
+    local handler = function(bufnr, func_info, provider_config, callback)
+      received_config = provider_config
+      local prefix = provider_config.custom_prefix or "DEFAULT:"
+      
+      callback({
+        line = func_info.line,
+        text = prefix .. " configured"
+      })
+    end
+
+    handler(1, func_info, provider_config, function(res)
+      called = true
+      result = res
+    end)
+
+    eq(true, called)
+    eq({ line = 40, text = "TEST: configured" }, result)
+    eq("TEST:", received_config.custom_prefix)
+    eq(true, received_config.enabled)
   end)
 end)

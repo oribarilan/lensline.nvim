@@ -11,7 +11,7 @@ NVIM_VERSION ?= v0.8.3
 test:
 	@eval "$$(luarocks --lua-version=$(LUA_VERSION) --tree ./$(ROCKS_TREE) path)" \
 	  && $(NVIM) --headless -u tests/minimal_init.lua \
-	    -c "lua require('lensline.test_runner').run()" \
+	    -c "lua require('lensline.test_runner').run('--shuffle')" \
 	  || { echo '[test] failures'; exit 1; }
 
 .PHONY: d-test
