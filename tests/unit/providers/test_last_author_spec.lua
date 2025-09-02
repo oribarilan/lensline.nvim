@@ -1,221 +1,188 @@
+-- tests/unit/providers/test_last_author_spec.lua
+-- unit tests for lensline.providers.last_author (author and time formatting)
+
 local eq = assert.are.same
 
--- Helper to temporarily stub a module (full replacement)
-local function with_stub(mod, stub, fn)
-  local orig = package.loaded[mod]
-  package.loaded[mod] = stub
-  local ok, err = pcall(fn)
-  package.loaded[mod] = orig
-  if not ok then error(err) end
-end
-
--- Patch selected functions on an already-required module (preserves existing upvalues)
-local function with_module_patches(mod_name, patches, fn)
-  local mod = require(mod_name)
-  local originals = {}
-  for k, v in pairs(patches) do
-    originals[k] = mod[k]
-    mod[k] = v
-  end
-  local ok, err = pcall(fn)
-  for k, v in pairs(originals) do
-    mod[k] = v
-  end
-  if not ok then error(err) end
-end
-
--- Freezeable time helper
-local function with_time(fixed_time, fn)
-  local orig_time = os.time
-  os.time = function() return fixed_time end
-  local ok, err = pcall(fn)
-  os.time = orig_time
-  if not ok then error(err) end
-end
-
-describe("providers.last_author", function()
+describe("providers.last_author.handler", function()
   local provider = require("lensline.providers.last_author")
+  local created_buffers = {}
 
-  -- Use system temp directory so OS / CI can clean it; create a namespaced subdir
-  local base_tmp_root = (vim.loop.os_tmpdir() or "/tmp") .. "/lensline_nvim_tests"
-  if vim.fn.isdirectory(base_tmp_root) == 0 then
-    pcall(vim.fn.mkdir, base_tmp_root, "p")
+  local function reset_modules()
+    for name,_ in pairs(package.loaded) do
+      if name:match("^lensline") then package.loaded[name] = nil end
+    end
+    provider = require("lensline.providers.last_author")
   end
 
-  -- Track created files for defensive cleanup
-  local created_files = {}
-  local buf_paths = {}
-
-  -- Create a unique real file so fs_stat passes
-  local function make_real_file(tag)
-    local path = string.format("%s/.last_author_%s_%d.lua", base_tmp_root, tag, math.random(1, 1e9))
-    local fh = assert(io.open(path, "w"))
-    fh:write("-- temp file for last_author tests\nlocal function foo() end\n")
-    fh:close()
-    created_files[#created_files + 1] = path
-    return path
+  local function with_stub(mod, stub, fn)
+    local orig = package.loaded[mod]
+    package.loaded[mod] = stub
+    local ok, err = pcall(fn)
+    package.loaded[mod] = orig
+    if not ok then error(err) end
   end
 
-  local buf_counter = 0
-  local function mk_buf()
-    buf_counter = buf_counter + 1
+  local function with_module_patches(mod_name, patches, fn)
+    local mod = require(mod_name)
+    local originals = {}
+    for k, v in pairs(patches) do
+      originals[k] = mod[k]
+      mod[k] = v
+    end
+    local ok, err = pcall(fn)
+    for k, _ in pairs(originals) do
+      mod[k] = originals[k]
+    end
+    if not ok then error(err) end
+  end
+
+  local function with_time(fixed_time, fn)
+    local orig_time = os.time
+    os.time = function() return fixed_time end
+    local ok, err = pcall(fn)
+    os.time = orig_time
+    if not ok then error(err) end
+  end
+
+  local function make_buf()
     local bufnr = vim.api.nvim_create_buf(false, true)
+    table.insert(created_buffers, bufnr)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
       "local function foo()",
       "  return 42",
       "end",
     })
-    local path = make_real_file(buf_counter)
-    vim.api.nvim_buf_set_name(bufnr, path)
-    buf_paths[bufnr] = path
+    -- set a dummy name to avoid fs operations
+    vim.api.nvim_buf_set_name(bufnr, "/tmp/test_file.lua")
     return bufnr
   end
 
-  local function cleanup_buf(bufnr)
-    local path = buf_paths[bufnr] or vim.api.nvim_buf_get_name(bufnr)
-    if vim.api.nvim_buf_is_valid(bufnr) then
-      vim.api.nvim_buf_delete(bufnr, { force = true })
-    end
-    if path and path ~= "" then
-      pcall(os.remove, path)
-    end
-    buf_paths[bufnr] = nil
-  end
-
-  -- Final cleanup after suite
-  local function cleanup_all_files()
-    for _, f in ipairs(created_files) do
-      pcall(os.remove, f)
-    end
-  end
-
-  it("returns nil when blame cache has no data", function()
-    local bufnr = mk_buf()
+  local function call_handler(blame_data, use_nerdfont, expected_result, func_line)
+    func_line = func_line or 1
+    local bufnr = make_buf()
+    local result = "unset"
     local called = false
+
+    -- stub vim.loop.fs_stat to simulate file exists
+    local orig_fs_stat = vim.loop.fs_stat
+    vim.loop.fs_stat = function() return { type = "file" } end
+
     with_stub("lensline.debug", { log_context = function() end }, function()
       with_module_patches("lensline.blame_cache", {
         configure = function() end,
-        get_function_author = function() return nil end,
+        get_function_author = function() return blame_data end,
       }, function()
         with_stub("lensline.utils", {
-          if_nerdfont_else = function(a, b) return a end,
+          if_nerdfont_else = function(nf, fallback)
+            return use_nerdfont and nf or fallback
+          end,
         }, function()
-          provider.handler(bufnr, { line = 1 }, {}, function(res)
+          provider.handler(bufnr, { line = func_line }, {}, function(res)
             called = true
-            eq(nil, res)
+            result = res
           end)
         end)
       end)
     end)
+
+    -- restore fs_stat
+    vim.loop.fs_stat = orig_fs_stat
+
     eq(true, called)
-    cleanup_buf(bufnr)
+    eq(expected_result, result)
+  end
+
+  before_each(function()
+    reset_modules()
+    created_buffers = {}
   end)
 
-  it("formats minutes ago (>=1 min, < 60m)", function()
-    local now = 1000000
-    local bufnr = mk_buf()
-    local out
-    with_time(now, function()
-      with_stub("lensline.debug", { log_context = function() end }, function()
-        with_module_patches("lensline.blame_cache", {
-          configure = function() end,
-          get_function_author = function() return { author = "Alice", time = now - 125 } end, -- 2.08m -> ceil => 3min
-        }, function()
-          with_stub("lensline.utils", {
-            if_nerdfont_else = function(a, b) return a end,
-          }, function()
-            provider.handler(bufnr, { line = 1 }, {}, function(res) out = res end)
-          end)
-        end)
-      end)
-    end)
-    eq({ line = 1, text = "󰊢 Alice, 3min ago" }, out)
-    cleanup_buf(bufnr)
+  after_each(function()
+    for _, bufnr in ipairs(created_buffers) do
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+    end
+    reset_modules()
   end)
 
-  it("formats hours ago (< 24h) no nerdfont icon", function()
-    local now = 2000000
-    local bufnr = mk_buf()
-    local out
-    with_time(now, function()
-      with_stub("lensline.debug", { log_context = function() end }, function()
-        with_module_patches("lensline.blame_cache", {
-          configure = function() end,
-          get_function_author = function() return { author = "Bob", time = now - (3 * 3600 + 15) } end,
-        }, function()
-          with_stub("lensline.utils", {
-            if_nerdfont_else = function(a, b) return "" end, -- simulate no nerdfont
-          }, function()
-            provider.handler(bufnr, { line = 1 }, {}, function(res) out = res end)
-          end)
-        end)
-      end)
-    end)
-    eq({ line = 1, text = "Bob, 3h ago" }, out)
-    cleanup_buf(bufnr)
-  end)
-
-  it("formats days ago (< 365d)", function()
-    local now = 3000000
-    local bufnr = mk_buf()
-    local out
-    with_time(now, function()
-      with_stub("lensline.debug", { log_context = function() end }, function()
-        with_module_patches("lensline.blame_cache", {
-          configure = function() end,
-          get_function_author = function() return { author = "Carol", time = now - (5 * 86400 + 100) } end,
-        }, function()
-          with_stub("lensline.utils", {
-            if_nerdfont_else = function(a, b) return a end,
-          }, function()
-            provider.handler(bufnr, { line = 2 }, {}, function(res) out = res end)
-          end)
-        end)
-      end)
-    end)
-    eq({ line = 2, text = "󰊢 Carol, 5d ago" }, out)
-    cleanup_buf(bufnr)
-  end)
-
-  it("formats years ago (>= 365d)", function()
-    local now = 4000000
-    local bufnr = mk_buf()
-    local out
-    with_time(now, function()
-      with_stub("lensline.debug", { log_context = function() end }, function()
-        with_module_patches("lensline.blame_cache", {
-          configure = function() end,
-          get_function_author = function() return { author = "Dave", time = now - (2 * 31536000 + 1234) } end,
-        }, function()
-          with_stub("lensline.utils", {
-            if_nerdfont_else = function(a, b) return a end,
-          }, function()
-            provider.handler(bufnr, { line = 3 }, {}, function(res) out = res end)
-          end)
-        end)
-      end)
-    end)
-    eq({ line = 3, text = "󰊢 Dave, 2y ago" }, out)
-    cleanup_buf(bufnr)
+  it("returns nil when blame cache has no data", function()
+    call_handler(nil, true, nil)
   end)
 
   it("handles uncommitted changes without timestamp", function()
-    local bufnr = mk_buf()
-    local out
-    with_stub("lensline.debug", { log_context = function() end }, function()
-      with_module_patches("lensline.blame_cache", {
-        configure = function() end,
-        get_function_author = function() return { author = "uncommitted", time = nil } end,
-      }, function()
-        with_stub("lensline.utils", {
-          if_nerdfont_else = function(a, b) return a end,
-        }, function()
-          provider.handler(bufnr, { line = 1 }, {}, function(res) out = res end)
-        end)
+    call_handler(
+      { author = "uncommitted", time = nil },
+      true,
+      { line = 1, text = "󰊢 uncommitted" }
+    )
+  end)
+
+  -- table-driven tests for time formatting scenarios
+  local now = 1000000
+  for _, case in ipairs({
+    {
+      name = "formats minutes ago (2+ minutes)",
+      author = "Alice",
+      time_ago = 125, -- seconds (2.08 min -> ceil to 3min)
+      use_nerdfont = true,
+      expected_text = "󰊢 Alice, 3min ago"
+    },
+    {
+      name = "formats hours ago without nerdfont",
+      author = "Bob", 
+      time_ago = 3 * 3600 + 15, -- 3 hours 15 seconds -> 3h
+      use_nerdfont = false,
+      expected_text = "Bob, 3h ago"
+    },
+    {
+      name = "formats days ago",
+      author = "Carol",
+      time_ago = 5 * 86400 + 100, -- 5 days 100 seconds -> 5d
+      use_nerdfont = true,
+      expected_text = "󰊢 Carol, 5d ago"
+    },
+    {
+      name = "formats years ago",
+      author = "Dave",
+      time_ago = 2 * 365 * 86400 + 1234, -- 2+ years -> 2y
+      use_nerdfont = true,
+      expected_text = "󰊢 Dave, 2y ago"
+    },
+  }) do
+    it(("time formatting: %s"):format(case.name), function()
+      with_time(now, function()
+        call_handler(
+          { author = case.author, time = now - case.time_ago },
+          case.use_nerdfont,
+          { line = 1, text = case.expected_text }
+        )
       end)
     end)
-    eq({ line = 1, text = "󰊢 uncommitted" }, out)
-    cleanup_buf(bufnr)
-    cleanup_all_files()
-  end)
+  end
+
+  -- table-driven tests for line positioning
+  for _, case in ipairs({
+    {
+      name = "uses correct line number from func_info",
+      func_line = 1,
+      expected_line = 1
+    },
+    {
+      name = "uses different line number from func_info",
+      func_line = 3,
+      expected_line = 3
+    },
+  }) do
+    it(("line positioning: %s"):format(case.name), function()
+      with_time(now, function()
+        call_handler(
+          { author = "TestAuthor", time = now - 3600 },
+          true,
+          { line = case.expected_line, text = "󰊢 TestAuthor, 1h ago" },
+          case.func_line
+        )
+      end)
+    end)
+  end
 end)
