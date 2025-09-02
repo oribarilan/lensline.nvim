@@ -8,9 +8,30 @@ describe("renderer visibility behavior", function()
 
   local function reset_modules()
     for name,_ in pairs(package.loaded) do
-      if name:match("^lensline") then 
-        package.loaded[name] = nil 
+      if name:match("^lensline") then
+        package.loaded[name] = nil
       end
+    end
+  end
+
+  local function clear_all_module_state()
+    -- Clear renderer state
+    local renderer = require("lensline.renderer")
+    renderer.provider_lens_data = {}
+    renderer.provider_namespaces = {}
+    
+    -- Clear lens explorer state
+    local lens_explorer = require("lensline.lens_explorer")
+    if lens_explorer.function_cache then
+      for k, _ in pairs(lens_explorer.function_cache) do
+        lens_explorer.function_cache[k] = nil
+      end
+    end
+    
+    -- Clear blame cache if it exists
+    local ok, blame_cache = pcall(require, "lensline.blame_cache")
+    if ok and blame_cache.clear_cache then
+      blame_cache.clear_cache()
     end
   end
 
@@ -44,10 +65,8 @@ describe("renderer visibility behavior", function()
 
   before_each(function()
     reset_modules()
+    clear_all_module_state()
     created_buffers = {}
-    -- ensure clean renderer state
-    local renderer = require("lensline.renderer")
-    renderer.provider_lens_data = {}
   end)
 
   after_each(function()
