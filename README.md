@@ -28,7 +28,7 @@
 </div>
 
 # 💡 What is lensline?
-A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
+A lightweight Neovim plugin that displays customizable, contextual information directly above (or beside) functions, like references and authorship.
 
 <p align="center">
   <img alt="lensline demo" src="https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c" width="50%" />
@@ -293,6 +293,36 @@ To show all complexity levels including simple functions:
 ```
 
 </details>
+### Style Customizations
+
+<details>
+<summary><strong>Minimalistic</strong> - Inline rendering with focused mode</summary>
+
+For a more subtle, distraction-free experience, try this minimal configuration that renders lenses inline with your code and only shows them for the currently focused function:
+
+<p align="center">
+  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/834cc34c-76dd-4a15-af76-eeab4774f106" width="50%" />
+</p>
+
+```lua
+{
+  'oribarilan/lensline.nvim',
+  tag = '1.1.0',
+  event = 'LspAttach',
+  config = function()
+    require("lensline").setup({
+      style = {
+        placement = 'inline',
+        prefix = '',
+      },
+      render = "focused", -- or "all" for showing lenses in all functions
+    })
+  end,
+}
+```
+
+</details>
+
 
 ### Custom Providers
 
