@@ -262,6 +262,7 @@ describe("debug buffer system", function()
         
         -- Cleanup: restore original io.open function
         io.open = original_io_open
+        flush_started = false
       end)
     end)
   end)
