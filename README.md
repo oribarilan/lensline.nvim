@@ -424,7 +424,6 @@ lensline provides separate control over engine functionality and visual display 
 
 ### Engine Control
 
-**`:LenslineEnable`** / **`:LenslineDisable`** / **`:LenslineToggleEngine`**
 Control the entire lensline engine (providers, autocommands, resource allocation).
 
 ```vim
@@ -456,7 +455,6 @@ lensline.toggle()  -- Shows warning, calls toggle_view()
 
 ### Visual Display Control
 
-**`:LenslineShow`** / **`:LenslineHide`** / **`:LenslineToggleView`**
 Control visual rendering while keeping providers running in background.
 
 ```vim
