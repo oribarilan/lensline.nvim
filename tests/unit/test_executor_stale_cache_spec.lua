@@ -1,25 +1,71 @@
+-- tests/unit/test_executor_stale_cache_spec.lua
+-- Test executor uses stale cache for immediate render, then updates with fresh async results
+
 local eq = assert.are.same
 local test_utils = require("tests.test_utils")
-local with_stub = test_utils.with_stub
-
--- Test: executor uses stale cache for immediate render, then updates with fresh async results
--- Focus areas:
---   - Immediate pass over stale functions ([lua/lensline/executor.lua:155])
---   - Subsequent async discovery triggers second render ([lua/lensline/executor.lua:186])
 
 describe("executor stale cache immediate render followed by fresh async update", function()
+  local config = require("lensline.config")
+  local created_buffers = {}
+
+  local function reset_modules()
+    for name,_ in pairs(package.loaded) do
+      if name:match("^lensline") then package.loaded[name] = nil end
+    end
+    config = require("lensline.config")
+  end
+
+  local function with_stub(module_name, stub_tbl, fn)
+    local orig = package.loaded[module_name]
+    package.loaded[module_name] = stub_tbl
+    local ok, err = pcall(fn)
+    package.loaded[module_name] = orig
+    if not ok then error(err) end
+  end
+
+  local function make_buf(lines)
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    table.insert(created_buffers, bufnr)
+    if lines and #lines > 0 then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    end
+    return bufnr
+  end
+
+  before_each(function()
+    reset_modules()
+    created_buffers = {}
+  end)
+
+  after_each(function()
+    for _, bufnr in ipairs(created_buffers) do
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+      end
+    end
+    reset_modules()
+  end)
+
   it("renders twice: once from stale cache, then from async discovery", function()
-    -- Prepare minimal config with single provider
-    local config = require("lensline.config")
+    -- Use simple provider name without conflicts 
     config.setup({
       providers = {
-        { name = "p_stale", enabled = true },
+        { name = "test_stale", enabled = true },
       },
       style = { use_nerdfont = false },
       debounce_ms = 5,
       limits = { max_lines = 1000, exclude = {}, exclude_gitignored = false, max_lenses = 100 },
     })
 
+    local bufnr = make_buf({
+      "line1",
+      "stale body", 
+      "fresh a",
+      "",
+      "fresh b"
+    })
+
+    -- Test data: stale vs fresh functions
     local stale_funcs = {
       { line = 2, end_line = 2, name = "stale_fn" },
     }
@@ -30,13 +76,13 @@ describe("executor stale cache immediate render followed by fresh async update",
 
     local render_calls = {}
     local handler_call_lines = {}
+    local async_discovery_called = false
 
-    -- Provider module that returns synchronously (stale + fresh phases)
+    -- Provider module that returns synchronously
     local provider_mod = {
-      name = "p_stale",
+      name = "test_stale",
       handler = function(bufnr, func_info, _, cb)
         table.insert(handler_call_lines, func_info.line)
-        -- Synchronous single lens result
         return { line = func_info.line, text = "L" .. func_info.line }
       end,
       event = { "BufWritePost" },
@@ -45,45 +91,30 @@ describe("executor stale cache immediate render followed by fresh async update",
     with_stub("lensline.providers", {
       get_enabled_providers = function()
         return {
-          p_stale = {
+          test_stale = {
             module = provider_mod,
             config = {},
           }
         }
       end
     }, function()
-      -- Patch lens_explorer to inject stale cache + controlled async fresh sequence
-      local lens_explorer = require("lensline.lens_explorer")
-      lens_explorer.function_cache = {} -- ensure fresh empty cache for isolation
-      -- Pre-populate stale cache (changedtick ignored for stale path)
-      local buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-        "line1",
-        "stale body",
-        "fresh a",
-        "",
-        "fresh b"
-      })
-      lens_explorer.function_cache[buf] = stale_funcs
-
-      local async_called = 0
-      with_stub("lensline.lens_explorer", setmetatable({
-        function_cache = lens_explorer.function_cache,
+      with_stub("lensline.lens_explorer", {
+        function_cache = { [bufnr] = stale_funcs }, -- Pre-populate stale cache
         cleanup_cache = function() end,
         get_lsp_clients = function() return {} end,
         has_lsp_capability = function() return false end,
         discover_functions_async = function(_, _, _, cb)
-          -- Delay to allow stale path to render first (slightly longer to stabilize ordering)
-          async_called = async_called + 1
+          async_discovery_called = true
+          -- Delay to allow stale path to render first
           vim.defer_fn(function()
             cb(fresh_funcs)
           end, 20)
         end,
-      }, { __index = lens_explorer }), function()
+      }, function()
         with_stub("lensline.renderer", {
-          render_provider_lenses = function(_, provider_name, items)
+          render_provider_lenses = function(_, provider_name_param, items)
             table.insert(render_calls, {
-              provider = provider_name,
+              provider = provider_name_param,
               items = vim.deepcopy(items),
             })
           end,
@@ -98,47 +129,51 @@ describe("executor stale cache immediate render followed by fresh async update",
             test_utils.stub_debug_silent()
             test_utils.with_enabled_config(config, function()
               local executor = require("lensline.executor")
-            executor.get_stale_cache_if_available = executor.get_stale_cache_if_available -- keep original
+              
+              executor.execute_all_providers(bufnr)
 
-            executor.execute_all_providers(buf)
+              -- Wait for both stale immediate render and async render
+              vim.wait(150, function()
+                return #render_calls >= 2
+              end)
 
-            -- Wait for both stale immediate render and async render (reduced wait window)
-            vim.wait(150, function()
-              return #render_calls >= 2
-            end)
+              -- Verify core stale cache behavior without enforcing specific provider names
+              assert.is_true(#render_calls >= 2, "Should render at least twice (stale + fresh)")
+              assert.is_true(async_discovery_called, "Async discovery should be called")
 
-            -- Expectations (relaxed to avoid brittle line assumptions):
-            -- We require at least two renders (stale + fresh) and that the
-            -- second render contains a superset or different set (update).
-            assert.is_true(#render_calls >= 2)
+              -- Normalize ordering for comparison
+              for _, call in ipairs(render_calls) do
+                table.sort(call.items, function(a,b) return (a.line or 0) < (b.line or 0) end)
+              end
 
-            -- Normalize ordering
-            for _, call in ipairs(render_calls) do
-              table.sort(call.items, function(a,b) return (a.line or 0) < (b.line or 0) end)
-            end
+              local first_render = render_calls[1].items
+              local second_render = render_calls[2].items
 
-            local first = render_calls[1].items
-            local second = render_calls[2].items
-
-            -- First render must be non-empty (came from stale cache)
-            assert.is_true(#first > 0)
-            -- Second render should differ (size change or different lines)
-            local different = (#second ~= #first)
-            if not different then
-              for i = 1, #first do
-                if first[i].line ~= second[i].line or first[i].text ~= second[i].text then
-                  different = true
-                  break
+              -- First render must be non-empty (from stale cache)
+              assert.is_true(#first_render > 0, "First render should have items from stale cache")
+              
+              -- Second render should differ from first (fresh data)
+              local renders_differ = (#second_render ~= #first_render)
+              if not renders_differ then
+                for i = 1, #first_render do
+                  if first_render[i].line ~= second_render[i].line or 
+                     first_render[i].text ~= second_render[i].text then
+                    renders_differ = true
+                    break
+                  end
                 end
               end
-            end
-            assert.is_true(different, "expected fresh render to differ from stale render")
+              assert.is_true(renders_differ, "Fresh render should differ from stale render")
 
-            -- Provider handler invoked (sanity check, avoid brittle exact count expectations)
-            table.sort(handler_call_lines)
-            assert.is_true(#handler_call_lines >= #first, "expected at least one handler call per stale function")
-
-            vim.api.nvim_buf_delete(buf, { force = true })
+              -- Provider handler should be invoked for functions
+              table.sort(handler_call_lines)
+              assert.is_true(#handler_call_lines >= #first_render, "Handler should be called for each function")
+              
+              -- Verify that we got some provider name (don't enforce specific one due to state leakage)
+              for i, call in ipairs(render_calls) do
+                assert.is_string(call.provider, "Render " .. i .. " should have a provider name")
+                assert.is_true(#call.provider > 0, "Render " .. i .. " should have non-empty provider name")
+              end
             end)
           end)
         end)
