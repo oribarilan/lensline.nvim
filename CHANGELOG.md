@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.1.0] - 2025-01-02
+
 ### Added
 - New commands: `:LenslineShow`, `:LenslineHide`, `:LenslineToggleView`, `:LenslineToggleEngine` with programmatic API equivalents
 - Lens placement can now be configured with "above" (existing) and "inline" (new) modes for another style option (consider `prefix = ""` for inline)
@@ -16,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Commands extracted to dedicated `commands.lua` module for better code organization
+- Test suite improved with comprehensive state cleanup, randomized execution order, and enhanced cross-environment reliability
+- Updated README with new main screenshot and added minimal style showcase with inline placement example
 
 ### Deprecated
 - `:LenslineToggle` command (will be removed in v2.0) - use `:LenslineToggleView` or `:LenslineToggleEngine` instead

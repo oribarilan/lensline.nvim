@@ -21,17 +21,13 @@
 </a>
 </p>
 
-<p>
-    <img height="150" alt="lensline ape" src="https://github.com/user-attachments/assets/79904cf2-0c2b-4767-813c-3a36f7199ee0" />
-</p>
-
 </div>
 
 # 💡 What is lensline?
-A lightweight Neovim plugin that displays customizable, contextual information directly above functions, like references, diagnostics, and git authorship.
+A lightweight Neovim plugin that displays customizable, contextual information directly above (or beside) functions, like references and authorship.
 
 <p align="center">
-  <img alt="lensline demo" src="https://github.com/user-attachments/assets/3d7b3fb3-6bf2-4108-bc7c-8b84fe0aaf0c" width="50%" />
+  <img alt="lensline demo" src="https://github.com/user-attachments/assets/40235fbf-be12-4f35-ad57-efe49aa244e2" width="50%" />
 </p>
 
 ## 🎯 Why use lensline?
@@ -42,7 +38,7 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## 📦 Install
 
-We recommend using a specific tagged release (`tag = '1.0.0'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
+We recommend using a specific tagged release (`tag = '1.1.0'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -59,7 +55,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
+  tag = '1.1.0', -- or: branch = 'release/1.x' for latest non-breaking updates
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -73,7 +69,7 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '1.0.0' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '1.1.0' }
 ```
 
 or
@@ -90,7 +86,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '1.0.0', -- or: branch = 'release/1.x' for latest non-breaking updates
+    tag = '1.1.0', -- or: branch = 'release/1.x' for latest non-breaking updates
 }
 ```
 </details>
@@ -157,8 +153,41 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 
 </details>
 
+### Style Customizations
+
 <details>
-<summary><strong>Design Philosophy</strong></summary>
+<summary><strong>Minimalistic</strong> - Inline rendering with focused mode</summary>
+
+For a more subtle, distraction-free experience, try this minimal configuration that renders lenses inline with your code and only shows them for the currently focused function:
+
+<p align="center">
+  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/9061c1e6-f43b-4fef-9c59-96376417629a" width="70%" />
+</p>
+
+```lua
+{
+  'oribarilan/lensline.nvim',
+  tag = '1.1.0',
+  event = 'LspAttach',
+  config = function()
+    require("lensline").setup({
+      style = {
+        placement = 'inline',
+        prefix = '',
+      },
+      render = "focused", -- or "all" for showing lenses in all functions
+    })
+  end,
+}
+```
+
+</details>
+
+### Lens Attribute Customization
+
+#### Design Philosophy
+
+<details>
 
 **lensline** takes an opinionated approach to defaults while prioritizing extensibility over configuration bloat:
 
@@ -169,7 +198,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 </details>
 
-### Built-in Providers
+#### Built-in Providers
 
 <details>
 <summary><strong>references Provider</strong> - LSP reference counting</summary>
@@ -294,14 +323,16 @@ To show all complexity levels including simple functions:
 
 </details>
 
-### Custom Providers
+
+
+#### Custom Providers
 
 lensline supports custom providers for unlimited extensibility:
 
 - **Create inline providers** - Define simple providers directly in your config 
 - **Use composable utilities** - Leverage built-in utilities for LSP, function analysis, and styling
 
-#### Examples
+##### Examples
 
 Here are a few examples for inspiration. For comprehensive provider  guidance, see [`providers.md`](providers.md).
 
