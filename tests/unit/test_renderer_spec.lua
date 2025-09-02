@@ -52,6 +52,9 @@ describe("renderer combined lenses", function()
   before_each(function()
     reset_modules()
     created_buffers = {}
+    -- ensure clean renderer state
+    local renderer = require("lensline.renderer")
+    renderer.provider_lens_data = {}
   end)
 
   after_each(function()
