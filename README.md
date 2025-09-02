@@ -22,7 +22,7 @@
 </p>
 
 <p>
-    <img height="150" alt="lensline ape" src="https://github.com/user-attachments/assets/79904cf2-0c2b-4767-813c-3a36f7199ee0" />
+    <img height="150" alt="lensline ape" src="https://github.com/user-attachments/assets/40235fbf-be12-4f35-ad57-efe49aa244e2" />
 </p>
 
 </div>
