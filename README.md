@@ -161,7 +161,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 For a more subtle, distraction-free experience, try this minimal configuration that renders lenses inline with your code and only shows them for the currently focused function:
 
 <p align="center">
-  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/834cc34c-76dd-4a15-af76-eeab4774f106" width="50%" />
+  <img alt="lensline minimal style" src="https://github.com/user-attachments/assets/834cc34c-76dd-4a15-af76-eeab4774f106" width="70%" />
 </p>
 
 ```lua
