@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Improved
+- Debug system now uses buffered logging for better performance when debug mode is enabled
 
 ## [v1.1.0] - 2025-01-02
 
@@ -20,9 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Commands extracted to dedicated `commands.lua` module for better code organization
 - Test suite improved with comprehensive state cleanup, randomized execution order, and enhanced cross-environment reliability
 - Updated README with new main screenshot and added minimal style showcase with inline placement example
-
-### Improved
-- Debug system now uses buffered logging for better performance when debug mode is enabled
 
 ### Deprecated
 - `:LenslineToggle` command (will be removed in v2.0) - use `:LenslineToggleView` or `:LenslineToggleEngine` instead
