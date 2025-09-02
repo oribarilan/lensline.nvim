@@ -3,8 +3,8 @@
 
 local eq = assert.are.same
 
-describe("config.setup and get", function()
-  local config = require("lensline.config")
+describe("config setup and merging", function()
+  local config
   local created_buffers = {}
 
   local function reset_modules()
@@ -37,58 +37,45 @@ describe("config.setup and get", function()
     reset_modules()
   end)
 
-  -- table-driven tests for style config scenarios
-  for _, case in ipairs({
+  -- table-driven tests for style configuration
+  for _, tc in ipairs({
     {
       name = "overrides nerdfont setting",
       input = { style = { use_nerdfont = false } },
-      check_field = "style.use_nerdfont",
+      check = function(opts) return opts.style.use_nerdfont end,
       expected = false,
-      unchanged_field = "style.highlight",
+      unchanged = function(opts) return opts.style.highlight end,
       unchanged_expected = "Comment"
     },
     {
-      name = "overrides prefix setting",
+      name = "overrides prefix setting", 
       input = { style = { prefix = ">> " } },
-      check_field = "style.prefix",
+      check = function(opts) return opts.style.prefix end,
       expected = ">> ",
-      unchanged_field = "style.separator",
+      unchanged = function(opts) return opts.style.separator end,
       unchanged_expected = " • "
     },
   }) do
-    it(("config setup %s"):format(case.name), function()
-      config.setup(case.input)
+    it(("merges %s"):format(tc.name), function()
+      config.setup(tc.input)
       local opts = config.get()
       
-      -- navigate to nested field (e.g., "style.use_nerdfont")
-      local parts = vim.split(case.check_field, ".", { plain = true })
-      local value = opts
-      for _, part in ipairs(parts) do
-        value = value[part]
-      end
-      eq(case.expected, value)
-      
-      -- verify unchanged field is preserved
-      if case.unchanged_field then
-        local unchanged_parts = vim.split(case.unchanged_field, ".", { plain = true })
-        local unchanged_value = opts
-        for _, part in ipairs(unchanged_parts) do
-          unchanged_value = unchanged_value[part]
-        end
-        eq(case.unchanged_expected, unchanged_value)
+      eq(tc.expected, tc.check(opts))
+      if tc.unchanged then
+        eq(tc.unchanged_expected, tc.unchanged(opts))
       end
     end)
   end
 
-  it("handles empty config defensively", function()
+  it("handles empty config", function()
     config.setup({})
     local opts = config.get()
     
-    eq(true, opts.style.use_nerdfont) -- default preserved
-    assert.is_true(#opts.providers >= 1) -- providers list present
+    eq(true, opts.style.use_nerdfont)
+    assert.is_true(#opts.providers >= 1)
   end)
 
-  it("supports idempotent repeated setup calls", function()
+  it("supports repeated setup calls", function()
     config.setup({ style = { prefix = "A" } })
     eq("A", config.get().style.prefix)
     
@@ -98,7 +85,7 @@ describe("config.setup and get", function()
     eq(" • ", opts.style.separator) -- other defaults retained
   end)
 
-  it("preserves provider configuration structure", function()
+  it("preserves provider structure", function()
     local provider_config = {
       providers = {
         { name = "complexity", enabled = true, min_level = "M" },
@@ -118,9 +105,8 @@ describe("config.setup and get", function()
   end)
 end)
 
--- separate integration test for provider behavior
-describe("config integration with providers", function()
-  local config = require("lensline.config")
+describe("config provider integration", function()
+  local config
   local created_buffers = {}
 
   local function reset_modules()
@@ -153,7 +139,7 @@ describe("config integration with providers", function()
     reset_modules()
   end)
 
-  it("provider respects min_level configuration", function()
+  it("respects provider min_level config", function()
     config.setup({
       providers = {
         { name = "complexity", enabled = true, min_level = "L" },
@@ -163,7 +149,7 @@ describe("config integration with providers", function()
     local complexity = require("lensline.providers.complexity")
     local buf = make_buf({
       "function foo()",
-      "  return 1",
+      "  return 1", 
       "end",
     })
 
@@ -178,6 +164,6 @@ describe("config integration with providers", function()
     end)
     
     eq(1, calls)
-    eq(nil, result) -- filtered out (simple function has S complexity, min_level is L)
+    eq(nil, result) -- simple function filtered out (S < L)
   end)
 end)
