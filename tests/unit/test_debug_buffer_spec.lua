@@ -232,10 +232,25 @@ describe("debug buffer system", function()
         local info_before_flush = debug.get_session_info()
         local total_before_flush = info_before_flush.buffer_count
         
-        -- Simulate file write failure by making directory read-only
+        -- Ensure we actually have buffered content
+        eq(true, total_before_flush > 0, "Buffer should have content before flush")
+        
+        -- Simulate file write failure by temporarily overriding io.open
         local info = debug.get_session_info()
-        local dir = vim.fn.fnamemodify(info.file_path, ":h")
-        os.execute("chmod 444 " .. dir)
+        local original_io_open = io.open
+        
+        -- Override io.open to fail for ANY file open operation during flush
+        -- This ensures we catch the file operation regardless of path resolution
+        local flush_started = false
+        io.open = function(filename, mode)
+          if flush_started then
+            return nil  -- Simulate file open failure during flush
+          end
+          return original_io_open(filename, mode)
+        end
+        
+        -- Mark that we're starting the flush operation
+        flush_started = true
         
         -- Attempt flush (should fail and restore buffer)
         local success = debug.flush()
@@ -245,8 +260,8 @@ describe("debug buffer system", function()
         local info_after = debug.get_session_info()
         eq(total_before_flush, info_after.buffer_count)
         
-        -- Cleanup: restore write permissions
-        os.execute("chmod 755 " .. dir)
+        -- Cleanup: restore original io.open function
+        io.open = original_io_open
       end)
     end)
   end)
