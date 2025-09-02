@@ -35,7 +35,7 @@ standard:
 ```bash
 make test
 ```
-(automatically evals LuaRocks env from `./.rocks` then launches neovim headless)
+(automatically evals LuaRocks env from `./.rocks` then launches neovim headless with `--shuffle`)
 
 first time (or after upgrading deps):
 ```bash
