@@ -63,6 +63,7 @@ function M.compute_extmark_opts(args)
     return {
       virt_text = { { inline_text, highlight } },
       virt_text_pos = "eol",
+      hl_mode = "combine",
       ephemeral = args.ephemeral or false
     }
   else
