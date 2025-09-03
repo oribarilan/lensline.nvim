@@ -269,6 +269,7 @@ describe("presenter", function()
         eq({
           virt_text = { { " test", "Comment" } },
           virt_text_pos = "eol",
+          hl_mode = "combine",
           ephemeral = false
         }, result)
       end)
@@ -286,6 +287,7 @@ describe("presenter", function()
         eq({
           virt_text = { { " >> test", "Comment" } },
           virt_text_pos = "eol",
+          hl_mode = "combine",
           ephemeral = false
         }, result)
       end)
@@ -303,6 +305,7 @@ describe("presenter", function()
         eq({
           virt_text = { { " first • second", "Comment" } },
           virt_text_pos = "eol",
+          hl_mode = "combine",
           ephemeral = false
         }, result)
       end)
@@ -320,6 +323,7 @@ describe("presenter", function()
         eq({
           virt_text = { { " test", "Comment" } },
           virt_text_pos = "eol",
+          hl_mode = "combine",
           ephemeral = false
         }, result)
       end)
