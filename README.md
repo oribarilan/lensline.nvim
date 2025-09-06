@@ -117,8 +117,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         -- built-in providers that are diabled by default:
         {
-          name = "usages",     -- aggregates references, definitions, implementations
-          enabled = false,     -- disabled by default - enable explicitly to use
+          name = "usages",     -- aggregates references, definitions, implementations (beta)
+          enabled = false,     -- disabled by default - enable explicitly to use (beta)
           inner_separator = ", ",    -- separator for expanded view (e.g., "3 ref, 1 def, 2 impl")
           show_zero_buckets = false,  -- show zero counts in expanded view (e.g., "0 def")
           default_collapsed = true,   -- start in collapsed view by default
@@ -234,6 +234,59 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **What it shows**: Most recent git author and relative time for each function
 
 <img width="406" height="233" alt="Image" src="https://github.com/user-attachments/assets/673b87ec-b39c-4ce9-bff8-53e1a1ac4ef0" />
+
+</details>
+
+<details>
+<summary><strong>usages Provider (Beta)</strong> - Aggregated LSP usage count</summary>
+
+**Provider Name**: `usages`
+
+**Events**: `LspAttach`, `BufWritePost`
+
+**What it shows**: Aggregates references, definitions, and implementations to show total usage count with expandable breakdown view.
+
+**Features:**
+- Shows total count: "6 usages" or "1 usage" (clean text format, no icons)
+- Toggle command `:LenslineUsagesToggle` expands to breakdown: "3 ref, 1 def, 2 impl"
+- Handles partial LSP failures gracefully
+- Configurable separator for breakdown view
+- Global toggle state (affects all buffers)
+- Zero usage display: always shows "0 usages" when no usages found
+
+**Configuration:**
+- `enabled`: Enable/disable the provider (default: `false` - disabled by default)
+- `inner_separator`: Text separator for breakdown view (default: `", "`)
+- `show_zero_buckets`: Show zero counts in expanded view like "0 def" (default: `false`)
+- `default_collapsed`: Start in collapsed view; set to `false` for expanded by default (default: `true`)
+
+**Example Configuration:**
+```lua
+{
+  name = "usages",
+  enabled = true,                    -- must be explicitly enabled (beta)
+  inner_separator = " • ",           -- custom separator: "3 ref • 1 def • 2 impl"
+  show_zero_buckets = true,          -- show zeros: "1 ref, 0 def, 2 impl"
+  default_collapsed = false,         -- start in expanded view
+}
+```
+
+**Usage:**
+1. Enable the provider in your config (disabled by default as it's in beta)
+2. Use `:LenslineUsagesToggle` to switch between total and breakdown views
+3. The toggle state persists until Neovim restart
+
+**Example Display:**
+- Collapsed: `6 usages` or `1 usage` (no icons, just text)
+- Expanded (default): `3 ref, 1 def, 2 impl` (only shows non-zero counts)
+- Expanded with zero buckets: `3 ref, 0 def, 2 impl` (with `show_zero_buckets = true`)
+
+**LSP Requirements:**
+- Uses standard LSP methods: `textDocument/references`, `textDocument/definition`, `textDocument/implementation`
+- Functions are discovered via LSP document symbols
+- Shows partial results if some LSP methods fail
+
+> **Beta Notice**: This provider is in beta. Please report any issues or feedback.
 
 </details>
 
