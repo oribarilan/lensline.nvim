@@ -25,7 +25,9 @@ M.defaults = {
     {
       name = "usages",
       enabled = false,    -- disabled by default - enable explicitly to use
-      inner_separator = ", ",  -- separator for breakdown view: "3 ref, 1 def, 2 impl"
+      inner_separator = ", ",  -- separator for expanded view (e.g., "3 ref, 1 def, 2 impl")
+      show_zero_buckets = false,  -- show zero counts in expanded view (e.g., "0 def")
+      default_collapsed = true,   -- start in collapsed view by default
     },
   },
   style = {
@@ -89,12 +91,15 @@ M.defaults = {
 M.options = M.defaults
 M._enabled = false  -- global toggle state - Level 1: Engine control
 M._visible = true   -- global visibility state - Level 2: View control
-M._usages_expanded = false  -- global usages toggle state - expanded/collapsed view
+M._usages_expanded = nil  -- global usages toggle state - will be initialized based on config
 
 function M.setup(opts)
   M.options = vim.tbl_deep_extend("force", M.defaults, opts)
   M._enabled = true  -- enable by default when setup is called
   M._visible = true  -- visible by default when setup is called
+  
+  -- Initialize usages expanded state based on provider config
+  M._usages_expanded = nil  -- Reset to nil, will be set when first accessed
 end
 
 function M.get()
@@ -187,6 +192,23 @@ end
 
 -- Usages provider toggle state management
 function M.get_usages_expanded()
+  -- Initialize on first access based on provider config
+  if M._usages_expanded == nil then
+    local usages_config = nil
+    for _, provider in ipairs(M.options.providers) do
+      if provider.name == "usages" then
+        usages_config = provider
+        break
+      end
+    end
+    
+    if usages_config and usages_config.default_collapsed == false then
+      M._usages_expanded = true  -- Start expanded if default_collapsed is false
+    else
+      M._usages_expanded = false  -- Default to collapsed
+    end
+  end
+  
   return M._usages_expanded
 end
 

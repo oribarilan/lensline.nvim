@@ -143,9 +143,9 @@ require("lensline").setup({
   providers = {
     { name = "references", enabled = true },
     { name = "last_author", enabled = true },
+    { name = "usages", enabled = true },
     { name = "complexity", enabled = true },
     { name = "diagnostics", enabled = true },
-    { name = "usages", enabled = true },
   }
 })
 ```
@@ -268,7 +268,6 @@ providers.available_providers.my_custom_provider = require("path.to.custom_provi
 require("lensline").setup({
   providers = {
     { name = "references", enabled = true },
-    { name = "usages", enabled = true },
     { name = "my_custom_provider", enabled = true },
   }
 })
@@ -282,7 +281,6 @@ For simple providers, use the **inline provider** approach - define them directl
 require("lensline").setup({
   providers = {
     { name = "references", enabled = true },
-    { name = "usages", enabled = true },
     
     -- Custom inline provider
     {
@@ -341,8 +339,10 @@ require("lensline").setup({
   providers = {
     {
       name = "usages",
-      enabled = true,
-      inner_separator = ", ",  -- separator for breakdown: "3 ref, 1 def, 2 impl"
+      enabled = false,                -- disabled by default - enable explicitly to use
+      inner_separator = ", ",         -- separator for breakdown: "3 ref, 1 def, 2 impl"
+      show_zero_buckets = false,      -- show zero counts in expanded view (e.g., "0 def")
+      default_collapsed = true,       -- start in collapsed view by default
     }
   }
 })
@@ -355,8 +355,15 @@ require("lensline").setup({
 
 **Example Display:**
 - Collapsed: `6 usages` or `1 usage` (no icons, just text)
-- Expanded: `3 ref, 1 def, 2 impl` (only shows non-zero counts)
+- Expanded (default): `3 ref, 1 def, 2 impl` (only shows non-zero counts)
+- Expanded with zero buckets: `3 ref, 0 def, 2 impl` (with `show_zero_buckets = true`)
 - Custom separator: `3 ref • 1 def • 2 impl` (with `inner_separator = " • "`)
+
+**Configuration Options:**
+- **`enabled`**: Enable/disable the provider (default: `false`)
+- **`inner_separator`**: Text separator for breakdown view (default: `", "`)
+- **`show_zero_buckets`**: Show zero counts in expanded view like "0 def" (default: `false`)
+- **`default_collapsed`**: Start in collapsed view; set to `false` for expanded by default (default: `true`)
 
 **LSP Requirements:**
 - Uses standard LSP methods: `textDocument/references`, `textDocument/definition`, `textDocument/implementation`

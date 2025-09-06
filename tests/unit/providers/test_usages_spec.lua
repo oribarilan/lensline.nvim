@@ -178,4 +178,54 @@ describe("providers.usages", function()
       eq({ line = 12, text = "0 usages" }, out)  -- Shows zero when all fail
     end)
   end)
+
+  describe("show_zero_buckets configuration", function()
+    it("hides zero buckets by default in expanded view", function()
+      local out
+      with_stub("lensline.utils", {
+        get_lsp_references = function(_, _, cb) cb({ {}, {} }) end,  -- 2 refs
+        get_lsp_definitions = function(_, _, cb) cb({}) end,         -- 0 defs
+        get_lsp_implementations = function(_, _, cb) cb({ {} }) end, -- 1 impl
+      }, function()
+        with_stub("lensline.config", {
+          get_usages_expanded = function() return true end,
+        }, function()
+          provider.handler(5, { line = 5 }, {}, function(res) out = res end)
+        end)
+      end)
+      eq({ line = 5, text = "2 ref, 1 impl" }, out)  -- no "0 def"
+    end)
+
+    it("shows zero buckets when show_zero_buckets is true", function()
+      local out
+      with_stub("lensline.utils", {
+        get_lsp_references = function(_, _, cb) cb({ {} }) end,      -- 1 ref
+        get_lsp_definitions = function(_, _, cb) cb({}) end,         -- 0 defs
+        get_lsp_implementations = function(_, _, cb) cb({}) end,     -- 0 impls
+      }, function()
+        with_stub("lensline.config", {
+          get_usages_expanded = function() return true end,
+        }, function()
+          provider.handler(3, { line = 3 }, { show_zero_buckets = true }, function(res) out = res end)
+        end)
+      end)
+      eq({ line = 3, text = "1 ref, 0 def, 0 impl" }, out)  -- includes zeros
+    end)
+
+    it("shows all zero buckets when show_zero_buckets is true", function()
+      local out
+      with_stub("lensline.utils", {
+        get_lsp_references = function(_, _, cb) cb({}) end,          -- 0 refs
+        get_lsp_definitions = function(_, _, cb) cb({}) end,         -- 0 defs
+        get_lsp_implementations = function(_, _, cb) cb({}) end,     -- 0 impls
+      }, function()
+        with_stub("lensline.config", {
+          get_usages_expanded = function() return true end,
+        }, function()
+          provider.handler(1, { line = 1 }, { show_zero_buckets = true }, function(res) out = res end)
+        end)
+      end)
+      eq({ line = 1, text = "0 ref, 0 def, 0 impl" }, out)  -- all zeros shown
+    end)
+  end)
 end)

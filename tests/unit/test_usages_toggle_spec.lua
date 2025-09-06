@@ -15,8 +15,9 @@ describe("usages toggle functionality", function()
   end)
 
   describe("config toggle state management", function()
-    it("starts with usages collapsed by default", function()
+    it("starts with usages collapsed by default (default_collapsed = true)", function()
       local config = require("lensline.config")
+      config.setup({})  -- setup with defaults
       eq(false, config.get_usages_expanded())
     end)
 
@@ -129,6 +130,8 @@ describe("usages toggle functionality", function()
       eq("usages", usages_config.name)
       eq(false, usages_config.enabled)  -- disabled by default
       eq(", ", usages_config.inner_separator)
+      eq(false, usages_config.show_zero_buckets)  -- false by default
+      eq(true, usages_config.default_collapsed)   -- true by default
     end)
   end)
 end)

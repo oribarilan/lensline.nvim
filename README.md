@@ -117,6 +117,13 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         -- built-in providers that are diabled by default:
         {
+          name = "usages",     -- aggregates references, definitions, implementations
+          enabled = false,     -- disabled by default - enable explicitly to use
+          inner_separator = ", ",    -- separator for expanded view (e.g., "3 ref, 1 def, 2 impl")
+          show_zero_buckets = false,  -- show zero counts in expanded view (e.g., "0 def")
+          default_collapsed = true,   -- start in collapsed view by default
+        },
+        {
           name = "diagnostics",
           enabled = false,    -- disabled by default - enable explicitly to use
           min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
@@ -130,9 +137,9 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
       style = {
         separator = " • ",      -- separator between all lens attributes
         highlight = "Comment",  -- highlight group for lens text
-        prefix = "┃ ",         -- prefix before lens content
+        prefix = "┃ ",          -- prefix before lens content
         placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
-        use_nerdfont = true,    -- enable nerd font icons in built-in providers
+        use_nerdfont = true,    -- allow nerd font icons in built-in providers
       },
       render = "all",           -- "all" | "focused" (only active window's focused function)
       limits = {

@@ -26,18 +26,20 @@ return {
         local show_expanded = config.get_usages_expanded()
         
         local text
-        if show_expanded and total_count > 0 then
+        local show_zero_buckets = provider_config.show_zero_buckets or false
+        
+        if show_expanded and (total_count > 0 or show_zero_buckets) then
           -- Show breakdown: "3 ref, 1 def, 2 impl"
           local parts = {}
           local inner_separator = provider_config.inner_separator or ", "
           
-          if ref_count > 0 then
+          if ref_count > 0 or show_zero_buckets then
             table.insert(parts, ref_count .. " ref")
           end
-          if def_count > 0 then
+          if def_count > 0 or show_zero_buckets then
             table.insert(parts, def_count .. " def")
           end
-          if impl_count > 0 then
+          if impl_count > 0 or show_zero_buckets then
             table.insert(parts, impl_count .. " impl")
           end
           
