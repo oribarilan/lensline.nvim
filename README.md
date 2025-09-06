@@ -244,15 +244,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **Events**: `LspAttach`, `BufWritePost`
 
-**What it shows**: Aggregates references, definitions, and implementations to show total usage count with expandable breakdown view.
-
-**Features:**
-- Shows total count: "6 usages" or "1 usage" (clean text format, no icons)
-- Toggle command `:LenslineUsagesToggle` expands to breakdown: "3 ref, 1 def, 2 impl"
-- Handles partial LSP failures gracefully
-- Configurable separator for breakdown view
-- Global toggle state (affects all buffers)
-- Zero usage display: always shows "0 usages" when no usages found
+**What it shows**: Aggregates references, definitions, and implementations to show total usage count. Toggle command `:LenslineUsagesToggle` switches between total view ("6 usages") and breakdown view ("3 ref, 1 def, 2 impl").
 
 **Configuration:**
 - `enabled`: Enable/disable the provider (default: `false` - disabled by default)
@@ -260,31 +252,14 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 - `show_zero_buckets`: Show zero counts in expanded view like "0 def" (default: `false`)
 - `default_collapsed`: Start in collapsed view; set to `false` for expanded by default (default: `true`)
 
-**Example Configuration:**
+**Example:**
 ```lua
 {
   name = "usages",
-  enabled = true,                    -- must be explicitly enabled (beta)
-  inner_separator = " • ",           -- custom separator: "3 ref • 1 def • 2 impl"
-  show_zero_buckets = true,          -- show zeros: "1 ref, 0 def, 2 impl"
-  default_collapsed = false,         -- start in expanded view
+  enabled = true,           -- must be explicitly enabled (beta)
+  inner_separator = " • ",  -- custom separator for breakdown
 }
 ```
-
-**Usage:**
-1. Enable the provider in your config (disabled by default as it's in beta)
-2. Use `:LenslineUsagesToggle` to switch between total and breakdown views
-3. The toggle state persists until Neovim restart
-
-**Example Display:**
-- Collapsed: `6 usages` or `1 usage` (no icons, just text)
-- Expanded (default): `3 ref, 1 def, 2 impl` (only shows non-zero counts)
-- Expanded with zero buckets: `3 ref, 0 def, 2 impl` (with `show_zero_buckets = true`)
-
-**LSP Requirements:**
-- Uses standard LSP methods: `textDocument/references`, `textDocument/definition`, `textDocument/implementation`
-- Functions are discovered via LSP document symbols
-- Shows partial results if some LSP methods fail
 
 > **Beta Notice**: This provider is in beta. Please report any issues or feedback.
 
