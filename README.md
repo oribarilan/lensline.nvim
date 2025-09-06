@@ -463,6 +463,12 @@ Control visual rendering while keeping providers running in background.
 :LenslineToggleView  " Toggle show/hide visual display (most common)
 ```
 
+### 🔀 Provider-specific Commands
+
+```vim
+:LenslineUsagesToggle  " Toggle usages provider between total count and breakdown
+```
+
 <details>
 <summary><strong>Programmatic API - Visual Display</strong></summary>
 
@@ -476,6 +482,9 @@ lensline.toggle_view()
 if lensline.is_visible() then
   print("Lenses are visible")
 end
+
+-- Provider-specific control
+lensline.toggle_usages()
 ```
 
 </details>

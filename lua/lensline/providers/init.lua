@@ -10,6 +10,7 @@ M.available_providers = {
   diagnostics = require("lensline.providers.diagnostics"),
   last_author = require("lensline.providers.last_author"),
   complexity = require("lensline.providers.complexity"),
+  usages = require("lensline.providers.usages"),
 }
 
 -- Get enabled providers from config

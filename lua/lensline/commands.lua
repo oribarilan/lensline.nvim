@@ -62,6 +62,17 @@ function M.refresh()
     setup.refresh_current_buffer()
 end
 
+function M.toggle_usages()
+    local config = require("lensline.config")
+    local expanded = config.toggle_usages_expanded()
+    if expanded then
+        vim.notify("Lensline usages expanded", vim.log.levels.INFO)
+    else
+        vim.notify("Lensline usages collapsed", vim.log.levels.INFO)
+    end
+    setup.refresh_current_buffer()
+end
+
 -- user command
 
 function M.register_commands()
@@ -125,6 +136,13 @@ function M.register_commands()
             desc = "Open lensline debug log file"
         })
     end
+    
+    -- Usages toggle command
+    vim.api.nvim_create_user_command("LenslineUsagesToggle", function()
+        M.toggle_usages()
+    end, {
+        desc = "Toggle lensline usages display between total count and breakdown"
+    })
 end
 
 return M

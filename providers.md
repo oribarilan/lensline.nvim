@@ -145,6 +145,7 @@ require("lensline").setup({
     { name = "last_author", enabled = true },
     { name = "complexity", enabled = true },
     { name = "diagnostics", enabled = true },
+    { name = "usages", enabled = true },
   }
 })
 ```
@@ -267,6 +268,7 @@ providers.available_providers.my_custom_provider = require("path.to.custom_provi
 require("lensline").setup({
   providers = {
     { name = "references", enabled = true },
+    { name = "usages", enabled = true },
     { name = "my_custom_provider", enabled = true },
   }
 })
@@ -280,6 +282,7 @@ For simple providers, use the **inline provider** approach - define them directl
 require("lensline").setup({
   providers = {
     { name = "references", enabled = true },
+    { name = "usages", enabled = true },
     
     -- Custom inline provider
     {
@@ -316,3 +319,46 @@ The [`utils.lua`](lua/lensline/utils.lua) module provides organized utility func
 **LSP Utilities:**
 - `utils.has_lsp_references_capability(bufnr)` - Check LSP references support
 - `utils.get_lsp_references(bufnr, func_info, callback)` - Get LSP references asynchronously
+- `utils.get_lsp_definitions(bufnr, func_info, callback)` - Get LSP definitions asynchronously
+- `utils.get_lsp_implementations(bufnr, func_info, callback)` - Get LSP implementations asynchronously
+
+## Built-in Providers
+
+### Usages Provider
+
+The usages provider aggregates references, definitions, and implementations to show total usage count with toggle functionality.
+
+**Features:**
+- Shows total count: "6 usages" or "1 usage"
+- Toggle command `:LenslineUsagesToggle` expands to breakdown: "3 ref, 1 def, 2 impl"
+- Handles partial LSP failures gracefully
+- Configurable separator for breakdown view
+- Global toggle state (affects all buffers)
+
+**Configuration:**
+```lua
+require("lensline").setup({
+  providers = {
+    {
+      name = "usages",
+      enabled = true,
+      inner_separator = ", ",  -- separator for breakdown: "3 ref, 1 def, 2 impl"
+    }
+  }
+})
+```
+
+**Usage:**
+1. Enable the provider in your config
+2. Use `:LenslineUsagesToggle` to switch between total and breakdown views
+3. The toggle state persists until Neovim restart
+
+**Example Display:**
+- Collapsed: `6 usages` or `1 usage` (no icons, just text)
+- Expanded: `3 ref, 1 def, 2 impl` (only shows non-zero counts)
+- Custom separator: `3 ref • 1 def • 2 impl` (with `inner_separator = " • "`)
+
+**LSP Requirements:**
+- Uses standard LSP methods: `textDocument/references`, `textDocument/definition`, `textDocument/implementation`
+- Functions are discovered via LSP document symbols
+- Shows partial results if some LSP methods fail

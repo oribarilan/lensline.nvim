@@ -22,6 +22,11 @@ M.defaults = {
       enabled = false,    -- disabled by default - enable explicitly to use
       min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
     },
+    {
+      name = "usages",
+      enabled = false,    -- disabled by default - enable explicitly to use
+      inner_separator = ", ",  -- separator for breakdown view: "3 ref, 1 def, 2 impl"
+    },
   },
   style = {
     separator = " • ",
@@ -84,6 +89,7 @@ M.defaults = {
 M.options = M.defaults
 M._enabled = false  -- global toggle state - Level 1: Engine control
 M._visible = true   -- global visibility state - Level 2: View control
+M._usages_expanded = false  -- global usages toggle state - expanded/collapsed view
 
 function M.setup(opts)
   M.options = vim.tbl_deep_extend("force", M.defaults, opts)
@@ -177,6 +183,20 @@ function M.restore_lsp_handlers()
     vim.lsp.handlers["$/progress"] = original_progress_handler
     original_progress_handler = nil
   end
+end
+
+-- Usages provider toggle state management
+function M.get_usages_expanded()
+  return M._usages_expanded
+end
+
+function M.set_usages_expanded(expanded)
+  M._usages_expanded = expanded
+end
+
+function M.toggle_usages_expanded()
+  M._usages_expanded = not M._usages_expanded
+  return M._usages_expanded
 end
 
 return M

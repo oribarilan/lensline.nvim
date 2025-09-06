@@ -137,4 +137,78 @@ function M.get_lsp_references(bufnr, func_info, callback)
     end)
 end
 
+function M.get_lsp_definitions(bufnr, func_info, callback)
+    local debug = require("lensline.debug")
+    
+    -- Resolve function position
+    local char_pos = func_info.character or 0
+    
+    -- If we have a function name, try to find its exact position in the line
+    if func_info.name then
+        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
+        local name_start = line_content:find(func_info.name, 1, true)
+        if name_start then
+            char_pos = name_start - 1  -- Convert to 0-indexed
+            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
+        end
+    end
+    
+    -- Create LSP definition request
+    local params = {
+        textDocument = vim.lsp.util.make_text_document_params(bufnr),
+        position = { line = func_info.line - 1, character = char_pos }
+    }
+    
+    debug.log_context("LSP", "requesting definitions at position " .. (func_info.line - 1) .. ":" .. char_pos)
+    
+    -- Make async LSP request
+    vim.lsp.buf_request(bufnr, "textDocument/definition", params, function(err, result, ctx)
+        if result and type(result) == "table" then
+            callback(result)  -- Return raw definition array
+        else
+            if err then
+                debug.log_context("LSP", "definition request error: " .. vim.inspect(err))
+            end
+            callback(nil)
+        end
+    end)
+end
+
+function M.get_lsp_implementations(bufnr, func_info, callback)
+    local debug = require("lensline.debug")
+    
+    -- Resolve function position
+    local char_pos = func_info.character or 0
+    
+    -- If we have a function name, try to find its exact position in the line
+    if func_info.name then
+        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
+        local name_start = line_content:find(func_info.name, 1, true)
+        if name_start then
+            char_pos = name_start - 1  -- Convert to 0-indexed
+            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
+        end
+    end
+    
+    -- Create LSP implementation request
+    local params = {
+        textDocument = vim.lsp.util.make_text_document_params(bufnr),
+        position = { line = func_info.line - 1, character = char_pos }
+    }
+    
+    debug.log_context("LSP", "requesting implementations at position " .. (func_info.line - 1) .. ":" .. char_pos)
+    
+    -- Make async LSP request
+    vim.lsp.buf_request(bufnr, "textDocument/implementation", params, function(err, result, ctx)
+        if result and type(result) == "table" then
+            callback(result)  -- Return raw implementation array
+        else
+            if err then
+                debug.log_context("LSP", "implementation request error: " .. vim.inspect(err))
+            end
+            callback(nil)
+        end
+    end)
+end
+
 return M
