@@ -245,7 +245,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **Events**: `LspAttach`, `BufWritePost`
 
-**What it shows**: Aggregates references, definitions, and implementations to show total usage count. Toggle command `:LenslineUsagesToggle` switches between total view ("6 usages") and breakdown view ("3 ref, 1 def, 2 impl").
+**What it shows**: Aggregates references, definitions, and implementations to show total usage count. Toggle command `:LenslineUsagesToggle` switches between total view ("6 usages") and breakdown view ("3 ref, 1 def, 2 impl"). Gracefully handles LSP servers with limited capabilities (e.g., Python LSP without implementation support).
 
 **Configuration:**
 - `enabled`: Enable/disable the provider (default: `false` - disabled by default)
