@@ -6,13 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v1.1.1] - 2025-01-07
 ### Fixed
+- Fixed inline lens rendering not displaying correctly due to incorrect column positioning in extmarks
 - Fixed extra trailing space in the references attribute for nerdfont (default) mode
 - Fixed inline lens virtual text not inheriting cursorline background highlight
 
 ### Improved
 - Debug system now uses buffered logging for better performance when debug mode is enabled
 - Added devcontainer (used with an experimental plugin)
+- Added comprehensive regression tests for extmark property validation to prevent placement issues
 
 ## [v1.1.0] - 2025-01-02
 
