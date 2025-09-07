@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- **usages** provider (experimental) - shows usage count of a function (aggregates references, definitions, and implementations). Usages can also be broken down into individual parts using a toggle command `:LenslineUsagesToggle`. For example: `6 usages` --> `3 ref, 1 def, 2 impl`.
+- **[EXPERIMENTAL] usages** provider - shows usage count of a function (aggregates references, definitions, and implementations). Usages can also be broken down into individual parts using a toggle command `:LenslineUsagesToggle`. For example: `6 usages` --> `3 ref, 1 def, 2 impl`.
 
 ### Fixed
 - Fixed extra trailing space in the references attribute for nerdfont (default) mode
