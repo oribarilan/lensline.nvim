@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **usages** provider (experimental) - shows usage count of a function (aggregates references, definitions, and implementations). Usages can also be broken down into individual parts using a toggle command `:LenslineUsagesToggle`. For example: `6 usages` --> `3 ref, 1 def, 2 impl`.
+
 ### Fixed
 - Fixed extra trailing space in the references attribute for nerdfont (default) mode
 - Fixed inline lens virtual text not inheriting cursorline background highlight

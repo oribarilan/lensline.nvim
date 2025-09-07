@@ -117,7 +117,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         },
         -- built-in providers that are diabled by default:
         {
-          -- note that usages provider is in beta, please provide feedback
+          -- note that usages provider is experimental, please provide feedback
           name = "usages",     -- aggregates references, definitions, implementations
           enabled = false,     -- disabled by default - enable explicitly to use
           inner_separator = ", ",    -- separator for expanded view (e.g., "3 ref, 1 def, 2 impl")
