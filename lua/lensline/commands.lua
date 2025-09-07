@@ -64,13 +64,17 @@ end
 
 function M.toggle_usages()
     local config = require("lensline.config")
+    local executor = require("lensline.executor")
     local expanded = config.toggle_usages_expanded()
     if expanded then
         vim.notify("Lensline usages expanded", vim.log.levels.INFO)
     else
         vim.notify("Lensline usages collapsed", vim.log.levels.INFO)
     end
-    setup.refresh_current_buffer()
+    
+    -- Use targeted usages provider refresh instead of full buffer refresh
+    local bufnr = vim.api.nvim_get_current_buf()
+    executor.execute_usages_provider_only(bufnr)
 end
 
 -- user command

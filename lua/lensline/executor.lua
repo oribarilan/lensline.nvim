@@ -358,4 +358,42 @@ function M.cleanup()
   lens_explorer.cleanup_cache()
 end
 
+-- Execute only the usages provider for smooth toggle transitions
+function M.execute_usages_provider_only(bufnr)
+  local debug = require("lensline.debug")
+  local providers = require("lensline.providers")
+  local lens_explorer = require("lensline.lens_explorer")
+  
+  if not utils.is_valid_buffer(bufnr) then
+    debug.log_context("Executor", "buffer " .. bufnr .. " is not valid for usages provider refresh", "WARN")
+    return
+  end
+  
+  local enabled_providers = providers.get_enabled_providers()
+  local usages_provider = enabled_providers["usages"]
+  
+  if not usages_provider then
+    debug.log_context("Executor", "usages provider not found or not enabled", "WARN")
+    return
+  end
+  
+  debug.log_context("Executor", "targeted usages provider refresh for buffer " .. bufnr)
+  
+  -- Clear only the usages provider namespace
+  local renderer = require("lensline.renderer")
+  renderer.clear_provider(bufnr, "usages")
+  
+  -- Get functions for the usages provider using async discovery
+  local buffer_line_count = vim.api.nvim_buf_line_count(bufnr)
+  lens_explorer.discover_functions_async(bufnr, 1, buffer_line_count, function(functions)
+    if not functions or #functions == 0 then
+      debug.log_context("Executor", "no functions found for usages provider refresh")
+      return
+    end
+    
+    -- Execute only the usages provider with discovered functions
+    M.execute_provider_with_functions(bufnr, usages_provider.module, usages_provider.config, functions)
+  end)
+end
+
 return M
