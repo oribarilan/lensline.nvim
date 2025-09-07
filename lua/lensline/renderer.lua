@@ -218,7 +218,8 @@ function M.render_combined_lenses(bufnr)
         extmark_opts.id = existing[1]
       end
       
-      local col = placement == "inline" and #line_content or 0
+      -- For inline placement, always use column 0 since virt_text_pos = "eol" handles positioning
+      local col = 0
       table.insert(extmark_operations, {
         line = line - 1,
         col = col,

@@ -413,4 +413,71 @@ describe("placement configuration", function()
       eq("above", opts.style.placement)
     end)
   end)
+  
+  describe("extmark property validation", function()
+    it("should create correct extmark properties for inline placement", function()
+      local config, renderer = setup_config_and_renderer("inline")
+      local buf = make_buf({ "function test()", "  return 1", "end" })
+      
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "5 refs" },
+      })
+      
+      -- Get the actual extmark details
+      local marks = vim.api.nvim_buf_get_extmarks(buf, renderer.namespace, 0, -1, { details = true })
+      eq(1, #marks, "should have exactly one extmark")
+      
+      local mark = marks[1]
+      local line = mark[2]
+      local col = mark[3]
+      local details = mark[4]
+      
+      -- Verify extmark positioning
+      eq(0, line, "extmark should be on line 0 (0-based)")
+      eq(0, col, "extmark column should be 0 for inline placement with virt_text_pos='eol'")
+      
+      -- Verify inline-specific properties
+      eq(true, details.virt_text ~= nil, "should have virt_text property for inline placement")
+      eq(nil, details.virt_lines, "should not have virt_lines property for inline placement")
+      eq("eol", details.virt_text_pos, "should have virt_text_pos='eol' for inline placement")
+      
+      -- Verify text content
+      local virt_text = details.virt_text
+      eq(1, #virt_text, "should have exactly one virt_text entry")
+      eq(" 5 refs", virt_text[1][1], "should have correct text with leading space")
+    end)
+    
+    it("should create correct extmark properties for above placement", function()
+      local config, renderer = setup_config_and_renderer("above")
+      local buf = make_buf({ "function test()", "  return 1", "end" })
+      
+      renderer.render_provider_lenses(buf, "p1", {
+        { line = 1, text = "5 refs" },
+      })
+      
+      -- Get the actual extmark details
+      local marks = vim.api.nvim_buf_get_extmarks(buf, renderer.namespace, 0, -1, { details = true })
+      eq(1, #marks, "should have exactly one extmark")
+      
+      local mark = marks[1]
+      local line = mark[2]
+      local col = mark[3]
+      local details = mark[4]
+      
+      -- Verify extmark positioning
+      eq(0, line, "extmark should be on line 0 (0-based)")
+      eq(0, col, "extmark column should be 0 for above placement")
+      
+      -- Verify above-specific properties
+      eq(nil, details.virt_text, "should not have virt_text property for above placement")
+      eq(true, details.virt_lines ~= nil, "should have virt_lines property for above placement")
+      eq(true, details.virt_lines_above, "should have virt_lines_above=true for above placement")
+      eq(nil, details.virt_text_pos, "should not have virt_text_pos for above placement")
+      
+      -- Verify text content
+      local virt_lines = details.virt_lines
+      eq(1, #virt_lines, "should have exactly one virt_line")
+      eq("5 refs", virt_lines[1][1][1], "should have correct text without leading space")
+    end)
+  end)
 end)
