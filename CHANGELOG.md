@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [v1.1.1] - 2025-01-07
+## [v1.1.2] - 2025-01-09
+### Fixed
+- Fixed lua_ls anonymous functions array-style names (e.g., `[1]`, `[2]`, `[3]`) bypassing function filtering and incorrectly showing lenses
+
+## [v1.1.lua  2025-01-07
 ### Fixed
 - Fixed inline lens rendering not displaying correctly due to incorrect column positioning in extmarks
 - Fixed extra trailing space in the references attribute for nerdfont (default) mode
