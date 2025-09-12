@@ -62,19 +62,20 @@ describe("smooth usages toggle", function()
     eq(false, full_refresh_called)
   end)
 
-  it("handles usages provider not found gracefully", function()
+  it("handles usages provider disabled gracefully", function()
     local targeted_refresh_called = false
+    local notifications = {}
     
     -- Mock vim.api.nvim_get_current_buf
     local orig_get_current_buf = vim.api.nvim_get_current_buf
     vim.api.nvim_get_current_buf = function() return 1 end
     
     with_stub("lensline.config", {
-      toggle_usages_expanded = function() return false end,
+      toggle_usages_expanded = function() return true end, -- State should still toggle
     }, function()
       with_stub("lensline.providers", {
         get_enabled_providers = function()
-          return { usages = { module = {}, config = { name = "usages", enabled = true } } }
+          return {} -- No usages provider enabled
         end
       }, function()
         with_stub("lensline.executor", {
@@ -82,9 +83,11 @@ describe("smooth usages toggle", function()
             targeted_refresh_called = true
           end,
         }, function()
-          -- Mock vim.notify to avoid noise in tests
+          -- Mock vim.notify to capture notifications
           local orig_notify = vim.notify
-          vim.notify = function() end
+          vim.notify = function(msg, level)
+            table.insert(notifications, {msg = msg, level = level})
+          end
           
           commands.toggle_usages()
           
@@ -97,7 +100,17 @@ describe("smooth usages toggle", function()
     -- Restore original function
     vim.api.nvim_get_current_buf = orig_get_current_buf
     
-    -- Verify that targeted refresh was attempted
-    eq(true, targeted_refresh_called)
+    -- Verify that targeted refresh was NOT called when provider disabled
+    eq(false, targeted_refresh_called)
+    
+    -- Verify warning notification was shown
+    local has_warning = false
+    for _, notif in ipairs(notifications) do
+      if notif.msg:match("disabled") and notif.level == vim.log.levels.WARN then
+        has_warning = true
+        break
+      end
+    end
+    eq(true, has_warning)
   end)
 end)
