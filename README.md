@@ -118,6 +118,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         -- built-in providers that are diabled by default:
         {
           -- note that usages provider is experimental, please provide feedback
+          -- expanding/collapsing the breakdown view is done with :LenslineUsagesToggle
           name = "usages",     -- aggregates references, definitions, implementations
           enabled = false,     -- disabled by default - enable explicitly to use
           inner_separator = ", ",    -- separator for expanded view (e.g., "3 ref, 1 def, 2 impl")
@@ -245,7 +246,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 
 **Events**: `LspAttach`, `BufWritePost`
 
-**What it shows**: Aggregates references, definitions, and implementations to show total usage count. Toggle command `:LenslineUsagesToggle` switches between total view ("6 usages") and breakdown view ("3 ref, 1 def, 2 impl"). Gracefully handles LSP servers with limited capabilities (e.g., Python LSP without implementation support).
+**What it shows**: Aggregates references, definitions, and implementations to show total usage count. Toggle command `:LenslineUsagesToggle` (available only when provider is enabled) switches between total view ("6 usages") and breakdown view ("3 ref, 1 def, 2 impl"). Gracefully handles LSP servers with limited capabilities (e.g., Python LSP without implementation support).
 
 **Configuration:**
 - `enabled`: Enable/disable the provider (default: `false` - disabled by default)
@@ -499,10 +500,10 @@ Control visual rendering while keeping providers running in background.
 :LenslineToggleView  " Toggle show/hide visual display (most common)
 ```
 
-### 🔀 Provider-specific Commands
+### Provider-specific Commands
 
 ```vim
-:LenslineUsagesToggle  " Toggle usages provider between total count and breakdown
+:LenslineUsagesToggle  " Toggle usages provider between total count and breakdown (only available when usages provider is enabled)
 ```
 
 <details>
