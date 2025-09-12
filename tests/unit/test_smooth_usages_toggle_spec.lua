@@ -24,25 +24,31 @@ describe("smooth usages toggle", function()
     with_stub("lensline.config", {
       toggle_usages_expanded = function() return true end,
     }, function()
-      with_stub("lensline.executor", {
-        execute_usages_provider_only = function(bufnr)
-          targeted_refresh_called = true
-          eq(1, bufnr) -- Verify correct buffer number passed
-        end,
+      with_stub("lensline.providers", {
+        get_enabled_providers = function()
+          return { usages = { module = {}, config = { name = "usages", enabled = true } } }
+        end
       }, function()
-        with_stub("lensline.setup", {
-          refresh_current_buffer = function()
-            full_refresh_called = true
+        with_stub("lensline.executor", {
+          execute_usages_provider_only = function(bufnr)
+            targeted_refresh_called = true
+            eq(1, bufnr) -- Verify correct buffer number passed
           end,
         }, function()
-          -- Mock vim.notify to avoid noise in tests
-          local orig_notify = vim.notify
-          vim.notify = function() end
-          
-          commands.toggle_usages()
-          
-          -- Restore vim.notify
-          vim.notify = orig_notify
+          with_stub("lensline.setup", {
+            refresh_current_buffer = function()
+              full_refresh_called = true
+            end,
+          }, function()
+            -- Mock vim.notify to avoid noise in tests
+            local orig_notify = vim.notify
+            vim.notify = function() end
+            
+            commands.toggle_usages()
+            
+            -- Restore vim.notify
+            vim.notify = orig_notify
+          end)
         end)
       end)
     end)
@@ -66,19 +72,25 @@ describe("smooth usages toggle", function()
     with_stub("lensline.config", {
       toggle_usages_expanded = function() return false end,
     }, function()
-      with_stub("lensline.executor", {
-        execute_usages_provider_only = function(bufnr)
-          targeted_refresh_called = true
-        end,
+      with_stub("lensline.providers", {
+        get_enabled_providers = function()
+          return { usages = { module = {}, config = { name = "usages", enabled = true } } }
+        end
       }, function()
-        -- Mock vim.notify to avoid noise in tests
-        local orig_notify = vim.notify
-        vim.notify = function() end
-        
-        commands.toggle_usages()
-        
-        -- Restore vim.notify
-        vim.notify = orig_notify
+        with_stub("lensline.executor", {
+          execute_usages_provider_only = function(bufnr)
+            targeted_refresh_called = true
+          end,
+        }, function()
+          -- Mock vim.notify to avoid noise in tests
+          local orig_notify = vim.notify
+          vim.notify = function() end
+          
+          commands.toggle_usages()
+          
+          -- Restore vim.notify
+          vim.notify = orig_notify
+        end)
       end)
     end)
     
