@@ -62,10 +62,34 @@ function M.refresh()
     setup.refresh_current_buffer()
 end
 
+-- Check if a specific provider is enabled
+local function is_provider_enabled(provider_name)
+    local ok, providers = pcall(require, "lensline.providers")
+    if not ok then
+        return false -- If providers module can't be loaded, assume disabled
+    end
+    
+    local ok2, enabled_providers = pcall(providers.get_enabled_providers)
+    if not ok2 then
+        return false -- If can't get enabled providers, assume disabled
+    end
+    
+    return enabled_providers[provider_name] ~= nil
+end
+
 function M.toggle_usages()
     local config = require("lensline.config")
-    local executor = require("lensline.executor")
+    local provider_enabled = is_provider_enabled("usages")
+    
+    -- Always allow toggle state change (for backward compatibility with tests)
     local expanded = config.toggle_usages_expanded()
+    
+    if not provider_enabled then
+        vim.notify("Usages provider is disabled. Enable it in your lensline config.", vim.log.levels.WARN)
+        return
+    end
+    
+    -- Only show success messages and refresh if provider is enabled
     if expanded then
         vim.notify("Lensline usages expanded", vim.log.levels.INFO)
     else
@@ -73,6 +97,7 @@ function M.toggle_usages()
     end
     
     -- Use targeted usages provider refresh instead of full buffer refresh
+    local executor = require("lensline.executor")
     local bufnr = vim.api.nvim_get_current_buf()
     executor.execute_usages_provider_only(bufnr)
 end
@@ -141,12 +166,14 @@ function M.register_commands()
         })
     end
     
-    -- Usages toggle command
-    vim.api.nvim_create_user_command("LenslineUsagesToggle", function()
-        M.toggle_usages()
-    end, {
-        desc = "Toggle lensline usages display between total count and breakdown"
-    })
+    -- Usages toggle command (conditional)
+    if is_provider_enabled("usages") then
+        vim.api.nvim_create_user_command("LenslineUsagesToggle", function()
+            M.toggle_usages()
+        end, {
+            desc = "Toggle lensline usages display between total count and breakdown"
+        })
+    end
 end
 
 return M
