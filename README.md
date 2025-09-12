@@ -1,7 +1,7 @@
 <div align="center">
 
 # lensline.nvim
-##### A status bar for your functions
+##### A CodeLens status bar for your functions
 
 [![Neovim v0.8.3](https://img.shields.io/github/actions/workflow/status/oribarilan/lensline.nvim/ci.yml?branch=main&label=Neovim%20v0.8.3)](https://github.com/oribarilan/lensline.nvim/actions/workflows/ci.yml?query=branch%3Amain) [![Neovim stable](https://img.shields.io/github/actions/workflow/status/oribarilan/lensline.nvim/ci.yml?branch=main&label=Neovim%20stable)](https://github.com/oribarilan/lensline.nvim/actions/workflows/ci.yml?query=branch%3Amain)
  
