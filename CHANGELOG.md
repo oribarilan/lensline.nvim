@@ -9,12 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **[EXPERIMENTAL] usages** provider - shows usage count of a function (aggregates references, definitions, and implementations). Usages can also be broken down into individual parts using a toggle command `:LenslineUsagesToggle`. For example: `6 usages` --> `3 ref, 1 def, 2 impl`.
 
+
+## [v1.1.2] - 2025-01-09
 ### Fixed
+- Fixed lua_ls anonymous functions array-style names (e.g., `[1]`, `[2]`, `[3]`) bypassing function filtering and incorrectly showing lenses
+
+## [v1.1.lua  2025-01-07
+### Fixed
+- Fixed inline lens rendering not displaying correctly due to incorrect column positioning in extmarks
 - Fixed extra trailing space in the references attribute for nerdfont (default) mode
 - Fixed inline lens virtual text not inheriting cursorline background highlight
 
 ### Improved
 - Debug system now uses buffered logging for better performance when debug mode is enabled
+- Added devcontainer (used with an experimental plugin)
+- Added comprehensive regression tests for extmark property validation to prevent placement issues
 
 ## [v1.1.0] - 2025-01-02
 

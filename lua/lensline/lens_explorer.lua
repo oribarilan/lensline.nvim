@@ -296,7 +296,8 @@ local function is_named_function(symbol)
      lower_name == "lambda" or
      lower_name == "anonymous" or
      symbol.name:match("^function%(") or    -- Lua-style "function(" pattern
-     symbol.name:match("^vim%.") then       -- Skip Neovim API wrappers
+     symbol.name:match("^vim%.") or         -- Skip Neovim API wrappers
+     symbol.name:match("^%[%d+%]$") then    -- LSP array-style anonymous functions "[1]", "[2]", required for lua_ls
     return false
   end
   
