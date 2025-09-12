@@ -24,7 +24,7 @@
 </div>
 
 # 💡 What is lensline?
-A lightweight Neovim plugin that displays customizable, contextual information directly above (or beside) functions, like references and authorship.
+Lensline.nvim provides lightweight and customizable nvim codelens support by showing modular inline lenses with contextual information above or beside your functions including references, authorship (git blame) and more.
 
 <p align="center">
   <img alt="lensline demo" src="https://github.com/user-attachments/assets/40235fbf-be12-4f35-ad57-efe49aa244e2" width="50%" />
