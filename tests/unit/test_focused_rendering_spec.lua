@@ -106,7 +106,7 @@ describe("focused rendering system", function()
         local config = require("lensline.config")
         local focus = require("lensline.focus")
         
-        config.setup({ render = "focused" })
+        config.setup({ style = { render = "focused" } })
         focus._reset_state_for_test()
         case.setup()
         
@@ -154,7 +154,7 @@ describe("focused rendering system", function()
         local config = require("lensline.config")
         local focused_renderer = require("lensline.focused_renderer")
         
-        config.setup({ render = case.render_mode })
+        config.setup({ style = { render = case.render_mode } })
         focused_renderer._reset_state_for_test()
         
         local result = case.action(focused_renderer)
@@ -166,8 +166,9 @@ describe("focused rendering system", function()
       local config = require("lensline.config")
       local focused_renderer = require("lensline.focused_renderer")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focused_renderer._reset_state_for_test()
+      focused_renderer.enable() -- Explicitly enable focused renderer
       
       -- Test active window
       vim.api.nvim_get_current_win = function() return 1 end
@@ -236,7 +237,7 @@ describe("focused rendering system", function()
         local renderer = require("lensline.renderer")
         
         config.setup({
-          render = "focused",
+          style = { render = "focused" },
           providers = case.providers
         })
         
@@ -255,7 +256,7 @@ describe("focused rendering system", function()
       local focus = require("lensline.focus")
       local lens_explorer = require("lensline.lens_explorer")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focus._reset_state_for_test()
       
       local mock_functions = create_test_functions()
@@ -285,7 +286,7 @@ describe("focused rendering system", function()
       local focus = require("lensline.focus")
       local lens_explorer = require("lensline.lens_explorer")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focus._reset_state_for_test()
       
       local mock_functions = create_test_functions()
@@ -308,7 +309,7 @@ describe("focused rendering system", function()
       local focus = require("lensline.focus")
       local lens_explorer = require("lensline.lens_explorer")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focus._reset_state_for_test()
       
       lens_explorer.discover_functions_async = function(bufnr, start_line, end_line, callback)
@@ -330,8 +331,8 @@ describe("focused rendering system", function()
       local renderer = require("lensline.renderer")
       local lens_explorer = require("lensline.lens_explorer")
       
-      config.setup({ 
-        render = "focused",
+      config.setup({
+        style = { render = "focused" },
         providers = {
           { name = "test_provider", enabled = true },
         }

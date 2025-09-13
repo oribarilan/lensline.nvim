@@ -12,7 +12,7 @@ function M.on_win(winid, bufnr)
   local debug = require("lensline.debug")
   
   -- Only in focused mode
-  if (config.get().render ~= "focused") then
+  if (config.get_render_mode() ~= "focused") then
     debug.log_context("FocusedRenderer", "skipping window " .. winid .. " - not in focused mode")
     return false
   end

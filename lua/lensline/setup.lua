@@ -28,7 +28,7 @@ function M.initialize()
   executor.setup_event_listeners()
   
   -- Setup render mode (focused vs all)
-  if opts.render == "focused" then
+  if config.get_render_mode() == "focused" then
     M.enable_focused_mode()
   else
     M.disable_focused_mode()  -- Ensure focused mode is disabled
@@ -133,8 +133,7 @@ function M.enable()
   M.initialize()
   
   -- Apply render mode after enabling
-  local opts = config.get()
-  if opts.render == "focused" then
+  if config.get_render_mode() == "focused" then
     M.enable_focused_mode()
   end
 end

@@ -29,6 +29,7 @@ M.defaults = {
     prefix = "┃ ",
     placement = "above",   -- "above" | "inline" - where to render lenses
     use_nerdfont = true,   -- enable nerd font icons in built-in providers
+    render = "all",        -- "all" (existing behavior) | "focused" (only active window's focused function)
   },
   limits = {
     exclude = {
@@ -74,7 +75,6 @@ M.defaults = {
     max_lines = 1000,
     max_lenses = 70,
   },
-  render = "all",     -- "all" (existing behavior) | "focused" (only active window's focused function)
   debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   focused_debounce_ms = 150,  -- debounce delay for focus tracking in focused mode (in milliseconds)
   provider_timeout_ms = 5000, -- provider execution timeout (ms) for async safety net (test override supported)
@@ -85,7 +85,47 @@ M.options = M.defaults
 M._enabled = false  -- global toggle state - Level 1: Engine control
 M._visible = true   -- global visibility state - Level 2: View control
 
+-- Track deprecation warnings to avoid spam
+local _deprecation_warnings = {}
+
 function M.setup(opts)
+  opts = opts or {}
+  
+  -- Handle backward compatibility for root-level render config
+  if opts.render ~= nil then
+    local warning_key = "root_render_deprecated"
+    if not _deprecation_warnings[warning_key] then
+      vim.notify(
+        "[lensline] DEPRECATED: 'render' config moved to 'style.render'\n" ..
+        "Please update: { style = { render = \"" .. opts.render .. "\" } }\n" ..
+        "Root-level 'render' will be removed in v2",
+        vim.log.levels.WARN
+      )
+      _deprecation_warnings[warning_key] = true
+    end
+    
+    -- Migrate root-level render to style.render if not already set
+    opts.style = opts.style or {}
+    if opts.style.render == nil then
+      opts.style.render = opts.render
+    else
+      -- Both locations specified - warn about conflict
+      local conflict_key = "render_conflict"
+      if not _deprecation_warnings[conflict_key] then
+        vim.notify(
+          "[lensline] WARNING: Both 'render' and 'style.render' specified\n" ..
+          "Using 'style.render' value: '" .. opts.style.render .. "'\n" ..
+          "Remove root-level 'render' to avoid this warning",
+          vim.log.levels.WARN
+        )
+        _deprecation_warnings[conflict_key] = true
+      end
+    end
+    
+    -- Remove root-level render from final config
+    opts.render = nil
+  end
+  
   M.options = vim.tbl_deep_extend("force", M.defaults, opts)
   M._enabled = true  -- enable by default when setup is called
   M._visible = true  -- visible by default when setup is called
@@ -93,6 +133,12 @@ end
 
 function M.get()
   return M.options
+end
+
+function M.get_render_mode()
+  local opts = M.get()
+  -- Always use style.render since we migrate in setup()
+  return opts.style.render
 end
 
 function M.is_enabled()

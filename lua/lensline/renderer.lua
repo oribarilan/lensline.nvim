@@ -155,7 +155,7 @@ function M.render_combined_lenses(bufnr)
   
   -- Level 3 selective rendering: Skip regular rendering in focused mode
   local opts = config.get()
-  if opts.render == "focused" then
+  if config.get_render_mode() == "focused" then
     -- In focused mode, decoration provider handles all rendering
     -- Don't create buffer-scoped extmarks that would show in all windows
     return

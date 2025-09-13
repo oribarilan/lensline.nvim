@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING in v2.0**: `render` config moved from root level to `style.render` for better organization
+- Root-level `render` config still works in v1.x with deprecation warnings but will be removed in v2.0
+
+### Migration Guide
+```lua
+-- OLD (deprecated, will be removed in v2.0)
+require("lensline").setup({ render = "focused" })
+
+-- NEW (recommended)
+require("lensline").setup({ style = { render = "focused" } })
+```
+
 ## [v1.1.2] - 2025-01-09
 ### Fixed
 - Fixed lua_ls anonymous functions array-style names (e.g., `[1]`, `[2]`, `[3]`) bypassing function filtering and incorrectly showing lenses

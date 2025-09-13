@@ -118,7 +118,7 @@ describe("focused rendering setup integration", function()
         local focused_renderer = require("lensline.focused_renderer")
         local focus = require("lensline.focus")
         
-        config.setup({ render = case.render_mode })
+        config.setup({ style = { render = case.render_mode } })
         focus._reset_state_for_test()
         focused_renderer._reset_state_for_test()
         
@@ -139,7 +139,7 @@ describe("focused rendering setup integration", function()
       focused_renderer._reset_state_for_test()
       
       local opts = config.get()
-      eq("all", opts.render)
+      eq("all", opts.style.render)
       
       setup.initialize()
       eq(false, focused_renderer._is_enabled_for_test())
@@ -177,7 +177,7 @@ describe("focused rendering setup integration", function()
         local focused_renderer = require("lensline.focused_renderer")
         local focus = require("lensline.focus")
         
-        config.setup({ render = case.render_mode })
+        config.setup({ style = { render = case.render_mode } })
         focus._reset_state_for_test()
         focused_renderer._reset_state_for_test()
         
@@ -194,7 +194,7 @@ describe("focused rendering setup integration", function()
       local focused_renderer = require("lensline.focused_renderer")
       local focus = require("lensline.focus")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focus._reset_state_for_test()
       focused_renderer._reset_state_for_test()
       
@@ -212,7 +212,7 @@ describe("focused rendering setup integration", function()
       local focused_renderer = require("lensline.focused_renderer")
       local focus = require("lensline.focus")
       
-      config.setup({ render = "focused" })
+      config.setup({ style = { render = "focused" } })
       focus._reset_state_for_test()
       focused_renderer._reset_state_for_test()
       
@@ -258,7 +258,7 @@ describe("focused rendering setup integration", function()
         local focus = require("lensline.focus")
         
         -- Initial mode setup
-        config.setup({ render = case.initial_mode })
+        config.setup({ style = { render = case.initial_mode } })
         focus._reset_state_for_test()
         focused_renderer._reset_state_for_test()
         
@@ -266,7 +266,7 @@ describe("focused rendering setup integration", function()
         eq(case.expected_initial, focused_renderer._is_enabled_for_test())
         
         -- Switch to target mode
-        config.setup({ render = case.target_mode })
+        config.setup({ style = { render = case.target_mode } })
         focus._reset_state_for_test()
         focused_renderer._reset_state_for_test()
         
@@ -280,18 +280,18 @@ describe("focused rendering setup integration", function()
     it("should accept valid render values", function()
       local config = require("lensline.config")
       
-      config.setup({ render = "all" })
-      eq("all", config.get().render)
-      
-      config.setup({ render = "focused" })
-      eq("focused", config.get().render)
+      config.setup({ style = { render = "all" } })
+      eq("all", config.get().style.render)
+
+      config.setup({ style = { render = "focused" } })
+      eq("focused", config.get().style.render)
     end)
     
     it("should preserve other config options when setting render", function()
       local config = require("lensline.config")
       
-      config.setup({ 
-        render = "focused",
+      config.setup({
+        style = { render = "focused" },
         debounce_ms = 250,
         providers = {
           { name = "custom", enabled = true }
@@ -299,7 +299,7 @@ describe("focused rendering setup integration", function()
       })
       
       local opts = config.get()
-      eq("focused", opts.render)
+      eq("focused", opts.style.render)
       eq(250, opts.debounce_ms)
       eq("custom", opts.providers[1].name)
     end)
@@ -310,7 +310,7 @@ describe("focused rendering setup integration", function()
       local focused_renderer = require("lensline.focused_renderer")
       local focus = require("lensline.focus")
       
-      config.setup({ render = "invalid_mode" })
+      config.setup({ style = { render = "invalid_mode" } })
       focus._reset_state_for_test()
       focused_renderer._reset_state_for_test()
       
