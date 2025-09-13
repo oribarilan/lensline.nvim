@@ -96,9 +96,9 @@ function M.setup(opts)
     local warning_key = "root_render_deprecated"
     if not _deprecation_warnings[warning_key] then
       vim.notify(
-        "[lensline] DEPRECATED: 'render' config moved to 'style.render'. " ..
-        "Please update your config: { style = { render = \"" .. opts.render .. "\" } }. " ..
-        "Root-level 'render' will be removed in v2.",
+        "[lensline] DEPRECATED: 'render' config moved to 'style.render'\n" ..
+        "Please update: { style = { render = \"" .. opts.render .. "\" } }\n" ..
+        "Root-level 'render' will be removed in v2",
         vim.log.levels.WARN
       )
       _deprecation_warnings[warning_key] = true
@@ -113,9 +113,9 @@ function M.setup(opts)
       local conflict_key = "render_conflict"
       if not _deprecation_warnings[conflict_key] then
         vim.notify(
-          "[lensline] WARNING: Both 'render' and 'style.render' specified. " ..
-          "Using 'style.render' value: '" .. opts.style.render .. "'. " ..
-          "Remove root-level 'render' to avoid this warning.",
+          "[lensline] WARNING: Both 'render' and 'style.render' specified\n" ..
+          "Using 'style.render' value: '" .. opts.style.render .. "'\n" ..
+          "Remove root-level 'render' to avoid this warning",
           vim.log.levels.WARN
         )
         _deprecation_warnings[conflict_key] = true
