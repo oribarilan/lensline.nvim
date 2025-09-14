@@ -5,13 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v2.0.0] - 2025-??-??
 
-### Changed
-- **BREAKING in v2.0**: `render` config moved from root level to `style.render` for better organization
-- Root-level `render` config still works in v1.x with deprecation warnings but will be removed in v2.0
+### Added
+- **Profile support**: Support for multiple provider/style configurations (profiles) with hot-swapping
+- New profile management commands and APIs
 
-### Migration Guide
+### Breaking (in v2.0.0)
+- **render**: `render` config moved from root level to `style.render` for better organization
+- **profiles**: New `profiles` config option for defining multiple profiles; legacy single config format is no longer supported 
+
+**Profiles format (recommended for all use cases):**
+```lua
+require("lensline").setup({
+  profiles = {
+    {
+      name = "default",  -- Single profile
+      providers = { { name = "references", enabled = true } },
+      style = { render = "all" }
+    }
+  }
+})
+```
+
+**Style.render migration:**
 ```lua
 -- OLD (deprecated, will be removed in v2.0)
 require("lensline").setup({ render = "focused" })
