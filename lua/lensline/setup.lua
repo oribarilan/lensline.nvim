@@ -169,4 +169,69 @@ function M.disable()
   debug.log_context("Core", "lensline disabled")
 end
 
+-- Profile switching with hot-swapping support
+function M.switch_profile(profile_name)
+  if not config.has_profiles() then
+    error("No profiles configured. Cannot switch profiles.")
+  end
+  
+  if not config.has_profile(profile_name) then
+    local available = table.concat(config.list_profiles(), ", ")
+    error(string.format("Profile '%s' not found. Available profiles: %s", profile_name, available))
+  end
+  
+  local current_profile = config.get_active_profile()
+  if current_profile == profile_name then
+    debug.log_context("Core", string.format("Profile '%s' already active", profile_name))
+    return false  -- No change needed
+  end
+  
+  debug.log_context("Core", string.format("Switching from profile '%s' to '%s'", current_profile or "none", profile_name))
+  
+  -- Store current state
+  local was_enabled = config.is_enabled()
+  local was_visible = config.is_visible()
+  
+  -- Only perform disable/enable cycle if lensline is currently enabled
+  local needs_restart = was_enabled
+  
+  if needs_restart then
+    -- Temporarily disable to clean up current state
+    M.disable()
+  end
+  
+  -- Switch profile configuration
+  local success, err = pcall(config.switch_profile, profile_name)
+  if not success then
+    debug.log_context("Core", string.format("Profile switch failed: %s", err))
+    
+    -- Re-enable if it was enabled before (rollback)
+    if needs_restart then
+      M.enable()
+    end
+    
+    error(err)
+  end
+  
+  -- Re-initialize with new profile if it was enabled before
+  if needs_restart then
+    M.initialize()
+    
+    -- Restore previous enabled/visible state
+    config.set_enabled(was_enabled)
+    config.set_visible(was_visible)
+    
+    -- Refresh all valid buffers with new profile
+    local buffers = vim.api.nvim_list_bufs()
+    for _, bufnr in ipairs(buffers) do
+      if vim.api.nvim_buf_is_valid(bufnr) and utils.is_valid_buffer(bufnr) then
+        executor.trigger_unified_update(bufnr)
+      end
+    end
+  end
+  
+  debug.log_context("Core", string.format("Successfully switched to profile '%s'", profile_name))
+  return true
+end
+
 return M

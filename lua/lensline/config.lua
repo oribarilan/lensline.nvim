@@ -85,8 +85,135 @@ M.options = M.defaults
 M._enabled = false  -- global toggle state - Level 1: Engine control
 M._visible = true   -- global visibility state - Level 2: View control
 
+-- Profile state management
+M._profiles_config = nil  -- stores the full config with profiles
+M._active_profile = nil   -- currently active profile name
+
 -- Track deprecation warnings to avoid spam
 local _deprecation_warnings = {}
+M._deprecation_warnings = _deprecation_warnings  -- Expose for testing
+
+-- Check if config uses legacy format (providers/style at root level)
+local function has_legacy_config(opts)
+  return opts.providers ~= nil or opts.style ~= nil
+end
+
+-- Check if config uses new profiles format
+local function has_profiles_config(opts)
+  return opts.profiles ~= nil and type(opts.profiles) == "table"
+end
+
+-- Extract global settings that apply to all profiles
+local function extract_global_settings(opts)
+  local global_keys = {
+    "limits", "debounce_ms", "focused_debounce_ms",
+    "provider_timeout_ms", "debug_mode"
+  }
+  
+  local global_settings = {}
+  for _, key in ipairs(global_keys) do
+    if opts[key] ~= nil then
+      global_settings[key] = opts[key]
+    end
+  end
+  
+  return global_settings
+end
+
+-- Extract profile-specific settings (providers and style)
+local function extract_profile_settings(opts)
+  return {
+    providers = opts.providers,
+    style = opts.style
+  }
+end
+
+-- Convert legacy config to profiles format
+local function migrate_legacy_to_profiles(opts)
+  local global_settings = extract_global_settings(opts)
+  local profile_settings = extract_profile_settings(opts)
+  
+  -- Create default profile from legacy config
+  local migrated_config = vim.tbl_deep_extend("force", global_settings, {
+    profiles = {
+      {
+        name = "default",
+        providers = profile_settings.providers or M.defaults.providers,
+        style = profile_settings.style or M.defaults.style
+      }
+    }
+  })
+  
+  return migrated_config
+end
+
+-- Validate profiles array structure
+local function validate_profiles(profiles)
+  if type(profiles) ~= "table" then
+    error("profiles must be an array")
+  end
+  
+  if #profiles == 0 then
+    error("profiles array cannot be empty")
+  end
+  
+  local profile_names = {}
+  for i, profile in ipairs(profiles) do
+    if type(profile) ~= "table" then
+      error(string.format("profile at index %d must be a table", i))
+    end
+    
+    if type(profile.name) ~= "string" or profile.name == "" then
+      error(string.format("profile at index %d must have a non-empty name", i))
+    end
+    
+    if profile_names[profile.name] then
+      error(string.format("duplicate profile name: %s", profile.name))
+    end
+    profile_names[profile.name] = true
+    
+    -- Validate that profile only contains providers and style
+    for key, _ in pairs(profile) do
+      if key ~= "name" and key ~= "providers" and key ~= "style" then
+        vim.notify(
+          string.format("[lensline] WARNING: Profile '%s' contains unexpected key '%s'. Only 'providers' and 'style' are supported in profiles.", profile.name, key),
+          vim.log.levels.WARN
+        )
+      end
+    end
+  end
+end
+
+-- Get profile by name from profiles array
+local function get_profile_by_name(profiles, name)
+  for _, profile in ipairs(profiles) do
+    if profile.name == name then
+      return profile
+    end
+  end
+  return nil
+end
+
+-- Resolve active profile configuration
+local function resolve_active_config(full_config, profile_name)
+  if not full_config.profiles then
+    return full_config  -- Legacy mode
+  end
+  
+  local active_profile = get_profile_by_name(full_config.profiles, profile_name)
+  if not active_profile then
+    error(string.format("Profile '%s' not found", profile_name))
+  end
+  
+  -- Merge global settings with active profile
+  local global_settings = extract_global_settings(full_config)
+  local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, {
+    providers = active_profile.providers or {},
+    style = active_profile.style or {}
+  })
+  
+  return resolved_config
+end
 
 function M.setup(opts)
   opts = opts or {}
@@ -126,7 +253,45 @@ function M.setup(opts)
     opts.render = nil
   end
   
-  M.options = vim.tbl_deep_extend("force", M.defaults, opts)
+  -- Handle profile configuration
+  local final_config
+  
+  if has_profiles_config(opts) then
+    -- New profiles format
+    validate_profiles(opts.profiles)
+    M._profiles_config = opts
+    M._active_profile = opts.active_profile or opts.profiles[1].name  -- first profile is default
+    
+    -- Resolve active profile configuration
+    final_config = resolve_active_config(M._profiles_config, M._active_profile)
+  elseif has_legacy_config(opts) then
+    -- Legacy format with deprecation warning
+    local warning_key = "legacy_config_deprecated"
+    if not _deprecation_warnings[warning_key] then
+      vim.notify(
+        "[lensline] DEPRECATED: Root-level 'providers' and 'style' config will be removed in v2\n" ..
+        "Please migrate to profiles format:\n" ..
+        "{ profiles = { { name = \"default\", providers = {...}, style = {...} } } }\n" ..
+        "See documentation for migration guide",
+        vim.log.levels.WARN
+      )
+      _deprecation_warnings[warning_key] = true
+    end
+    
+    -- Auto-migrate legacy config
+    local migrated_config = migrate_legacy_to_profiles(opts)
+    M._profiles_config = migrated_config
+    M._active_profile = "default"
+    
+    final_config = resolve_active_config(M._profiles_config, M._active_profile)
+  else
+    -- No profiles and no legacy config - use defaults
+    final_config = opts
+    M._profiles_config = nil
+    M._active_profile = nil
+  end
+  
+  M.options = vim.tbl_deep_extend("force", M.defaults, final_config)
   M._enabled = true  -- enable by default when setup is called
   M._visible = true  -- visible by default when setup is called
 end
@@ -155,6 +320,78 @@ end
 
 function M.set_visible(visible)
   M._visible = visible
+end
+
+-- Profile management functions
+
+function M.has_profiles()
+  return M._profiles_config ~= nil
+end
+
+function M.get_active_profile()
+  return M._active_profile
+end
+
+function M.list_profiles()
+  if not M._profiles_config or not M._profiles_config.profiles then
+    return {}
+  end
+  
+  local names = {}
+  for _, profile in ipairs(M._profiles_config.profiles) do
+    table.insert(names, profile.name)
+  end
+  return names
+end
+
+function M.has_profile(name)
+  if not M._profiles_config or not M._profiles_config.profiles then
+    return false
+  end
+  
+  return get_profile_by_name(M._profiles_config.profiles, name) ~= nil
+end
+
+function M.get_profile_config(name)
+  if not M._profiles_config or not M._profiles_config.profiles then
+    return nil
+  end
+  
+  return get_profile_by_name(M._profiles_config.profiles, name)
+end
+
+function M.switch_profile(name)
+  if not M._profiles_config or not M._profiles_config.profiles then
+    error("No profiles configured. Cannot switch profiles.")
+  end
+  
+  if not M.has_profile(name) then
+    error(string.format("Profile '%s' not found. Available profiles: %s",
+      name, table.concat(M.list_profiles(), ", ")))
+  end
+  
+  if M._active_profile == name then
+    return  -- Already active, no-op
+  end
+  
+  -- Store previous profile for potential rollback
+  local previous_profile = M._active_profile
+  
+  -- Switch to new profile
+  M._active_profile = name
+  
+  -- Resolve new configuration
+  local success, new_config = pcall(resolve_active_config, M._profiles_config, M._active_profile)
+  if not success then
+    -- Rollback on error
+    M._active_profile = previous_profile
+    error(string.format("Failed to switch to profile '%s': %s", name, new_config))
+  end
+  
+  -- Update active configuration
+  M.options = vim.tbl_deep_extend("force", M.defaults, new_config)
+  
+  return true
 end
 
 -- LSP message filtering - surgical "Finding references" suppression

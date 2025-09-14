@@ -98,43 +98,58 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 <details>
 <summary><strong>Default Configuration</strong></summary>
 
+> **Note**: This configuration is for the actively developed release. For v1.x configuration docs, see the [v1.x branch documentation](https://github.com/oribarilan/lensline.nvim/tree/release/1.x).
+
 ```lua
 {
   'oribarilan/lensline.nvim',
   event = 'LspAttach',
   config = function()
     require("lensline").setup({
-      providers = {  -- Array format: order determines display sequence
+      -- Profile configuration (first profile used as default)
+      profiles = {
         {
-          name = "references",
-          enabled = true,     -- enable references provider
-          quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
-        },
-        {
-          name = "last_author",
-          enabled = true,         -- enabled by default with caching optimization
-          cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
-        },
-        -- built-in providers that are diabled by default:
-        {
-          name = "diagnostics",
-          enabled = false,    -- disabled by default - enable explicitly to use
-          min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
-        },
-        {
-          name = "complexity",
-          enabled = false,    -- disabled by default - enable explicitly to use
-          min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
-        },
-      },
-      style = {
-        separator = " • ",      -- separator between all lens attributes
-        highlight = "Comment",  -- highlight group for lens text
-        prefix = "┃ ",         -- prefix before lens content
-        placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
-        use_nerdfont = true,    -- enable nerd font icons in built-in providers
-        render = "all",         -- "all" | "focused" (only active window's focused function)
-      },
+          name = "default",
+          providers = {  -- Array format: order determines display sequence
+            {
+              name = "references",
+              enabled = true,     -- enable references provider
+              quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
+            },
+            {
+              name = "last_author",
+              enabled = true,         -- enabled by default with caching optimization
+              cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
+            },
+            -- built-in providers that are disabled by default:
+            {
+              name = "diagnostics",
+              enabled = false,    -- disabled by default - enable explicitly to use
+              min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
+            },
+            {
+              name = "complexity",
+              enabled = false,    -- disabled by default - enable explicitly to use
+              min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
+            },
+          },
+          style = {
+            separator = " • ",      -- separator between all lens attributes
+            highlight = "Comment",  -- highlight group for lens text
+            prefix = "┃ ",         -- prefix before lens content
+            placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
+            use_nerdfont = true,    -- enable nerd font icons in built-in providers
+            render = "all",         -- "all" | "focused" (only active window's focused function)
+          }
+        }
+        -- You can define additional profiles here and switch between them at runtime
+        -- {
+        --   name = "minimal",
+        --   providers = { { name = "diagnostics", enabled = true } },
+        --   style = { render = "focused" }
+        -- }
+      }
+      -- global settings (apply to all profiles)
       limits = {
         exclude = {
             -- see config.lua for extensive list of default patterns
@@ -421,6 +436,58 @@ require("lensline").setup({
 </details>
 
 For detailed guidelines and more examples, see [providers.md](providers.md).
+
+## Multiple Profiles
+
+lensline supports multiple profiles for different development contexts. Switch between complete sets of providers and styling depending on your workflow.
+
+### Basic Setup
+
+```lua
+require("lensline").setup({
+  -- Profile definitions, first is default
+  profiles = {
+    {
+      name = "basic",
+      providers = {
+        { name = "references", enabled = true },
+        { name = "last_author", enabled = true }
+      },
+      style = { render = "all", placement = "above" }
+    },
+    {
+      name = "informative",
+      providers = {
+        { name = "references", enabled = true },
+        { name = "diagnostics", enabled = true, min_level = "HINT" },
+        { name = "complexity", enabled = true }
+      },
+      style = { render = "focused", placement = "inline" }
+    }
+  },
+})
+```
+
+### Switching Profiles
+
+**Commands:**
+```vim
+:LenslineProfile basic            " Switch to 'basic' profile
+:LenslineProfile                  " Cycle to next profile
+```
+
+**Programmatic API:**
+```lua
+local lensline = require("lensline")
+
+-- Switch profiles
+lensline.switch_profile("base")
+
+-- Query profile information
+local current = lensline.get_active_profile()     -- "base"
+local available = lensline.list_profiles()        -- {"base", "informative"}
+local has_profile = lensline.has_profile("informative")  -- true/false
+```
 
 ## 💻 Commands
 
