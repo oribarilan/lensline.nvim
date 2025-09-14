@@ -10,7 +10,7 @@ function M.setup(opts)
     commands.register_commands()
 end
 
--- export all command functions 
+-- export all command functions
 M.enable = commands.enable
 M.disable = commands.disable
 M.show = commands.show
@@ -21,5 +21,11 @@ M.toggle = commands.toggle
 M.is_enabled = commands.is_enabled
 M.is_visible = commands.is_visible
 M.refresh = commands.refresh
+
+-- export profile management functions
+M.switch_profile = commands.switch_profile
+M.get_active_profile = commands.get_active_profile
+M.list_profiles = commands.list_profiles
+M.has_profile = commands.has_profile
 
 return M
