@@ -129,7 +129,6 @@ function M.register_commands()
         desc = "DEPRECATED: Use LenslineToggleView or LenslineToggleEngine instead"
     })
     
-    -- Debug command (conditional)
     -- Profile management commands
     vim.api.nvim_create_user_command("LenslineProfile", function(opts)
         local args = opts.fargs
