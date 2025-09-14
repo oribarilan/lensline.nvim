@@ -473,8 +473,7 @@ require("lensline").setup({
 **Commands:**
 ```vim
 :LenslineProfile basic            " Switch to 'basic' profile
-:LenslineProfile                  " Show current profile
-:LenslineListProfiles             " List all available profiles
+:LenslineProfile                  " Cycle to next profile
 ```
 
 **Programmatic API:**

@@ -65,7 +65,6 @@ end
 -- Profile management functions
 function M.switch_profile(profile_name)
     setup.switch_profile(profile_name)
-    vim.notify(string.format("Switched to profile '%s'", profile_name), vim.log.levels.INFO)
 end
 
 function M.get_active_profile()
@@ -129,33 +128,41 @@ function M.register_commands()
         desc = "DEPRECATED: Use LenslineToggleView or LenslineToggleEngine instead"
     })
     
-    -- Profile management commands
+    -- Profile management command
     vim.api.nvim_create_user_command("LenslineProfile", function(opts)
         local args = opts.fargs
         
+        if not config.has_profiles() then
+            vim.notify("No profiles configured", vim.log.levels.WARN)
+            return
+        end
+        
         if #args == 0 then
-            -- Show current profile and available profiles
+            -- Cycle to next profile
             local current = config.get_active_profile()
             local available = config.list_profiles()
             
-            if current then
-                vim.notify(string.format("Current profile: %s", current), vim.log.levels.INFO)
-                if #available > 1 then
-                    vim.notify(string.format("Available profiles: %s", table.concat(available, ", ")), vim.log.levels.INFO)
-                end
-            elseif #available > 0 then
-                vim.notify(string.format("Available profiles: %s", table.concat(available, ", ")), vim.log.levels.INFO)
-            else
-                vim.notify("No profiles configured", vim.log.levels.INFO)
+            if #available <= 1 then
+                vim.notify("Only one profile available, cannot cycle", vim.log.levels.INFO)
+                return
             end
+            
+            -- Find current profile index
+            local current_idx = 1
+            for i, profile in ipairs(available) do
+                if profile == current then
+                    current_idx = i
+                    break
+                end
+            end
+            
+            -- Cycle to next profile (wrap around to first if at end)
+            local next_profile = available[(current_idx % #available) + 1]
+            M.switch_profile(next_profile)
+            
         elseif #args == 1 then
             -- Switch to specified profile
             local profile_name = args[1]
-            
-            if not config.has_profiles() then
-                vim.notify("No profiles configured", vim.log.levels.WARN)
-                return
-            end
             
             if not config.has_profile(profile_name) then
                 local available = table.concat(config.list_profiles(), ", ")
@@ -164,38 +171,16 @@ function M.register_commands()
             end
             
             M.switch_profile(profile_name)
+            
         else
             vim.notify("Usage: :LenslineProfile [profile_name]", vim.log.levels.ERROR)
         end
     end, {
-        desc = "Switch lensline profile or show current/available profiles",
+        desc = "Cycle through profiles or switch to specific profile",
         nargs = "?",
         complete = function()
             return config.list_profiles()
         end
-    })
-    
-    vim.api.nvim_create_user_command("LenslineListProfiles", function()
-        local profiles = config.list_profiles()
-        local current = config.get_active_profile()
-        
-        if #profiles == 0 then
-            vim.notify("No profiles configured", vim.log.levels.INFO)
-            return
-        end
-        
-        local output = {}
-        for _, profile in ipairs(profiles) do
-            if profile == current then
-                table.insert(output, profile .. " (active)")
-            else
-                table.insert(output, profile)
-            end
-        end
-        
-        vim.notify(string.format("Profiles: %s", table.concat(output, ", ")), vim.log.levels.INFO)
-    end, {
-        desc = "List all available lensline profiles"
     })
     
     if config.get().debug_mode then
