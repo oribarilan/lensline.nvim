@@ -327,8 +327,8 @@ function M.setup(opts)
   
   M.options = vim.tbl_deep_extend("force", M.defaults, final_config)
   
-  -- Apply exclude_append after normal config merging
-  M.options = M.apply_exclude_append(M.options)
+  -- Apply exclude_append after normal config merging (ensure we work with a copy)
+  M.options = M.apply_exclude_append(vim.deepcopy(M.options))
   
   M._enabled = true  -- enable by default when setup is called
   M._visible = true  -- visible by default when setup is called
