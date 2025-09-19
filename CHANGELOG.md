@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Profile support**: Support for multiple provider/style configurations (profiles) with hot-swapping
 - New profile management commands and APIs
+- **exclude_append**: New configuration option to extend the default exclude list without repeating all patterns
 
 ### Breaking (in v2.0.0)
 - **render**: `render` config moved from root level to `style.render` for better organization
