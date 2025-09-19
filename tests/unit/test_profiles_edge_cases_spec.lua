@@ -30,8 +30,22 @@ describe("Profile Edge Cases", function()
       
       local opts = config.get()
       assert.are.equal("minimal", config.get_active_profile())
-      -- Should fall back to empty providers array
-      assert.are.same({}, opts.providers)
+      -- Should inherit default providers when not specified
+      assert.is_not_nil(opts.providers)
+      assert.is_true(#opts.providers > 0)
+      
+      -- Should have default providers
+      local has_references = false
+      local has_last_author = false
+      for _, provider in ipairs(opts.providers) do
+        if provider.name == "references" then
+          has_references = true
+        elseif provider.name == "last_author" then
+          has_last_author = true
+        end
+      end
+      assert.is_true(has_references, "Should inherit references provider from defaults")
+      assert.is_true(has_last_author, "Should inherit last_author provider from defaults")
     end)
 
     it("should handle profiles with missing style", function()

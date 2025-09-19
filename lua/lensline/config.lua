@@ -207,10 +207,17 @@ local function resolve_active_config(full_config, profile_name)
   
   -- Merge global settings with active profile
   local global_settings = extract_global_settings(full_config)
-  local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, {
-    providers = active_profile.providers or {},
-    style = active_profile.style or {}
-  })
+  
+  -- Build profile overrides (only include non-nil values to avoid duplicate table refs)
+  local profile_overrides = {}
+  if active_profile.providers then
+    profile_overrides.providers = active_profile.providers
+  end
+  if active_profile.style then
+    profile_overrides.style = active_profile.style
+  end
+  
+  local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, profile_overrides)
   
   return resolved_config
 end

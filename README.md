@@ -107,6 +107,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
   config = function()
     require("lensline").setup({
       -- Profile configuration (first profile used as default)
+      -- Note: omitting 'providers' or 'style' in a profile inherits defaults
+      -- You can also override just specific properties (e.g., style = { placement = "inline" })
       profiles = {
         {
           name = "default",

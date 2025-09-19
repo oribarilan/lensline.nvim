@@ -299,6 +299,152 @@ describe("Profile Management", function()
     end)
   end)
 
+  describe("Default Inheritance", function()
+    it("should inherit default providers when profile providers is nil", function()
+      local profile_config = {
+        profiles = {
+          {
+            name = "style_only",
+            -- providers = nil (not specified)
+            style = { placement = "inline", prefix = "" }
+          }
+        }
+      }
+      
+      config.setup(profile_config)
+      
+      local opts = config.get()
+      
+      -- Should have default providers, not empty array
+      assert.is_not_nil(opts.providers)
+      assert.is_true(#opts.providers > 0)
+      
+      -- Check for default providers
+      local has_references = false
+      local has_last_author = false
+      for _, provider in ipairs(opts.providers) do
+        if provider.name == "references" then
+          has_references = true
+          assert.is_true(provider.enabled)
+        elseif provider.name == "last_author" then
+          has_last_author = true
+          assert.is_true(provider.enabled)
+        end
+      end
+      
+      assert.is_true(has_references, "Should have references provider from defaults")
+      assert.is_true(has_last_author, "Should have last_author provider from defaults")
+      
+      -- Style should be merged with defaults
+      assert.are.equal("inline", opts.style.placement)
+      assert.are.equal("", opts.style.prefix)
+      assert.are.equal(" • ", opts.style.separator) -- from defaults
+      assert.are.equal("Comment", opts.style.highlight) -- from defaults
+    end)
+    
+    it("should inherit default style when profile style is nil", function()
+      local profile_config = {
+        profiles = {
+          {
+            name = "providers_only",
+            providers = { { name = "references", enabled = false } },
+            -- style = nil (not specified)
+          }
+        }
+      }
+      
+      config.setup(profile_config)
+      
+      local opts = config.get()
+      
+      -- Should have default style, not empty object
+      assert.are.equal(" • ", opts.style.separator)
+      assert.are.equal("Comment", opts.style.highlight)
+      assert.are.equal("┃ ", opts.style.prefix)
+      assert.are.equal("above", opts.style.placement)
+      assert.are.equal("all", opts.style.render)
+      assert.is_true(opts.style.use_nerdfont)
+      
+      -- Providers should be overridden
+      assert.are.equal(1, #opts.providers)
+      assert.are.equal("references", opts.providers[1].name)
+      assert.is_false(opts.providers[1].enabled)
+    end)
+    
+    it("should inherit both defaults when profile has neither providers nor style", function()
+      local profile_config = {
+        profiles = {
+          {
+            name = "minimal",
+            -- providers = nil
+            -- style = nil
+          }
+        }
+      }
+      
+      config.setup(profile_config)
+      
+      local opts = config.get()
+      
+      -- Should be exactly like defaults
+      assert.is_true(#opts.providers > 0)
+      assert.are.equal(" • ", opts.style.separator)
+      assert.are.equal("Comment", opts.style.highlight)
+      assert.are.equal("┃ ", opts.style.prefix)
+      assert.are.equal("above", opts.style.placement)
+      assert.are.equal("all", opts.style.render)
+    end)
+    
+    it("should handle empty providers array vs nil providers differently", function()
+      local empty_providers_config = {
+        profiles = {
+          {
+            name = "empty_providers",
+            providers = {}, -- explicitly empty
+            style = { placement = "inline" }
+          }
+        }
+      }
+      
+      config.setup(empty_providers_config)
+      
+      local opts = config.get()
+      
+      -- Empty array should result in no providers (explicit choice)
+      assert.are.equal(0, #opts.providers)
+      assert.are.equal("inline", opts.style.placement)
+    end)
+    
+    it("should deep merge style properties correctly", function()
+      local partial_style_config = {
+        profiles = {
+          {
+            name = "partial_style",
+            style = {
+              placement = "inline",
+              prefix = "",
+              -- separator, highlight, use_nerdfont, render not specified
+            }
+          }
+        }
+      }
+      
+      config.setup(partial_style_config)
+      
+      local opts = config.get()
+      
+      -- Specified properties should override
+      assert.are.equal("inline", opts.style.placement)
+      assert.are.equal("", opts.style.prefix)
+      
+      -- Unspecified properties should inherit defaults
+      assert.are.equal(" • ", opts.style.separator)
+      assert.are.equal("Comment", opts.style.highlight)
+      assert.are.equal("all", opts.style.render)
+      assert.is_true(opts.style.use_nerdfont)
+    end)
+  end)
+
   describe("Integration with lensline API", function()
     it("should export profile functions", function()
       assert.is_function(lensline.switch_profile)
