@@ -71,6 +71,7 @@ M.defaults = {
       "*.pdb",            -- Debug symbols
       "*.csproj",         -- Metadata (can include but probably not needed for lenses)
     },
+    exclude_append = {},  -- additional patterns to append to resolved exclude list
     exclude_gitignored = true,
     max_lines = 1000,
     max_lenses = 70,
@@ -222,6 +223,32 @@ local function resolve_active_config(full_config, profile_name)
   return resolved_config
 end
 
+-- Apply exclude_append patterns to resolved exclude list
+function M.apply_exclude_append(config)
+  if config.limits and config.limits.exclude_append then
+    if #config.limits.exclude_append > 0 then
+      -- Start with resolved exclude list (either defaults or user-specified)
+      local base_exclude = config.limits.exclude or {}
+      local append_exclude = config.limits.exclude_append
+      
+      -- Append additional patterns to resolved exclude list
+      local final_exclude = {}
+      for _, pattern in ipairs(base_exclude) do
+        table.insert(final_exclude, pattern)
+      end
+      for _, pattern in ipairs(append_exclude) do
+        table.insert(final_exclude, pattern)
+      end
+      
+      config.limits.exclude = final_exclude
+    end
+    
+    -- Always clean up exclude_append field after processing (even if empty)
+    config.limits.exclude_append = nil
+  end
+  return config
+end
+
 function M.setup(opts)
   opts = opts or {}
   
@@ -299,6 +326,10 @@ function M.setup(opts)
   end
   
   M.options = vim.tbl_deep_extend("force", M.defaults, final_config)
+  
+  -- Apply exclude_append after normal config merging (ensure we work with a copy)
+  M.options = M.apply_exclude_append(vim.deepcopy(M.options))
+  
   M._enabled = true  -- enable by default when setup is called
   M._visible = true  -- visible by default when setup is called
 end
