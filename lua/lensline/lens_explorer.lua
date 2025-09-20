@@ -59,6 +59,9 @@ function M.has_lsp_capability(bufnr, method)
     -- Check if client supports the method
     if client.server_capabilities then
       -- Only check the methods we actually use in this plugin
+      -- Note: lens_explorer.lua only handles core capabilities for function discovery.
+      -- Additional LSP capabilities (textDocument/definition, textDocument/implementation)
+      -- are handled in utils.lua for provider-specific features like the usages provider.
       local capability_map = {
         ["textDocument/references"] = "referencesProvider",
         ["textDocument/documentSymbol"] = "documentSymbolProvider",

@@ -8,6 +8,20 @@ M.defaults = {
       quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
     {
+      name = "usages",
+      enabled = false,    -- disabled by default - enable explicitly to use
+      include = { "refs", "impls", "defs" },
+      breakdown = false,
+      labels = {
+        refs = "refs",
+        impls = "impls",
+        defs = "defs",
+        usages = "usages",
+      },
+      icon_for_single = "",
+      inner_separator = ", ",
+    },
+    {
       name = "diagnostics",
       enabled = false,    -- disabled by default - enable explicitly to use
       min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
@@ -194,6 +208,32 @@ local function get_profile_by_name(profiles, name)
   return nil
 end
 
+-- Merge individual provider configs with their defaults
+local function merge_provider_configs(user_providers, default_providers)
+  if not user_providers then
+    return {}  -- If no providers specified, return empty array (don't use defaults)
+  end
+  
+  -- Create lookup table for default providers by name
+  local defaults_by_name = {}
+  for _, default_provider in ipairs(default_providers) do
+    defaults_by_name[default_provider.name] = default_provider
+  end
+  
+  -- Merge each user provider with its defaults
+  local merged_providers = {}
+  for _, user_provider in ipairs(user_providers) do
+    local provider_name = user_provider.name
+    local default_provider = defaults_by_name[provider_name] or {}
+    
+    -- Deep merge user provider config with defaults
+    local merged_provider = vim.tbl_deep_extend("force", default_provider, user_provider)
+    table.insert(merged_providers, merged_provider)
+  end
+  
+  return merged_providers
+end
+
 -- Resolve active profile configuration
 local function resolve_active_config(full_config, profile_name)
   if not full_config.profiles then
@@ -207,8 +247,12 @@ local function resolve_active_config(full_config, profile_name)
   
   -- Merge global settings with active profile
   local global_settings = extract_global_settings(full_config)
+  
+  -- Properly merge provider configs with defaults
+  local merged_providers = merge_provider_configs(active_profile.providers, M.defaults.providers)
+  
   local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, {
-    providers = active_profile.providers or {},
+    providers = merged_providers,
     style = active_profile.style or {}
   })
   
