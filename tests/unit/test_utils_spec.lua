@@ -216,6 +216,66 @@ describe("lensline.utils", function()
     end)
   end
 
+  -- table-driven tests for LSP definitions capability
+  for _, case in ipairs({
+    {
+      name = "returns false when no clients",
+      clients = {},
+      has_capability = false,
+      expected = false
+    },
+    {
+      name = "returns true when capability present",
+      clients = { { name = "dummy" } },
+      has_capability = true,
+      expected = true
+    },
+  }) do
+    it(("has_lsp_definitions_capability %s"):format(case.name), function()
+      with_stub("lensline.lens_explorer", {
+        get_lsp_clients = function() return case.clients end,
+      }, function()
+        -- Mock the isolated capability checker
+        local original_has_lsp_capability_isolated = utils.has_lsp_definitions_capability
+        utils.has_lsp_definitions_capability = function() return case.has_capability end
+        
+        eq(case.expected, utils.has_lsp_definitions_capability(0))
+        
+        utils.has_lsp_definitions_capability = original_has_lsp_capability_isolated
+      end)
+    end)
+  end
+
+  -- table-driven tests for LSP implementations capability
+  for _, case in ipairs({
+    {
+      name = "returns false when no clients",
+      clients = {},
+      has_capability = false,
+      expected = false
+    },
+    {
+      name = "returns true when capability present",
+      clients = { { name = "dummy" } },
+      has_capability = true,
+      expected = true
+    },
+  }) do
+    it(("has_lsp_implementations_capability %s"):format(case.name), function()
+      with_stub("lensline.lens_explorer", {
+        get_lsp_clients = function() return case.clients end,
+      }, function()
+        -- Mock the isolated capability checker
+        local original_has_lsp_capability_isolated = utils.has_lsp_implementations_capability
+        utils.has_lsp_implementations_capability = function() return case.has_capability end
+        
+        eq(case.expected, utils.has_lsp_implementations_capability(0))
+        
+        utils.has_lsp_implementations_capability = original_has_lsp_capability_isolated
+      end)
+    end)
+  end
+
   describe("get_lsp_references", function()
     local original_buf_request
     
@@ -283,6 +343,180 @@ describe("lensline.utils", function()
           eq(nil, got)
           local joined = table.concat(debug_msgs, "\n")
           eq(true, joined:match("request error") ~= nil)
+        end)
+      end)
+    end)
+  
+    describe("get_lsp_definitions", function()
+      local original_buf_request
+      
+      before_each(function()
+        original_buf_request = vim.lsp.buf_request
+      end)
+      
+      after_each(function()
+        vim.lsp.buf_request = original_buf_request
+      end)
+  
+      it("short-circuits with nil when capability missing", function()
+        local debug_calls = {}
+        with_stub("lensline.debug", {
+          log_context = function(_, msg) table.insert(debug_calls, msg) end,
+        }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return {} end,
+          }, function()
+            -- Mock capability checker to return false
+            local original_has_capability = utils.has_lsp_definitions_capability
+            utils.has_lsp_definitions_capability = function() return false end
+            
+            local got
+            utils.get_lsp_definitions(0, { line = 1, name = "foo" }, function(res) got = res end)
+            eq(nil, got)
+            eq(true, debug_calls[1]:match("no LSP definitions capability") ~= nil)
+            
+            utils.has_lsp_definitions_capability = original_has_capability
+          end)
+        end)
+      end)
+  
+      it("invokes callback with results when capability present", function()
+        local requested = {}
+        local mock_result = { { uri = "file://x", range = {} } }
+        vim.lsp.buf_request = function(bufnr, method, params, handler)
+          table.insert(requested, { bufnr = bufnr, method = method, params = params })
+          handler(nil, mock_result, {})
+        end
+        
+        with_stub("lensline.debug", { log_context = function() end }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return { { name = "dummy" } } end,
+          }, function()
+            -- Mock capability checker to return true
+            local original_has_capability = utils.has_lsp_definitions_capability
+            utils.has_lsp_definitions_capability = function() return true end
+            
+            local got
+            utils.get_lsp_definitions(0, { line = 3, name = "foo" }, function(res) got = res end)
+            eq(mock_result, got)
+            eq("textDocument/definition", requested[1].method)
+            
+            utils.has_lsp_definitions_capability = original_has_capability
+          end)
+        end)
+      end)
+  
+      it("invokes callback with nil on LSP error", function()
+        local debug_msgs = {}
+        vim.lsp.buf_request = function(_, _, _, handler)
+          handler({ code = 123, message = "boom" }, nil, {})
+        end
+        
+        with_stub("lensline.debug", {
+          log_context = function(_, msg) table.insert(debug_msgs, msg) end,
+        }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return { { name = "dummy" } } end,
+          }, function()
+            -- Mock capability checker to return true
+            local original_has_capability = utils.has_lsp_definitions_capability
+            utils.has_lsp_definitions_capability = function() return true end
+            
+            local got = "unset"
+            utils.get_lsp_definitions(0, { line = 5, name = "err_fn" }, function(res) got = res end)
+            eq(nil, got)
+            local joined = table.concat(debug_msgs, "\n")
+            eq(true, joined:match("definition request error") ~= nil)
+            
+            utils.has_lsp_definitions_capability = original_has_capability
+          end)
+        end)
+      end)
+    end)
+  
+    describe("get_lsp_implementations", function()
+      local original_buf_request
+      
+      before_each(function()
+        original_buf_request = vim.lsp.buf_request
+      end)
+      
+      after_each(function()
+        vim.lsp.buf_request = original_buf_request
+      end)
+  
+      it("short-circuits with nil when capability missing", function()
+        local debug_calls = {}
+        with_stub("lensline.debug", {
+          log_context = function(_, msg) table.insert(debug_calls, msg) end,
+        }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return {} end,
+          }, function()
+            -- Mock capability checker to return false
+            local original_has_capability = utils.has_lsp_implementations_capability
+            utils.has_lsp_implementations_capability = function() return false end
+            
+            local got
+            utils.get_lsp_implementations(0, { line = 1, name = "foo" }, function(res) got = res end)
+            eq(nil, got)
+            eq(true, debug_calls[1]:match("no LSP implementations capability") ~= nil)
+            
+            utils.has_lsp_implementations_capability = original_has_capability
+          end)
+        end)
+      end)
+  
+      it("invokes callback with results when capability present", function()
+        local requested = {}
+        local mock_result = { { uri = "file://x", range = {} } }
+        vim.lsp.buf_request = function(bufnr, method, params, handler)
+          table.insert(requested, { bufnr = bufnr, method = method, params = params })
+          handler(nil, mock_result, {})
+        end
+        
+        with_stub("lensline.debug", { log_context = function() end }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return { { name = "dummy" } } end,
+          }, function()
+            -- Mock capability checker to return true
+            local original_has_capability = utils.has_lsp_implementations_capability
+            utils.has_lsp_implementations_capability = function() return true end
+            
+            local got
+            utils.get_lsp_implementations(0, { line = 3, name = "foo" }, function(res) got = res end)
+            eq(mock_result, got)
+            eq("textDocument/implementation", requested[1].method)
+            
+            utils.has_lsp_implementations_capability = original_has_capability
+          end)
+        end)
+      end)
+  
+      it("invokes callback with nil on LSP error", function()
+        local debug_msgs = {}
+        vim.lsp.buf_request = function(_, _, _, handler)
+          handler({ code = 123, message = "boom" }, nil, {})
+        end
+        
+        with_stub("lensline.debug", {
+          log_context = function(_, msg) table.insert(debug_msgs, msg) end,
+        }, function()
+          with_stub("lensline.lens_explorer", {
+            get_lsp_clients = function() return { { name = "dummy" } } end,
+          }, function()
+            -- Mock capability checker to return true
+            local original_has_capability = utils.has_lsp_implementations_capability
+            utils.has_lsp_implementations_capability = function() return true end
+            
+            local got = "unset"
+            utils.get_lsp_implementations(0, { line = 5, name = "err_fn" }, function(res) got = res end)
+            eq(nil, got)
+            local joined = table.concat(debug_msgs, "\n")
+            eq(true, joined:match("implementation request error") ~= nil)
+            
+            utils.has_lsp_implementations_capability = original_has_capability
+          end)
         end)
       end)
     end)
