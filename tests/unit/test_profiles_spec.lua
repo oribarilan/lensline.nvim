@@ -325,7 +325,7 @@ describe("Profile Management", function()
       for _, provider in ipairs(opts.providers) do
         if provider.name == "references" then
           has_references = true
-          assert.is_true(provider.enabled)
+          assert.is_false(provider.enabled)  -- references is disabled by default
         elseif provider.name == "last_author" then
           has_last_author = true
           assert.is_true(provider.enabled)

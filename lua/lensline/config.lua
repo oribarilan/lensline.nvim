@@ -249,8 +249,18 @@ local function resolve_active_config(full_config, profile_name)
   
   -- Merge global settings with active profile
   local global_settings = extract_global_settings(full_config)
+  
+  -- Properly merge provider configs with defaults
+  -- If profile has no providers, use defaults; otherwise merge with defaults
+  local merged_providers
+  if active_profile.providers then
+    merged_providers = merge_provider_configs(active_profile.providers, M.defaults.providers)
+  else
+    merged_providers = M.defaults.providers
+  end
+  
   local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, {
-    providers = active_profile.providers or {},
+    providers = merged_providers,
     style = active_profile.style or {}
   })
   
