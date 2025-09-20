@@ -12,6 +12,7 @@ M.defaults = {
       enabled = false,    -- disabled by default - enable explicitly to use
       include = { "refs", "impls", "defs" },
       breakdown = false,
+      show_zero = true,   -- show zero counts
       labels = {
         refs = "refs",
         impls = "impls",
