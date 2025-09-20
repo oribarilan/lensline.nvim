@@ -246,7 +246,7 @@ This design keeps the plugin lightweight while enabling unlimited customization.
   - `true`: Show breakdown by type ("5 refs, 2 defs, 1 impls")
 - `show_zero`: Show zero counts when LSP supports the capability (default: `true`)
 - `labels`: Custom labels for each usage type and aggregate
-- `icon_for_single`: Icon when only one attribute or aggregate display (default: "")
+- `icon_for_single`: Icon when only one attribute or aggregate display (default: "󰌹 ")
 - `inner_separator`: Separator between breakdown items (default: ", ")
 
 **Examples**:

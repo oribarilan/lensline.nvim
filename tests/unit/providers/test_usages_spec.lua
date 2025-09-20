@@ -27,6 +27,7 @@ describe("lensline.providers.usages", function()
       breakdown = false,
       show_zero = true,
       labels = { refs = "refs" },
+      icon_for_single = "󰌹 ",
       inner_separator = ", ",
     }
     
@@ -73,6 +74,7 @@ describe("lensline.providers.usages", function()
       breakdown = false,
       show_zero = true,
       labels = { refs = "refs", defs = "defs", impls = "impls", usages = "usages" },
+      icon_for_single = "󰌹 ",
       inner_separator = ", ",
     }
     
@@ -154,6 +156,7 @@ describe("lensline.providers.usages", function()
       breakdown = false,
       show_zero = true,
       labels = { refs = "refs", impls = "impls", usages = "usages" },
+      icon_for_single = "󰌹 ",
       inner_separator = ", ",
     }
     
@@ -226,6 +229,7 @@ describe("lensline.providers.usages", function()
       breakdown = false,
       show_zero = true,
       labels = { refs = "refs", defs = "defs", usages = "usages" },
+      icon_for_single = "󰌹 ",
       inner_separator = ", ",
     }
     

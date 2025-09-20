@@ -67,18 +67,24 @@ return {
         else
           -- Aggregate mode: show single count
           if #supported_attrs == 1 then
-            -- Single supported attribute: use nerdfont pattern like references provider
-            local icon = utils.if_nerdfont_else("󰌹 ", "")
+            -- Single supported attribute: use icon_for_single if available, otherwise label
             local attr = supported_attrs[1]
             local label = labels[attr] or attr
-            local suffix = utils.if_nerdfont_else("", " " .. label)
-            text = icon .. total_count .. suffix
+            if icon_for_single then
+              local suffix = utils.if_nerdfont_else("", " " .. label)
+              text = icon_for_single .. total_count .. suffix
+            else
+              text = total_count .. " " .. label
+            end
           else
-            -- Multiple supported attributes aggregated: use nerdfont pattern with "usages" label
-            local icon = utils.if_nerdfont_else("󰌹 ", "")
+            -- Multiple supported attributes aggregated: use icon_for_single if available, otherwise "usages" label
             local usages_label = labels.usages or "usages"
-            local suffix = utils.if_nerdfont_else("", " " .. usages_label)
-            text = icon .. total_count .. suffix
+            if icon_for_single then
+              local suffix = utils.if_nerdfont_else("", " " .. usages_label)
+              text = icon_for_single .. total_count .. suffix
+            else
+              text = total_count .. " " .. usages_label
+            end
           end
         end
         

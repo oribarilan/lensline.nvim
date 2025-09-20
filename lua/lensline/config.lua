@@ -14,7 +14,7 @@ M.defaults = {
         defs = "defs",
         usages = "usages",
       },
-      icon_for_single = "",
+      icon_for_single = "󰌹 ",
       inner_separator = ", ",
     },
     {
