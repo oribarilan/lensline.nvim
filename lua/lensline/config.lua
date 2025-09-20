@@ -3,14 +3,19 @@ local M = {}
 M.defaults = {
   providers = {  -- Array format: order determines display sequence
     {
-      name = "references",
-      enabled = true,     -- enable references provider
-      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
-    },
-    {
-      name = "diagnostics",
-      enabled = false,    -- disabled by default - enable explicitly to use
-      min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
+      name = "usages",
+      enabled = true,       -- enable usages provider by default
+      include = { "refs" }, -- refs-only setup
+      breakdown = true,
+      show_zero = true,     -- show zero counts
+      labels = {
+        refs = "refs",
+        impls = "impls",
+        defs = "defs",
+        usages = "usages",
+      },
+      icon_for_single = "󰌹 ",
+      inner_separator = ", ",
     },
     {
       name = "last_author",
@@ -18,9 +23,18 @@ M.defaults = {
       cache_max_files = 50,  -- maximum number of files to cache blame data for
     },
     {
+      name = "diagnostics",
+      enabled = false,    -- disabled by default - enable explicitly to use
+      min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
+    },
+    {
       name = "complexity",
       enabled = false,    -- disabled by default - enable explicitly to use
       min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
+    },
+    {
+      name = "references",
+      enabled = false,    -- deprecated: use usages provider instead
     },
   },
   style = {
@@ -79,6 +93,7 @@ M.defaults = {
   debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   focused_debounce_ms = 150,  -- debounce delay for focus tracking in focused mode (in milliseconds)
   provider_timeout_ms = 5000, -- provider execution timeout (ms) for async safety net (test override supported)
+  silence_lsp = true, -- suppress noisy LSP log messages (e.g., Pyright reference spam)
   debug_mode = false,
 }
 
@@ -108,7 +123,7 @@ end
 local function extract_global_settings(opts)
   local global_keys = {
     "limits", "debounce_ms", "focused_debounce_ms",
-    "provider_timeout_ms", "debug_mode"
+    "provider_timeout_ms", "silence_lsp", "debug_mode"
   }
   
   local global_settings = {}
@@ -195,6 +210,32 @@ local function get_profile_by_name(profiles, name)
   return nil
 end
 
+-- Merge individual provider configs with their defaults
+local function merge_provider_configs(user_providers, default_providers)
+  if not user_providers then
+    return {}  -- If no providers specified, return empty array (don't use defaults)
+  end
+  
+  -- Create lookup table for default providers by name
+  local defaults_by_name = {}
+  for _, default_provider in ipairs(default_providers) do
+    defaults_by_name[default_provider.name] = default_provider
+  end
+  
+  -- Merge each user provider with its defaults
+  local merged_providers = {}
+  for _, user_provider in ipairs(user_providers) do
+    local provider_name = user_provider.name
+    local default_provider = defaults_by_name[provider_name] or {}
+    
+    -- Deep merge user provider config with defaults
+    local merged_provider = vim.tbl_deep_extend("force", default_provider, user_provider)
+    table.insert(merged_providers, merged_provider)
+  end
+  
+  return merged_providers
+end
+
 -- Resolve active profile configuration
 local function resolve_active_config(full_config, profile_name)
   if not full_config.profiles then
@@ -209,16 +250,23 @@ local function resolve_active_config(full_config, profile_name)
   -- Merge global settings with active profile
   local global_settings = extract_global_settings(full_config)
   
-  -- Build profile overrides (only include non-nil values to avoid duplicate table refs)
-  local profile_overrides = {}
+  -- Merge provider configs with defaults
+  -- Providers require custom merging logic because they are an array of objects
+  -- that need to be matched by name and individually merged with their defaults.
+  -- Style can use vim.tbl_deep_extend() below because it's a simple object.
+  local merged_providers
   if active_profile.providers then
-    profile_overrides.providers = active_profile.providers
-  end
-  if active_profile.style then
-    profile_overrides.style = active_profile.style
+    merged_providers = merge_provider_configs(active_profile.providers, M.defaults.providers)
+  else
+    merged_providers = M.defaults.providers
   end
   
-  local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, profile_overrides)
+  -- Use tbl_deep_extend for final merging - works perfectly for style (simple object)
+  -- but providers need pre-processing above due to array-of-objects structure
+  local resolved_config = vim.tbl_deep_extend("force", M.defaults, global_settings, {
+    providers = merged_providers,
+    style = active_profile.style or M.defaults.style
+  })
   
   return resolved_config
 end
@@ -439,16 +487,8 @@ local suppressed_tokens = {}  -- Track tokens for "Finding references" operation
 function M.setup_lsp_handlers()
   local opts = M.get()
   
-  -- Check if any LSP provider has quiet_lsp enabled
-  local should_setup_filtering = false
-  for _, provider in ipairs(opts.providers) do
-    if provider.name == "references" and provider.quiet_lsp ~= false then
-      should_setup_filtering = true
-      break
-    end
-  end
-  
-  if not should_setup_filtering then
+  -- Check if global silence_lsp is enabled
+  if not opts.silence_lsp then
     return
   end
   
