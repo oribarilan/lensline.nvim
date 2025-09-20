@@ -107,6 +107,8 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
   config = function()
     require("lensline").setup({
       -- Profile configuration (first profile used as default)
+      -- Note: omitting 'providers' or 'style' in a profile inherits defaults
+      -- You can also override just specific properties (e.g., style = { placement = "inline" })
       profiles = {
         {
           name = "default",
@@ -164,6 +166,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
         exclude = {
             -- see config.lua for extensive list of default patterns
         },
+        exclude_append = {},       -- additional patterns to append to exclude list (empty by default)
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
         max_lenses = 70,          -- skip rendering if too many lenses generated

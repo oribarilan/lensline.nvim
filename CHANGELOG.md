@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `references` provider is now deprecated (still available for backward compatibility), will be removed in v3.0.0
+- **exclude_append**: New configuration option to extend the default exclude list without repeating all patterns
 
 ### Breaking (in v2.0.0)
 - **render**: `render` config moved from root level to `style.render` for better organization
