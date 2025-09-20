@@ -3,16 +3,11 @@ local M = {}
 M.defaults = {
   providers = {  -- Array format: order determines display sequence
     {
-      name = "references",
-      enabled = true,     -- enable references provider
-      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
-    },
-    {
       name = "usages",
-      enabled = false,    -- disabled by default - enable explicitly to use
-      include = { "refs", "impls", "defs" },
+      enabled = true,       -- enable usages provider by default
+      include = { "refs" }, -- refs-only setup
       breakdown = false,
-      show_zero = true,   -- show zero counts
+      show_zero = true,     -- show zero counts 
       labels = {
         refs = "refs",
         impls = "impls",
@@ -21,6 +16,11 @@ M.defaults = {
       },
       icon_for_single = "",
       inner_separator = ", ",
+    },
+    {
+      name = "references",
+      enabled = false,    -- deprecated: use usages provider instead
+      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
     {
       name = "diagnostics",

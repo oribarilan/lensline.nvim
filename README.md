@@ -112,9 +112,11 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           name = "default",
           providers = {  -- Array format: order determines display sequence
             {
-              name = "references",
-              enabled = true,     -- enable references provider
-              quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
+              name = "usages",
+              enabled = true,       -- enable usages provider
+              include = { "refs" }, -- (refs, defs, impls), by default refs-only setup
+              breakdown = true,     -- false will aggregate all counts into single "usages" attribute
+              show_zero = true,     -- show zero counts when LSP supports the capability
             },
             {
               name = "last_author",
@@ -220,7 +222,65 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 #### Built-in Providers
 
 <details>
-<summary><strong>references Provider</strong> - LSP reference counting</summary>
+<summary><strong>usages Provider</strong> - LSP symbol usage</summary>
+
+**Provider Name**: `usages`
+
+**Events**: `LspAttach`, `BufWritePost`
+
+**What it shows**: Information about symbol usage via LSP - references, definitions, and implementations
+
+**Features**:
+- **Capability detection** - Only queries LSP for supported capabilities
+- **Flexible aggregation** - Choose which usage types to include (`refs`, `defs`, `impls`)
+- **Two display modes** - Aggregate count (usages) or breakdown by type
+
+**Configuration**:
+- `enabled`: Enable/disable the provider (default: `true`)
+- `include`: Array of usage types to aggregate (default: `{ "refs" }`)
+  - `"refs"`: References (excludes declarations to avoid double-counting)
+  - `"defs"`: Definitions
+  - `"impls"`: Implementations
+- `breakdown`: Display mode (default: `false`)
+  - `false`: Show single aggregate count ("8 usages")
+  - `true`: Show breakdown by type ("5 refs, 2 defs, 1 impls")
+- `show_zero`: Show zero counts when LSP supports the capability (default: `true`)
+- `labels`: Custom labels for each usage type and aggregate
+- `icon_for_single`: Icon when only one attribute or aggregate display (default: "")
+- `inner_separator`: Separator between breakdown items (default: ", ")
+
+**Examples**:
+
+Default refs-only configuration (matches old references provider):
+```lua
+{
+  name = "usages",
+  enabled = true,
+  include = { "refs" },        -- Only show references
+  breakdown = false,           -- Aggregate display
+  show_zero = true,
+}
+```
+
+Full usage tracking with breakdown:
+```lua
+{
+  name = "usages",
+  enabled = true,
+  include = { "refs", "defs", "impls" },  -- Track all usage types
+  breakdown = true,                       -- Show "5 refs, 2 defs, 1 impls"
+  show_zero = true,
+}
+```
+
+<img width="370" height="127" alt="Image" src="https://github.com/user-attachments/assets/1573f29d-0bed-4a13-947b-15d8b530904c" />
+
+</details>
+
+<details>
+<summary><strong>references Provider</strong> - LSP reference counting (DEPRECATED)</summary>
+
+> **⚠️ DEPRECATED**: The `references` provider is deprecated in favor of the more flexible `usages` provider. Use `usages` with `include = { "refs" }` for equivalent functionality.
 
 **Provider Name**: `references`
 
@@ -229,10 +289,19 @@ This design keeps the plugin lightweight while enabling unlimited customization.
 **What it shows**: Number of references to functions/methods using LSP `textDocument/references`
 
 **Configuration**:
-- `enabled`: Enable/disable the provider (default: `true`)
-- `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occures with Pyright in combination with noice.nvim or fidget.nvim.
+- `enabled`: Enable/disable the provider (default: `false` - disabled by default, use `usages` instead)
+- `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occurs with Pyright in combination with noice.nvim or fidget.nvim.
 
-<img width="370" height="127" alt="Image" src="https://github.com/user-attachments/assets/1573f29d-0bed-4a13-947b-15d8b530904c" />
+**Migration**: Replace with:
+```lua
+{
+  name = "usages",
+  enabled = true,
+  include = { "refs" },
+  breakdown = false,
+  show_zero = true,
+}
+```
 
 </details>
 
@@ -559,7 +628,7 @@ Here we are listing the core features plan. For a more detailed history of chang
 
 ### v0.1.x
 - [x] Core lensline plugin with modular provider system
-- [x] 4 built-in providers: `references`, `last_author`, `complexity` (beta), `diagnostics` (beta)
+- [x] 5 built-in providers: `usages`, `references` (deprecated), `last_author`, `complexity`, `diagnostics`
 - [x] Customizable styling and layout options
 - [x] Efficient sync function discovery
 - [x] Async function discovery
@@ -570,12 +639,13 @@ Here we are listing the core features plan. For a more detailed history of chang
 - [x] Graduate `diagnostics` provider from beta
 - [x] Streamlined provider API
 - [x] Test suite + CI
+- [x] New `usages` provider with flexible LSP aggregation (replaces `references`)
 
 ### Potential Features (post v1.0.0)
 - [ ] Guaranteed end_line in provider API
 - [ ] Additional built-in providers (e.g., test coverage)
-- [ ] References - some LSP count self, some don't, address this
 - [ ] Class level lens
+- [ ] Remove deprecated `references` provider (v2.0.0)
 
 ## 🤝 Contribute
 
