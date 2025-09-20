@@ -113,10 +113,18 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           providers = {  -- Array format: order determines display sequence
             {
               name = "usages",
-              enabled = true,       -- enable usages provider
-              include = { "refs" }, -- (refs, defs, impls), by default refs-only setup
-              breakdown = true,     -- false will aggregate all counts into single "usages" attribute
+              enabled = true,       -- enable usages provider by default (replaces references)
+              include = { "refs" }, -- refs-only setup to match references provider behavior
+              breakdown = true,     -- false = aggregate count, true = breakdown by type
               show_zero = true,     -- show zero counts when LSP supports the capability
+              labels = {
+                refs = "refs",
+                impls = "impls",
+                defs = "defs",
+                usages = "usages",
+              },
+              icon_for_single = "󰌹 ",  -- icon when only one attribute or aggregate display
+              inner_separator = ", ",   -- separator between breakdown items
             },
             {
               name = "last_author",
