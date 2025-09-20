@@ -633,33 +633,6 @@ end
 
 </details>
 
-## 🗺️ Roadmap
-
-Currently we are focused on making out first v1.0.0 release, which focuses on core functionality and performance.
-
-Here we are listing the core features plan. For a more detailed history of changes, please see the [CHANGELOG.md](CHANGELOG.md).
-
-### v0.1.x
-- [x] Core lensline plugin with modular provider system
-- [x] 5 built-in providers: `usages`, `references` (deprecated), `last_author`, `complexity`, `diagnostics`
-- [x] Customizable styling and layout options
-- [x] Efficient sync function discovery
-- [x] Async function discovery
-- [x] Efficient rendering (batched extmark operations, incremental updates, stale-first strategy)
-
-### v0.2.x
-- [x] Graduate `complexity` provider from beta
-- [x] Graduate `diagnostics` provider from beta
-- [x] Streamlined provider API
-- [x] Test suite + CI
-- [x] New `usages` provider with flexible LSP aggregation (replaces `references`)
-
-### Potential Features (post v1.0.0)
-- [ ] Guaranteed end_line in provider API
-- [ ] Additional built-in providers (e.g., test coverage)
-- [ ] Class level lens
-- [ ] Remove deprecated `references` provider (v2.0.0)
-
 ## 🤝 Contribute
 
 PRs, issues, and suggestions welcome.
