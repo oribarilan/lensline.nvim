@@ -7,7 +7,7 @@ M.defaults = {
       enabled = true,       -- enable usages provider by default
       include = { "refs" }, -- refs-only setup
       breakdown = true,
-      show_zero = true,     -- show zero counts 
+      show_zero = true,     -- show zero counts
       labels = {
         refs = "refs",
         impls = "impls",
@@ -35,7 +35,6 @@ M.defaults = {
     {
       name = "references",
       enabled = false,    -- deprecated: use usages provider instead
-      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
   },
   style = {
@@ -94,6 +93,7 @@ M.defaults = {
   debounce_ms = 500,  -- unified debounce delay for all providers (in milliseconds)
   focused_debounce_ms = 150,  -- debounce delay for focus tracking in focused mode (in milliseconds)
   provider_timeout_ms = 5000, -- provider execution timeout (ms) for async safety net (test override supported)
+  silence_lsp = true, -- suppress noisy LSP log messages (e.g., Pyright reference spam)
   debug_mode = false,
 }
 
@@ -123,7 +123,7 @@ end
 local function extract_global_settings(opts)
   local global_keys = {
     "limits", "debounce_ms", "focused_debounce_ms",
-    "provider_timeout_ms", "debug_mode"
+    "provider_timeout_ms", "silence_lsp", "debug_mode"
   }
   
   local global_settings = {}
@@ -487,16 +487,8 @@ local suppressed_tokens = {}  -- Track tokens for "Finding references" operation
 function M.setup_lsp_handlers()
   local opts = M.get()
   
-  -- Check if any LSP provider has quiet_lsp enabled
-  local should_setup_filtering = false
-  for _, provider in ipairs(opts.providers) do
-    if provider.name == "references" and provider.quiet_lsp ~= false then
-      should_setup_filtering = true
-      break
-    end
-  end
-  
-  if not should_setup_filtering then
+  -- Check if global silence_lsp is enabled
+  if not opts.silence_lsp then
     return
   end
   

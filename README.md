@@ -173,6 +173,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
       },
       debounce_ms = 500,        -- unified debounce delay for all providers
       focused_debounce_ms = 150, -- debounce delay for focus tracking in focused mode
+      silence_lsp = true,       -- suppress noisy LSP log messages (e.g., Pyright reference spam)
       debug_mode = false,       -- enable debug output for development, see CONTRIBUTE.md
     })
   end,
@@ -301,7 +302,8 @@ Full usage tracking with breakdown:
 
 **Configuration**:
 - `enabled`: Enable/disable the provider (default: `false` - disabled by default, use `usages` instead)
-- `quiet_lsp`: Suppress noisy LSP progress messages like "Finding references..." (default: `true`). This occurs with Pyright in combination with noice.nvim or fidget.nvim.
+
+> **Note**: LSP noise suppression is now controlled globally via the `silence_lsp` configuration option, not per-provider.
 
 **Migration**: Replace with:
 ```lua

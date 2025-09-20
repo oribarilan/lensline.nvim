@@ -15,13 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable aggregation mode (showing `usages` total or breakdown by type)
   - Default configuration shows `references` only as the previous `references` provider
 - **exclude_append**: New configuration option to extend the default exclude list without repeating all patterns
+- **silence_lsp**: New global configuration option to suppress LSP request noise
 
 ### Changed
 - `references` provider is now deprecated (still available for backward compatibility), will be removed in v3.0.0
+- **LSP configuration architecture**: Moved from per-provider `quiet_lsp` to global `silence_lsp` for cleaner configuration
+- Improved provider configuration merging logic to properly inherit defaults in all scenarios
+
+### Fixed
+- Fixed configuration merge bug where profile style inheritance used empty object instead of defaults
+- Fixed provider merging to properly use `merge_provider_configs` function for correct inheritance behavior
+- Fixed missing test coverage for partial provider inheritance scenarios
 
 ### Breaking (in v2.0.0)
 - **render**: `render` config moved from root level to `style.render` for better organization
 - **profiles**: New `profiles` config option for defining multiple profiles; legacy single config format is no longer supported
+- **quiet_lsp**: Removed per-provider `quiet_lsp` configuration, replaced with global `silence_lsp` setting
 
 ## [v1.1.2] - 2025-01-09
 ### Fixed
