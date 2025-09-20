@@ -443,6 +443,57 @@ describe("Profile Management", function()
       assert.are.equal("all", opts.style.render)
       assert.is_true(opts.style.use_nerdfont)
     end)
+    
+    it("should merge partial provider configs with defaults", function()
+      local partial_provider_config = {
+        profiles = {
+          {
+            name = "partial_provider",
+            providers = {
+              {
+                name = "usages",
+                enabled = false,
+                -- other properties like breakdown, show_zero, labels, etc. should inherit from defaults
+              },
+              {
+                name = "last_author",
+                cache_max_files = 100,
+                -- enabled should inherit from defaults (true)
+              }
+            }
+          }
+        }
+      }
+      
+      config.setup(partial_provider_config)
+      
+      local opts = config.get()
+      
+      -- Should have only the 2 specified providers
+      assert.are.equal(2, #opts.providers)
+      
+      -- Check usages provider - enabled overridden, other properties inherited
+      local usages_provider = nil
+      local last_author_provider = nil
+      for _, provider in ipairs(opts.providers) do
+        if provider.name == "usages" then
+          usages_provider = provider
+        elseif provider.name == "last_author" then
+          last_author_provider = provider
+        end
+      end
+      
+      assert.is_not_nil(usages_provider, "Should have usages provider")
+      assert.is_false(usages_provider.enabled)  -- overridden
+      assert.is_true(usages_provider.breakdown)  -- inherited from defaults
+      assert.is_true(usages_provider.show_zero)  -- inherited from defaults
+      assert.are.equal("refs", usages_provider.labels.refs)  -- inherited from defaults
+      assert.are.equal("󰌹 ", usages_provider.icon_for_single)  -- inherited from defaults
+      
+      assert.is_not_nil(last_author_provider, "Should have last_author provider")
+      assert.is_true(last_author_provider.enabled)  -- inherited from defaults
+      assert.are.equal(100, last_author_provider.cache_max_files)  -- overridden
+    end)
   end)
 
   describe("Integration with lensline API", function()
