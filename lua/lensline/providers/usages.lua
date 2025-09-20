@@ -47,22 +47,18 @@ return {
     else
       -- Aggregate mode: show single count
       if #include == 1 then
-        -- Single attribute: use icon if provided, otherwise use label
-        if icon_for_single ~= nil then
-          text = icon_for_single .. total_count
-        else
-          local attr = include[1]
-          local label = labels[attr] or attr
-          text = total_count .. " " .. label
-        end
+        -- Single attribute: use nerdfont pattern like references provider
+        local icon = utils.if_nerdfont_else("󰌹 ", "")
+        local attr = include[1]
+        local label = labels[attr] or attr
+        local suffix = utils.if_nerdfont_else("", " " .. label)
+        text = icon .. total_count .. suffix
       else
-        -- Multiple attributes aggregated: use icon if provided, otherwise use "usages" label
-        if icon_for_single ~= nil then
-          text = icon_for_single .. total_count
-        else
-          local usages_label = labels.usages or "usages"
-          text = total_count .. " " .. usages_label
-        end
+        -- Multiple attributes aggregated: use nerdfont pattern with "usages" label
+        local icon = utils.if_nerdfont_else("󰌹 ", "")
+        local usages_label = labels.usages or "usages"
+        local suffix = utils.if_nerdfont_else("", " " .. usages_label)
+        text = icon .. total_count .. suffix
       end
     end
     

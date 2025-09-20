@@ -48,7 +48,7 @@ describe("lensline.providers.usages", function()
   -- table-driven tests for different configuration scenarios
   for _, case in ipairs({
     {
-      name = "single attribute with icon",
+      name = "single attribute (nerdfont enabled)",
       provider_config = {
         include = { "refs" },
         breakdown = false,
@@ -56,21 +56,10 @@ describe("lensline.providers.usages", function()
         icon_for_single = "",
         inner_separator = ", ",
       },
-      expected = "5"
+      expected = "󰌹 5"  -- nerdfont enabled by default, shows icon only
     },
     {
-      name = "single attribute without icon",
-      provider_config = {
-        include = { "refs" },
-        breakdown = false,
-        labels = { refs = "refs", usages = "usages" },
-        icon_for_single = nil,
-        inner_separator = ", ",
-      },
-      expected = "5 refs"
-    },
-    {
-      name = "multiple attributes with icon",
+      name = "multiple attributes (nerdfont enabled)",
       provider_config = {
         include = { "refs", "defs", "impls" },
         breakdown = false,
@@ -78,21 +67,10 @@ describe("lensline.providers.usages", function()
         icon_for_single = "",
         inner_separator = ", ",
       },
-      expected = "8"
+      expected = "󰌹 8"  -- nerdfont enabled by default, shows icon only
     },
     {
-      name = "multiple attributes without icon",
-      provider_config = {
-        include = { "refs", "defs", "impls" },
-        breakdown = false,
-        labels = { refs = "refs", defs = "defs", impls = "impls", usages = "usages" },
-        icon_for_single = nil,
-        inner_separator = ", ",
-      },
-      expected = "8 usages"
-    },
-    {
-      name = "partial include subset",
+      name = "partial include subset (nerdfont enabled)",
       provider_config = {
         include = { "refs", "defs" },
         breakdown = false,
@@ -100,7 +78,7 @@ describe("lensline.providers.usages", function()
         icon_for_single = nil,
         inner_separator = ", ",
       },
-      expected = "6 usages"
+      expected = "󰌹 6"  -- nerdfont enabled by default, shows icon only
     },
     {
       name = "breakdown mode",
@@ -150,7 +128,7 @@ describe("lensline.providers.usages", function()
     
     eq({
       line = 1,
-      text = "5 refs"
+      text = "󰌹 5"
     }, result)
   end)
 
@@ -185,7 +163,7 @@ describe("lensline.providers.usages", function()
     
     eq({
       line = 1,
-      text = "8" -- icon + total count (5+1+2)
+      text = "󰌹 8" -- nerdfont enabled by default in test, shows icon only
     }, result)
   end)
 end)
