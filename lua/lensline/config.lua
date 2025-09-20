@@ -18,9 +18,9 @@ M.defaults = {
       inner_separator = ", ",
     },
     {
-      name = "references",
-      enabled = false,    -- deprecated: use usages provider instead
-      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
+      name = "last_author",
+      enabled = true,    -- enable by default with caching optimization
+      cache_max_files = 50,  -- maximum number of files to cache blame data for
     },
     {
       name = "diagnostics",
@@ -28,14 +28,14 @@ M.defaults = {
       min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
     },
     {
-      name = "last_author",
-      enabled = true,    -- enable by default with caching optimization
-      cache_max_files = 50,  -- maximum number of files to cache blame data for
-    },
-    {
       name = "complexity",
       enabled = false,    -- disabled by default - enable explicitly to use
       min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
+    },
+    {
+      name = "references",
+      enabled = false,    -- deprecated: use usages provider instead
+      quiet_lsp = true,   -- suppress noisy LSP log messages (e.g., Pyright reference spam)
     },
   },
   style = {
