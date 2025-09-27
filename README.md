@@ -98,7 +98,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 <details>
 <summary><strong>Default Configuration</strong></summary>
 
-> **Note**: This configuration is for the actively developed release. For v2.x configuration docs, see the [v1.x branch documentation](https://github.com/oribarilan/lensline.nvim/tree/release/2.x).
+> **Note**: This configuration is for the actively developed release. For v2.x configuration docs, see the [v2.x branch documentation](https://github.com/oribarilan/lensline.nvim/tree/release/2.x).
 
 ```lua
 {
