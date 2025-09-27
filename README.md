@@ -133,17 +133,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
               enabled = true,         -- enabled by default with caching optimization
               cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
             },
-            -- built-in providers that are disabled by default:
-            {
-              name = "diagnostics",
-              enabled = false,    -- disabled by default - enable explicitly to use
-              min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
-            },
-            {
-              name = "complexity",
-              enabled = false,    -- disabled by default - enable explicitly to use
-              min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
-            },
+            -- additional built-in or custom providers can be added here
           },
           style = {
             separator = " • ",      -- separator between all lens attributes
@@ -155,7 +145,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           }
         }
         -- You can define additional profiles here and switch between them at runtime
-        -- {
+        -- , {
         --   name = "minimal",
         --   providers = { { name = "diagnostics", enabled = true } },
         --   style = { render = "focused" }
@@ -163,9 +153,10 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
       }
       -- global settings (apply to all profiles)
       limits = {
-        exclude = {
+        -- exclude = {
+            -- file patterns that lensline will not process for lenses
             -- see config.lua for extensive list of default patterns
-        },
+        -- },
         exclude_append = {},       -- additional patterns to append to exclude list (empty by default)
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
@@ -525,6 +516,9 @@ lensline supports multiple profiles for different development contexts. Switch b
 
 ### Basic Setup
 
+<details open>
+<summary><strong>basic setup</strong> - two-profile starter config</summary>
+
 ```lua
 require("lensline").setup({
   -- Profile definitions, first is default
@@ -549,6 +543,8 @@ require("lensline").setup({
   },
 })
 ```
+
+</details>
 
 ### Switching Profiles
 
