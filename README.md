@@ -46,8 +46,8 @@ We recommend using a specific tagged release (`tag = '2.0.0'`) for stability, or
 
 Or
 
-<a href="https://github.com/oribarilan/lensline.nvim/tree/release/1.x">
-  <img alt="Branch release/1.x" src="https://img.shields.io/static/v1?label=Branch&message=release/1.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
+<a href="https://github.com/oribarilan/lensline.nvim/tree/release/2.x">
+  <img alt="Branch release/2.x" src="https://img.shields.io/static/v1?label=Branch&message=release/2.x&style=for-the-badge&logo=git&color=C9CBFF&labelColor=302D41&logoColor=D9E0EE" />
 </a>
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
@@ -187,20 +187,21 @@ For a more subtle, distraction-free experience, try this minimal configuration t
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '2.0.0',
+  branch = 'release/2.x',
   event = 'LspAttach',
   config = function()
-    require("lensline").setup({
-      style = {
-        placement = 'inline',
-        prefix = '',
+    require('lensline').setup {
+      profiles = {
+        {
+          name = 'minimal',
+          style = {
+            placement = 'inline',
+            prefix = '',
+            -- render = "focused", optionally render lenses only for focused function
+          },
+        },
       },
-      style = {
-        placement = 'inline',
-        prefix = '',
-        render = "focused", -- or "all" for showing lenses in all functions
-      },
-    })
+    }
   end,
 }
 ```
