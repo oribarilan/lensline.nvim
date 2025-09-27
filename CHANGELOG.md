@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v2.0.0] - 2025-??-??
+## [Unreleased]
+
+### Added
+- _No changes yet_
+
+### Changed
+- _No changes yet_
+
+### Fixed
+- _No changes yet_
+
+### Breaking
+- _No changes yet_
+
+## [v2.0.0] - 2025-09-27
 
 ### Added
 - **Profile support**: Support for multiple provider/style configurations (profiles) with hot-swapping

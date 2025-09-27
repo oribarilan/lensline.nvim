@@ -38,7 +38,7 @@ A lightweight Neovim plugin that displays customizable, contextual information d
 
 ## 📦 Install
 
-We recommend using a specific tagged release (`tag = '1.1.2'`) for stability, or the `release/1.x` branch to receive the latest non-breaking updates.
+We recommend using a specific tagged release (`tag = '2.0.0'`) for stability, or the `release/2.x` branch to receive the latest non-breaking updates.
 
 <a href="https://github.com/oribarilan/lensline.nvim/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/oribarilan/lensline.nvim?style=for-the-badge&logo=rocket&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -55,7 +55,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '1.1.2', -- or: branch = 'release/1.x' for latest non-breaking updates
+  tag = '2.0.0', -- or: branch = 'release/2.x' for latest non-breaking updates
   event = 'LspAttach',
   config = function()
     require("lensline").setup()
@@ -69,7 +69,7 @@ Or with any other plugin manager:
 <summary><strong>vim-plug</strong></summary>
 
 ```vim
-Plug 'oribarilan/lensline.nvim', { 'tag': '1.1.2' }
+Plug 'oribarilan/lensline.nvim', { 'tag': '2.0.0' }
 ```
 
 or
@@ -86,7 +86,7 @@ Plug 'oribarilan/lensline.nvim', { 'branch': 'release/1.x' }
 ```lua
 use {
     'oribarilan/lensline.nvim',
-    tag = '1.1.2', -- or: branch = 'release/1.x' for latest non-breaking updates
+    tag = '2.0.0', -- or: branch = 'release/2.x' for latest non-breaking updates
 }
 ```
 </details>
@@ -98,7 +98,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
 <details>
 <summary><strong>Default Configuration</strong></summary>
 
-> **Note**: This configuration is for the actively developed release. For v1.x configuration docs, see the [v1.x branch documentation](https://github.com/oribarilan/lensline.nvim/tree/release/1.x).
+> **Note**: This configuration is for the actively developed release. For v2.x configuration docs, see the [v1.x branch documentation](https://github.com/oribarilan/lensline.nvim/tree/release/2.x).
 
 ```lua
 {
@@ -133,17 +133,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
               enabled = true,         -- enabled by default with caching optimization
               cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
             },
-            -- built-in providers that are disabled by default:
-            {
-              name = "diagnostics",
-              enabled = false,    -- disabled by default - enable explicitly to use
-              min_level = "WARN", -- only show WARN and ERROR by default (HINT, INFO, WARN, ERROR)
-            },
-            {
-              name = "complexity",
-              enabled = false,    -- disabled by default - enable explicitly to use
-              min_level = "L",    -- only show L (Large) and XL (Extra Large) complexity by default
-            },
+            -- additional built-in or custom providers can be added here
           },
           style = {
             separator = " • ",      -- separator between all lens attributes
@@ -155,7 +145,7 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
           }
         }
         -- You can define additional profiles here and switch between them at runtime
-        -- {
+        -- , {
         --   name = "minimal",
         --   providers = { { name = "diagnostics", enabled = true } },
         --   style = { render = "focused" }
@@ -163,9 +153,10 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
       }
       -- global settings (apply to all profiles)
       limits = {
-        exclude = {
+        -- exclude = {
+            -- file patterns that lensline will not process for lenses
             -- see config.lua for extensive list of default patterns
-        },
+        -- },
         exclude_append = {},       -- additional patterns to append to exclude list (empty by default)
         exclude_gitignored = true,  -- respect .gitignore by not processing ignored files
         max_lines = 1000,          -- process only first N lines of large files
@@ -196,7 +187,7 @@ For a more subtle, distraction-free experience, try this minimal configuration t
 ```lua
 {
   'oribarilan/lensline.nvim',
-  tag = '1.1.2',
+  tag = '2.0.0',
   event = 'LspAttach',
   config = function()
     require("lensline").setup({
@@ -492,7 +483,7 @@ Displays the number of lines in each function, helping identify long functions t
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "references", enabled = true },
+    { name = "usages", enabled = true, include = { "refs" }, breakdown = false },
     
     {
       name = "function_length",
@@ -525,6 +516,9 @@ lensline supports multiple profiles for different development contexts. Switch b
 
 ### Basic Setup
 
+<details open>
+<summary><strong>basic setup</strong> - two-profile starter config</summary>
+
 ```lua
 require("lensline").setup({
   -- Profile definitions, first is default
@@ -532,7 +526,7 @@ require("lensline").setup({
     {
       name = "basic",
       providers = {
-        { name = "references", enabled = true },
+        { name = "usages", enabled = true, include = { "refs" }, breakdown = false },
         { name = "last_author", enabled = true }
       },
       style = { render = "all", placement = "above" }
@@ -540,7 +534,7 @@ require("lensline").setup({
     {
       name = "informative",
       providers = {
-        { name = "references", enabled = true },
+        { name = "usages", enabled = true, include = { "refs", "defs", "impls" }, breakdown = true },
         { name = "diagnostics", enabled = true, min_level = "HINT" },
         { name = "complexity", enabled = true }
       },
@@ -549,6 +543,8 @@ require("lensline").setup({
   },
 })
 ```
+
+</details>
 
 ### Switching Profiles
 
