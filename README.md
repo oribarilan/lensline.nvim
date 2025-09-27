@@ -492,7 +492,7 @@ Displays the number of lines in each function, helping identify long functions t
 ```lua
 require("lensline").setup({
   providers = {
-    { name = "references", enabled = true },
+    { name = "usages", enabled = true, include = { "refs" }, breakdown = false },
     
     {
       name = "function_length",
@@ -532,7 +532,7 @@ require("lensline").setup({
     {
       name = "basic",
       providers = {
-        { name = "references", enabled = true },
+        { name = "usages", enabled = true, include = { "refs" }, breakdown = false },
         { name = "last_author", enabled = true }
       },
       style = { render = "all", placement = "above" }
@@ -540,7 +540,7 @@ require("lensline").setup({
     {
       name = "informative",
       providers = {
-        { name = "references", enabled = true },
+        { name = "usages", enabled = true, include = { "refs", "defs", "impls" }, breakdown = true },
         { name = "diagnostics", enabled = true, min_level = "HINT" },
         { name = "complexity", enabled = true }
       },
