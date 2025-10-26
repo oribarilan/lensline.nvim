@@ -2,14 +2,22 @@ local M = {}
 
 -- Cache for expensive operations
 local cache = {}
-local gitignore_cache = nil
-local gitignore_cache_initialized = false
+local gitignore_cache = {}
 
 -- Clear cache when config changes
 function M.clear_cache()
+  local debug = require("lensline.debug")
+  local cached_count = 0
+  for _ in pairs(gitignore_cache) do
+    cached_count = cached_count + 1
+  end
+  
+  if cached_count > 0 then
+    debug.log_context("Gitignore", "clearing cache (%d files)", cached_count)
+  end
+  
   cache = {}
-  gitignore_cache = nil
-  gitignore_cache_initialized = false
+  gitignore_cache = {}
 end
 
 -- Get cache key for a buffer
@@ -36,44 +44,29 @@ local function matches_glob_pattern(filepath, patterns)
   return false
 end
 
--- Get gitignored files (cached per session)
-local function get_gitignored_files()
-  if gitignore_cache_initialized then
-    return gitignore_cache or {}
+-- Check if a file is gitignored using git check-ignore
+local function is_gitignored(filepath)
+  if gitignore_cache[filepath] ~= nil then
+    return gitignore_cache[filepath]
   end
   
-  gitignore_cache_initialized = true
-  
-  -- Check if we're in a git repo
-  local git_dir = vim.fn.finddir('.git', '.;')
+  local git_dir = vim.fn.finddir('.git', vim.fn.fnamemodify(filepath, ':h') .. ';')
   if git_dir == '' then
-    return {}
+    gitignore_cache[filepath] = false
+    return false
   end
   
-  -- Get git root directory
   local git_root = vim.fn.fnamemodify(git_dir, ':h')
+  local relative_path = vim.fn.fnamemodify(filepath, ':.')
   
-  -- Run git command to get ignored files
-  local cmd = {"git", "-C", git_root, "ls-files", "--others", "-i", "--exclude-standard"}
-  local result = vim.fn.systemlist(cmd)
+  local cmd = {"git", "-C", git_root, "check-ignore", "-q", relative_path}
+  vim.fn.system(cmd)
   
-  if vim.v.shell_error ~= 0 then
-    local debug = require("lensline.debug")
-    debug.log_context("Limits", "git ls-files failed, ignoring .gitignore: " .. vim.inspect(result))
-    return {}
-  end
+  local is_ignored = vim.v.shell_error == 0
   
-  -- Convert to absolute paths and create lookup table
-  gitignore_cache = {}
-  for _, file in ipairs(result) do
-    local abs_path = vim.fn.fnamemodify(git_root .. "/" .. file, ":p")
-    gitignore_cache[abs_path] = true
-  end
+  gitignore_cache[filepath] = is_ignored
   
-  local debug = require("lensline.debug")
-  debug.log_context("Limits", "cached " .. #result .. " gitignored files")
-  
-  return gitignore_cache
+  return is_ignored
 end
 
 -- Check if file should be excluded based on patterns and gitignore
@@ -95,8 +88,7 @@ local function should_exclude_file(bufnr, config)
   
   -- Check gitignore
   if config.exclude_gitignored then
-    local gitignored = get_gitignored_files()
-    if gitignored[filepath] then
+    if is_gitignored(filepath) then
       return true, "excluded by .gitignore"
     end
   end

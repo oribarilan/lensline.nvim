@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - _No changes yet_
 
 ### Fixed
-- _No changes yet_
+- Faster startup time and more efficient caching by replacing gitignored caching from eager & bulk to lazy and per-file. This solves issues with large repos where initial caching could take a long time.
 
 ### Breaking
 - _No changes yet_
