@@ -6,6 +6,16 @@ local gitignore_cache = {}
 
 -- Clear cache when config changes
 function M.clear_cache()
+  local debug = require("lensline.debug")
+  local cached_count = 0
+  for _ in pairs(gitignore_cache) do
+    cached_count = cached_count + 1
+  end
+  
+  if cached_count > 0 then
+    debug.log_context("Gitignore", "clearing cache (%d files)", cached_count)
+  end
+  
   cache = {}
   gitignore_cache = {}
 end
@@ -53,6 +63,7 @@ local function is_gitignored(filepath)
   vim.fn.system(cmd)
   
   local is_ignored = vim.v.shell_error == 0
+  
   gitignore_cache[filepath] = is_ignored
   
   return is_ignored

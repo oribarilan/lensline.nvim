@@ -202,8 +202,26 @@ function M.flush()
 end
 
 -- log with context like function name, buffer etc
-function M.log_context(context, message, level)
-    local full_message = string.format("[%s] %s", context, message)
+function M.log_context(context, message, ...)
+    local args = {...}
+    local level = "INFO"
+    local format_args = {}
+    
+    for i, arg in ipairs(args) do
+        if i == #args and type(arg) == "string" and 
+           (arg == "INFO" or arg == "WARN" or arg == "ERROR" or arg == "DEBUG") then
+            level = arg
+        else
+            table.insert(format_args, arg)
+        end
+    end
+    
+    local formatted_message = message
+    if #format_args > 0 then
+        formatted_message = string.format(message, unpack(format_args))
+    end
+    
+    local full_message = string.format("[%s] %s", context, formatted_message)
     M.log(full_message, level)
 end
 
