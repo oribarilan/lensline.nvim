@@ -19,6 +19,9 @@
 <a href="https://github.com/oribarilan/lensline.nvim">
     <img alt="Repo Size" src="https://img.shields.io/github/repo-size/oribarilan/lensline.nvim?color=%23DDB6F2&label=SIZE&logo=hackthebox&style=for-the-badge&logoColor=D9E0EE&labelColor=302D41"/>
 </a>
+<a href="https://search.nixos.org/packages?channel=25.11&show=vimPlugins.lensline-nvim">
+    <img alt="Nixpkgs" src="https://img.shields.io/badge/nixpkgs-lensline.nvim-blue?style=for-the-badge&logo=nixos&logoColor=D9E0EE&labelColor=302D41"/>
+</a>
 </p>
 
 </div>
@@ -89,6 +92,22 @@ use {
     tag = '2.0.0', -- or: branch = 'release/2.x' for latest non-breaking updates
 }
 ```
+</details>
+
+<details>
+<summary><strong>Nix / NixOS</strong></summary>
+
+lensline.nvim is available in [nixpkgs](https://search.nixos.org/packages?query=lensline.nvim) as `vimPlugins.lensline-nvim`.
+
+```nix
+# In your Neovim configuration
+programs.neovim = {
+  plugins = [
+    pkgs.vimPlugins.lensline-nvim
+  ];
+};
+```
+
 </details>
 
 ## ⚙️ Configure
