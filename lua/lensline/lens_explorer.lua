@@ -328,14 +328,16 @@ function M.extract_symbols_recursive(symbols, functions, start_line, end_line)
         local end_line_num
         local character
 
-        -- Handle both DocumentSymbol and SymbolInformation formats
         if symbol.range then
-          -- DocumentSymbol format
-          line_num = symbol.range.start.line + 1 -- Convert to 1-indexed
-          end_line_num = symbol.range["end"].line + 1 -- Convert to 1-indexed
-          character = symbol.range.start.character
+          line_num = symbol.range.start.line + 1
+          end_line_num = symbol.range["end"].line + 1
+          -- selectionRange points to the symbol name, not the full declaration
+          if symbol.selectionRange then
+            character = symbol.selectionRange.start.character
+          else
+            character = symbol.range.start.character
+          end
         elseif symbol.location then
-          -- SymbolInformation format
           line_num = symbol.location.range.start.line + 1
           end_line_num = symbol.location.range["end"].line + 1
           character = symbol.location.range.start.character
