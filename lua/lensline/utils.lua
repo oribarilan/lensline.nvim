@@ -80,7 +80,32 @@ function M.get_function_lines(bufnr, func_info)
     return vim.api.nvim_buf_get_lines(bufnr, start_line - 1, estimated_end, false)
 end
 
--- LSP Utilities
+local function resolve_func_char_pos(bufnr, func_info)
+    local debug = require("lensline.debug")
+    local char_pos = func_info.character or 0
+
+    if func_info.name then
+        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
+        local search_name = func_info.name
+        local name_start = line_content:find(search_name, 1, true)
+        -- qualified name (e.g. "(*Client).doWithRetry") — try short name after last dot
+        if not name_start then
+            local short_name = search_name:match("%.([^%.]+)$")
+            if short_name then
+                name_start = line_content:find(short_name, 1, true)
+                if name_start then
+                    debug.log_context("LSP", "used short name '" .. short_name .. "' from qualified '" .. search_name .. "' at character " .. (name_start - 1))
+                end
+            end
+        end
+        if name_start then
+            char_pos = name_start - 1  -- Convert to 0-indexed
+            debug.log_context("LSP", "resolved function name '" .. func_info.name .. "' at character " .. char_pos)
+        end
+    end
+
+    return char_pos
+end
 
 function M.has_lsp_references_capability(bufnr)
     local lens_explorer = require("lensline.lens_explorer")
@@ -103,17 +128,7 @@ function M.get_lsp_references(bufnr, func_info, callback)
     end
     
     -- Resolve function position
-    local char_pos = func_info.character or 0
-    
-    -- If we have a function name, try to find its exact position in the line
-    if func_info.name then
-        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
-        local name_start = line_content:find(func_info.name, 1, true)
-        if name_start then
-            char_pos = name_start - 1  -- Convert to 0-indexed
-            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
-        end
-    end
+    local char_pos = resolve_func_char_pos(bufnr, func_info)
     
     -- Create LSP reference request
     local params = {
@@ -181,17 +196,7 @@ function M.get_lsp_definitions(bufnr, func_info, callback)
     end
     
     -- Resolve function position
-    local char_pos = func_info.character or 0
-    
-    -- If we have a function name, try to find its exact position in the line
-    if func_info.name then
-        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
-        local name_start = line_content:find(func_info.name, 1, true)
-        if name_start then
-            char_pos = name_start - 1  -- Convert to 0-indexed
-            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
-        end
-    end
+    local char_pos = resolve_func_char_pos(bufnr, func_info)
     
     -- Create LSP definition request
     local params = {
@@ -225,17 +230,7 @@ function M.get_lsp_implementations(bufnr, func_info, callback)
     end
     
     -- Resolve function position
-    local char_pos = func_info.character or 0
-    
-    -- If we have a function name, try to find its exact position in the line
-    if func_info.name then
-        local line_content = vim.api.nvim_buf_get_lines(bufnr, func_info.line - 1, func_info.line, false)[1] or ""
-        local name_start = line_content:find(func_info.name, 1, true)
-        if name_start then
-            char_pos = name_start - 1  -- Convert to 0-indexed
-            debug.log_context("LSP", "found function name '" .. func_info.name .. "' at character " .. char_pos)
-        end
-    end
+    local char_pos = resolve_func_char_pos(bufnr, func_info)
     
     -- Create LSP implementation request
     local params = {
