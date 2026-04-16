@@ -32,7 +32,8 @@ return {
     -- Always call callback with lens item or nil
     callback({
       line = func_info.line,
-      text = "💩 " .. custom_data
+      text = "💩 " .. custom_data,
+      highlight = "DiagnosticWarn", -- optional: override highlight for this result
     })
     -- or callback(nil) if no lens should be shown
   end
@@ -43,7 +44,7 @@ return {
 
 - **Parameters**: `(bufnr, func_info, provider_config, callback)`
 - **Return**: Nothing (always use callback)
-- **Callback**: Called with lens item `{ line = number, text = string }` or `nil`
+- **Callback**: Called with lens item `{ line = number, text = string, highlight = string? }` or `nil`
 - **provider_config**: Contains this provider's configuration options
 - **Debug logging**: Automatic - no need to add debug logging in provider handlers
 
@@ -61,6 +62,28 @@ The `func_info` parameter contains:
 - Function definition spans beyond the processed range
 
 Always check if it exists before using it. The [`utils.get_function_lines()`](lua/lensline/utils.lua) utility handles this automatically with fallback logic.
+
+### Per-Result Highlights
+
+Provider callbacks can optionally include a `highlight` field in their result to override the highlight group for that specific lens item. This is useful for providers that want to use different colors based on the result (e.g., red for high complexity, green for low).
+
+```lua
+handler = function(bufnr, func_info, provider_config, callback)
+  local severity = get_severity(func_info)
+  callback({
+    line = func_info.line,
+    text = severity .. " severity",
+    highlight = severity == "high" and "DiagnosticError" or "DiagnosticOk",
+  })
+end
+```
+
+The highlight fallback chain is:
+1. Result `highlight` (from callback) -- per-item override
+2. Provider config `highlight` (from setup) -- per-provider default
+3. Global `style.highlight` -- fallback for all providers
+
+Omitting `highlight` or setting it to `""` falls back to the next level in the chain.
 
 ### Utility Functions
 

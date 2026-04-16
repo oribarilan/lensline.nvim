@@ -1,20 +1,25 @@
 local M = {}
 
--- Combine provider data with proper ordering preservation
--- This consolidates the duplicate combination logic from renderer.lua and focused_renderer.lua
+local function resolve_highlight(item_highlight, provider_highlight)
+  if item_highlight and item_highlight ~= "" then
+    return item_highlight
+  end
+  if provider_highlight and provider_highlight ~= "" then
+    return provider_highlight
+  end
+  return nil
+end
+
 function M.combine_provider_data(provider_lens_data, provider_configs)
   local combined = {}
-  if not provider_lens_data then 
-    return combined 
+  if not provider_lens_data then
+    return combined
   end
-  
-  -- Critical: preserve config order for consistent display sequence
+
   for _, provider_config in ipairs(provider_configs) do
     if provider_config.enabled ~= false then
       local lens_items = provider_lens_data[provider_config.name]
       if lens_items and type(lens_items) == "table" then
-        -- Handle sparse arrays (preserving existing renderer.lua logic)
-        -- This robust iteration handles nil gaps while preserving numeric order
         local numeric_indices = {}
         for k, _ in pairs(lens_items) do
           if type(k) == "number" then
@@ -22,64 +27,89 @@ function M.combine_provider_data(provider_lens_data, provider_configs)
           end
         end
         table.sort(numeric_indices)
-        
+
         for _, idx in ipairs(numeric_indices) do
           local item = lens_items[idx]
           if item and item.line and item.text and item.text ~= "" then
             combined[item.line] = combined[item.line] or {}
-            table.insert(combined[item.line], item.text)
+            table.insert(combined[item.line], {
+              text = item.text,
+              highlight = resolve_highlight(item.highlight, provider_config.highlight)
+            })
           end
         end
       end
     end
   end
-  
-  return combined -- { [1-based line] = { "txt1", "txt2", ... } }
+
+  return combined
 end
 
--- Complete extmark options builder that consolidates all duplication
--- Replaces create_extmark_opts() from renderer.lua and make_opts() from focused_renderer.lua
-function M.compute_extmark_opts(args)
-  -- args: { placement, texts, separator, highlight, prefix, line_content, ephemeral }
-  local placement = args.placement or "above"
-  local combined_text = table.concat(args.texts or {}, args.separator or " • ")
-  local highlight = args.highlight or "Comment"
-  local prefix = args.prefix or ""
-  
-  if placement == "inline" then
-    -- Inline: virtual text at end of line, with prefix if configured
-    local virt_text = {}
-    
-    -- Add prefix if configured
-    if prefix ~= "" then
-      table.insert(virt_text, { prefix, highlight })
+local function build_content_chunks(texts, separator, global_hl)
+  local chunks = {}
+  for i, entry in ipairs(texts) do
+    if i > 1 then
+      table.insert(chunks, { separator, global_hl })
     end
-    
-    table.insert(virt_text, { combined_text, highlight })
-    
-    -- Combine all parts into a single string with a leading space
-    local inline_text = " " .. table.concat(vim.tbl_map(function(t) return t[1] end, virt_text), "")
-    
+    local text, hl
+    if type(entry) == "table" then
+      text = entry.text or ""
+      hl = entry.highlight or global_hl
+    else
+      text = entry
+      hl = global_hl
+    end
+    table.insert(chunks, { text, hl })
+  end
+  return chunks
+end
+
+function M.compute_extmark_opts(args)
+  local placement = args.placement or "above"
+  local global_hl = args.highlight or "Comment"
+  local prefix = args.prefix or ""
+  local separator = args.separator or " • "
+  local texts = args.texts or {}
+
+  local chunks = build_content_chunks(texts, separator, global_hl)
+
+  if placement == "inline" then
+    local virt_text = {}
+    local leader = " "
+    if prefix ~= "" then
+      leader = leader .. prefix
+    end
+    table.insert(virt_text, { leader, global_hl })
+    for _, chunk in ipairs(chunks) do
+      table.insert(virt_text, chunk)
+    end
+
     return {
-      virt_text = { { inline_text, highlight } },
+      virt_text = virt_text,
       virt_text_pos = "eol",
       hl_mode = "combine",
       ephemeral = args.ephemeral or false
     }
   else
-    -- Above: virtual lines above function, with prefix and indentation
-    -- Preserve exact indentation logic from current implementations
     local leading_whitespace = (args.line_content or ""):match("^%s*") or ""
     local virt_text = {}
-    
+
     if leading_whitespace ~= "" then
-      table.insert(virt_text, { leading_whitespace, highlight })
+      table.insert(virt_text, { leading_whitespace, global_hl })
     end
-    
-    -- Combine prefix with text as single entry for consistency
-    local display_text = prefix .. combined_text
-    table.insert(virt_text, { display_text, highlight })
-    
+
+    if prefix ~= "" then
+      table.insert(virt_text, { prefix, global_hl })
+    end
+
+    for _, chunk in ipairs(chunks) do
+      table.insert(virt_text, chunk)
+    end
+
+    if #virt_text == 0 then
+      table.insert(virt_text, { "", global_hl })
+    end
+
     return {
       virt_lines = { virt_text },
       virt_lines_above = true,
