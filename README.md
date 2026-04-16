@@ -151,12 +151,13 @@ lensline.nvim works out of the box with sensible defaults. You can customize it 
               name = "last_author",
               enabled = true,         -- enabled by default with caching optimization
               cache_max_files = 50,   -- maximum number of files to cache blame data for (default: 50)
+              highlight = "String",   -- optional: override style.highlight for this provider
             },
             -- additional built-in or custom providers can be added here
           },
           style = {
             separator = " • ",      -- separator between all lens attributes
-            highlight = "Comment",  -- highlight group for lens text
+            highlight = "Comment",  -- default highlight group for lens text (providers can override)
             prefix = "┃ ",         -- prefix before lens content
             placement = "above",    -- "above" | "inline" - where to render lenses (consider prefix = "" for inline)
             use_nerdfont = true,    -- enable nerd font icons in built-in providers
@@ -224,6 +225,41 @@ For a more subtle, distraction-free experience, try this minimal configuration t
   end,
 }
 ```
+
+</details>
+
+<details>
+<summary><strong>Per-Provider Highlights</strong> - Different colors for each provider</summary>
+
+Each provider can have its own highlight group, making it easy to visually distinguish between different types of information:
+
+```lua
+{
+  'oribarilan/lensline.nvim',
+  branch = 'release/2.x',
+  event = 'LspAttach',
+  config = function()
+    require('lensline').setup {
+      profiles = {
+        {
+          name = 'colorful',
+          providers = {
+            { name = 'usages', enabled = true, highlight = 'Function' },
+            { name = 'last_author', enabled = true, highlight = 'String' },
+          },
+          style = {
+            highlight = 'Comment', -- fallback for providers without a highlight
+          },
+        },
+      },
+    }
+  end,
+}
+```
+
+The highlight fallback chain is: result-level highlight (from provider callback) -> provider config `highlight` -> global `style.highlight`.
+
+Custom providers can also return per-result highlights via the callback (see [providers.md](providers.md)).
 
 </details>
 
