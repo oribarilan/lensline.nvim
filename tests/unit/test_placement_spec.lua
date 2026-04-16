@@ -443,8 +443,9 @@ describe("placement configuration", function()
       
       -- Verify text content
       local virt_text = details.virt_text
-      eq(1, #virt_text, "should have exactly one virt_text entry")
-      eq(" 5 refs", virt_text[1][1], "should have correct text with leading space")
+      eq(2, #virt_text, "should have leader and content virt_text entries")
+      eq(" ", virt_text[1][1], "should have leading space")
+      eq("5 refs", virt_text[2][1], "should have correct text content")
     end)
     
     it("should create correct extmark properties for above placement", function()

@@ -15,10 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed zero reference count for Go methods with receivers (e.g. `func (c *Client) doWithRetry(...)`) by using `selectionRange` for accurate symbol positioning and handling qualified names from gopls (e.g. `(*Client).doWithRetry`)
-- Faster startup time and more efficient caching by replacing gitignored caching from eager & bulk to lazy and per-file. This solves issues with large repos where initial caching could take a long time.
+- _No changes yet_
 
 ### Breaking
 - _No changes yet_
+
+## [v2.1.0] - 2026-04-16
+
+### Added
+- **Per-highlight support**: Different highlight groups per provider and per result, instead of one global `style.highlight`
+  - Provider-level: set `highlight = "SomeHl"` in provider config to color all its results
+  - Result-level: provider callbacks can return `highlight` per item to override the provider highlight
+  - Fallback chain: result highlight → provider config highlight → global `style.highlight`
+  - Separator and prefix always use global `style.highlight`
+  - Fully backward compatible — existing configs without highlight customization behave identically
+
+### Fixed
+- Faster startup time and more efficient caching by replacing gitignored caching from eager & bulk to lazy and per-file. This solves issues with large repos where initial caching could take a long time.
 
 ## [v2.0.0] - 2025-09-27
 

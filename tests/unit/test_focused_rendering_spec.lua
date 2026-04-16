@@ -201,9 +201,9 @@ describe("focused rendering system", function()
           }
         },
         expected = {
-          [10] = {"A", "B"},
-          [11] = {"D"},
-          [12] = {"C"}
+          [10] = {{ text = "A" }, { text = "B" }},
+          [11] = {{ text = "D" }},
+          [12] = {{ text = "C" }}
         }
       },
       {
@@ -226,7 +226,7 @@ describe("focused rendering system", function()
           }
         },
         expected = {
-          [10] = {"Valid"}
+          [10] = {{ text = "Valid" }}
         }
       }
     }
