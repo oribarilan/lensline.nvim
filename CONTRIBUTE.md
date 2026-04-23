@@ -153,3 +153,4 @@ Example:
 5. **Merge to release branch**: Merge the main branch into the appropriate release branch:
    - For v1.x releases: merge into `release/1.x` branch
 6. **Tag Release**: Create a new tag for the release (e.g., `v1.0.0`, `v1.1.0`) on the appropriate release branch
+7. **Create GitHub Release**: Create a GitHub Release from the tag (via UI or `gh release create`). Without this, the release won't appear on the GitHub Releases page or in the "Latest release" badge.
