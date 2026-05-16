@@ -1,17 +1,27 @@
 local M = {}
 
--- Cache storage
+-- Cache storage (keys are normalized paths)
 local cache = {
-  data = {},           -- { filename -> { mtime, end_line, line_authors } }
-  access_order = {},   -- [filename1, filename2, ...] (LRU order)
-  max_files = 50,      -- Default, will be configurable
-  
-  -- Stats for debugging
+  data = {},
+  access_order = {},
+  max_files = 50,
   hits = 0,
   misses = 0
 }
 
--- Update access order for LRU
+local pending = {}
+
+local function normalized_path(filename)
+  if filename == "" then
+    return filename
+  end
+  return vim.fn.fnamemodify(filename, ":p")
+end
+
+local function pending_key(normalized, end_line)
+  return normalized .. ":" .. tostring(end_line)
+end
+
 local function update_access_order(filename)
   -- Remove from current position
   for i, name in ipairs(cache.access_order) do
@@ -44,6 +54,58 @@ local function get_file_mtime(filename)
   local stat = vim.loop.fs_stat(filename)
   return stat and stat.mtime.sec or 0
 end
+
+local function spawn_command_async(cmd, callback)
+  local stdout = vim.loop.new_pipe(false)
+  local stderr = vim.loop.new_pipe(false)
+  local stdout_chunks = {}
+  local stderr_chunks = {}
+
+  local handle
+  handle = vim.loop.spawn(cmd[1], {
+    args = vim.list_slice(cmd, 2),
+    stdio = { nil, stdout, stderr },
+  }, function(code, signal)
+    stdout:close()
+    stderr:close()
+    handle:close()
+
+    vim.schedule(function()
+      if code == 0 then
+        local output = table.concat(stdout_chunks, "")
+        local lines = {}
+        for line in output:gmatch("([^\n]*)\n?") do
+          if line ~= "" then
+            table.insert(lines, line)
+          end
+        end
+        callback(nil, lines)
+      else
+        local err = table.concat(stderr_chunks, "")
+        callback({ code = code, message = err }, nil)
+      end
+    end)
+  end)
+
+  if not handle then
+    callback({ message = "Failed to spawn command" }, nil)
+    return
+  end
+
+  stdout:read_start(function(err, data)
+    if data then
+      table.insert(stdout_chunks, data)
+    end
+  end)
+
+  stderr:read_start(function(err, data)
+    if data then
+      table.insert(stderr_chunks, data)
+    end
+  end)
+end
+
+M.spawn_command_async = spawn_command_async
 
 -- Parse git blame output and create line-by-line author map
 local function parse_blame_to_line_map(blame_output)
@@ -87,81 +149,96 @@ local function parse_blame_to_line_map(blame_output)
   return line_authors
 end
 
--- Get cached blame data or fetch from git
-function M.get_blame_data(filename, bufnr)
+local function finish_pending(pend_key, line_authors)
+  local callbacks = pending[pend_key]
+  pending[pend_key] = nil
+  if callbacks then
+    for _, cb in ipairs(callbacks) do
+      cb(line_authors)
+    end
+  end
+end
+
+function M.get_blame_data(filename, bufnr, callback)
   local debug = require("lensline.debug")
   local limits = require("lensline.limits")
-  
-  -- Get current file mtime and truncated end line
+  local normalized = normalized_path(filename)
+  if normalized == "" then
+    debug.log_context("BlameCache", "empty filename")
+    callback(nil)
+    return
+  end
+
   local current_mtime = get_file_mtime(filename)
   if current_mtime == 0 then
     debug.log_context("BlameCache", "file not found or inaccessible: " .. filename)
-    return nil
+    callback(nil)
+    return
   end
-  
+
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
   local end_line = limits.get_truncated_end_line(bufnr, total_lines)
-  
   if end_line == 0 then
     debug.log_context("BlameCache", "file should be skipped entirely: " .. filename)
-    return nil
+    callback(nil)
+    return
   end
-  
-  -- Check cache
-  local cache_entry = cache.data[filename]
-  if cache_entry and 
-     cache_entry.mtime == current_mtime and 
-     cache_entry.end_line == end_line then
-    -- Cache hit
+
+  local cache_entry = cache.data[normalized]
+  if cache_entry and cache_entry.mtime == current_mtime and cache_entry.end_line == end_line then
     cache.hits = cache.hits + 1
-    update_access_order(filename)
-    debug.log_context("BlameCache", "cache hit for " .. filename .. " (lines 1-" .. end_line .. ")")
-    return cache_entry.line_authors
+    update_access_order(normalized)
+    debug.log_context("BlameCache", "cache hit for " .. normalized .. " (lines 1-" .. end_line .. ")")
+    callback(cache_entry.line_authors)
+    return
   end
-  
-  -- Cache miss - fetch from git
+
+  local pend_key = pending_key(normalized, end_line)
+  if pending[pend_key] then
+    table.insert(pending[pend_key], callback)
+    return
+  end
+
   cache.misses = cache.misses + 1
-  debug.log_context("BlameCache", "cache miss for " .. filename .. " (lines 1-" .. end_line .. ")")
-  
-  -- Get git root
+  debug.log_context("BlameCache", "cache miss for " .. normalized .. " (lines 1-" .. end_line .. ")")
+  pending[pend_key] = { callback }
+
   local file_dir = vim.fn.fnamemodify(filename, ":h")
   local git_root_cmd = { "git", "-C", file_dir, "rev-parse", "--show-toplevel" }
-  local git_root_result = vim.fn.systemlist(git_root_cmd)
-  local git_root = git_root_result[1]
-  
-  if vim.v.shell_error ~= 0 or not git_root or git_root == "" then
-    debug.log_context("BlameCache", "not in git repository: " .. filename)
-    return nil
-  end
-  
-  -- Run git blame for the truncated range
-  local lines_range = "1," .. end_line
-  local blame_cmd = { "git", "-C", git_root, "blame", "--line-porcelain", "-L", lines_range, filename }
-  local blame_output = vim.fn.systemlist(blame_cmd)
-  
-  if vim.v.shell_error ~= 0 then
-    debug.log_context("BlameCache", "git blame failed for " .. filename .. ": " .. vim.v.shell_error)
-    return nil
-  end
-  
-  -- Parse blame output to line map
-  local line_authors = parse_blame_to_line_map(blame_output)
-  
-  -- Store in cache (evict if necessary)
-  if vim.tbl_count(cache.data) >= cache.max_files then
-    evict_lru()
-  end
-  
-  cache.data[filename] = {
-    mtime = current_mtime,
-    end_line = end_line,
-    line_authors = line_authors
-  }
-  
-  update_access_order(filename)
-  debug.log_context("BlameCache", "cached blame data for " .. filename .. " (" .. vim.tbl_count(line_authors) .. " lines)")
-  
-  return line_authors
+
+  M.spawn_command_async(git_root_cmd, function(err, git_root_result)
+    if err or not git_root_result or #git_root_result == 0 then
+      debug.log_context("BlameCache", "not in git repository: " .. filename)
+      finish_pending(pend_key, nil)
+      return
+    end
+
+    local git_root = git_root_result[1]
+    local lines_range = "1," .. end_line
+    local blame_cmd = { "git", "-C", git_root, "blame", "--line-porcelain", "-L", lines_range, filename }
+
+    M.spawn_command_async(blame_cmd, function(blame_err, blame_output)
+      if blame_err then
+        debug.log_context("BlameCache", "git blame failed for " .. filename .. ": " .. (blame_err.message or "unknown error"))
+        finish_pending(pend_key, nil)
+        return
+      end
+
+      local line_authors = parse_blame_to_line_map(blame_output)
+      if vim.tbl_count(cache.data) >= cache.max_files then
+        evict_lru()
+      end
+
+      cache.data[normalized] = {
+        mtime = current_mtime,
+        end_line = end_line,
+        line_authors = line_authors
+      }
+      update_access_order(normalized)
+      debug.log_context("BlameCache", "cached blame data for " .. normalized .. " (" .. vim.tbl_count(line_authors) .. " lines)")
+      finish_pending(pend_key, line_authors)
+    end)
+  end)
 end
 
 -- Helper function to estimate function end line when not provided
@@ -204,48 +281,38 @@ local function estimate_function_end(bufnr, start_line)
   return end_line
 end
 
--- Get author info for a specific function range
-function M.get_function_author(filename, bufnr, func_info)
-  local line_authors = M.get_blame_data(filename, bufnr)
-  if not line_authors then
-    return nil
-  end
-  
-  local function_start = func_info.line
-  local function_end = func_info.end_line
-  
-  -- If no end_line provided, estimate it
-  if not function_end then
-    function_end = estimate_function_end(bufnr, function_start)
-  end
-  
-  -- Find the most recent author in the function range
-  local latest_author, latest_time = nil, 0
-  
-  for line = function_start, function_end do
-    local line_info = line_authors[line]
-    if line_info and line_info.time > latest_time then
-      latest_author = line_info.author
-      latest_time = line_info.time
+function M.get_function_author(filename, bufnr, func_info, callback)
+  M.get_blame_data(filename, bufnr, function(line_authors)
+    if not line_authors then
+      callback(nil)
+      return
     end
-  end
-  
-  if latest_author and latest_time > 0 then
-    -- Handle uncommitted changes - don't include misleading timestamp
-    if latest_author == "Not Committed Yet" then
-      return {
-        author = "uncommitted",
-        time = nil  -- No meaningful timestamp for uncommitted changes
-      }
+
+    local function_start = func_info.line
+    local function_end = func_info.end_line
+    if not function_end then
+      function_end = estimate_function_end(bufnr, function_start)
     end
-    
-    return {
-      author = latest_author,
-      time = latest_time
-    }
-  end
-  
-  return nil
+
+    local latest_author, latest_time = nil, 0
+    for line = function_start, function_end do
+      local line_info = line_authors[line]
+      if line_info and line_info.time > latest_time then
+        latest_author = line_info.author
+        latest_time = line_info.time
+      end
+    end
+
+    if latest_author and latest_time > 0 then
+      if latest_author == "Not Committed Yet" then
+        callback({ author = "uncommitted", time = nil })
+        return
+      end
+      callback({ author = latest_author, time = latest_time })
+      return
+    end
+    callback(nil)
+  end)
 end
 
 -- Configure cache settings
@@ -267,13 +334,14 @@ function M.get_stats()
   }
 end
 
--- Clear cache (useful for testing or config changes)
 function M.clear_cache()
   cache.data = {}
   cache.access_order = {}
   cache.hits = 0
   cache.misses = 0
-  
+  for k in pairs(pending) do
+    pending[k] = nil
+  end
   local debug = require("lensline.debug")
   debug.log_context("BlameCache", "cache cleared")
 end

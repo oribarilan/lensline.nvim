@@ -1,22 +1,22 @@
 local eq = assert.are.same
+local test_utils = require("tests.test_utils")
+local await = test_utils.await
 
--- Helpers
 local function with_patch(tbl, key, new_impl, fn)
   local orig = tbl[key]
   tbl[key] = new_impl
   local ok, err = pcall(fn)
   tbl[key] = orig
-  if not ok then error(err) end
+  if not ok then
+    error(err)
+  end
 end
 
--- (with_patches helper removed as unused)
-
--- Fabricate blame porcelain block for a single final line
 local function blame_block(final_line, author, time)
   return {
     string.format("%s %d %d 1", "deadbeef", final_line, final_line),
     "author " .. author,
-    "author-mail <" .. author:lower():gsub("%s+","_") .. "@example.com>",
+    "author-mail <" .. author:lower():gsub("%s+", "_") .. "@example.com>",
     "author-time " .. time,
     "author-tz +0000",
   }
@@ -24,8 +24,6 @@ end
 
 describe("blame_cache core behavior", function()
   local blame_cache = require("lensline.blame_cache")
-
-  -- Provide deterministic time
   local fake_mtime = { sec = 123456 }
 
   local function reset()
@@ -52,7 +50,7 @@ describe("blame_cache core behavior", function()
     local blame_fail = opts.blame_fail
     local rev_parse_fail = opts.rev_parse_fail
     local blame_lines = opts.blame_lines or {}
-    local system_calls = {}
+    local spawn_calls = {}
 
     -- Patch vim.loop.fs_stat
     local function fs_stat_stub(fname)
@@ -70,33 +68,40 @@ describe("blame_cache core behavior", function()
       return requested
     end
 
-    local function systemlist_stub(cmd_tbl)
-      -- Capture call
-      table.insert(system_calls, cmd_tbl)
-      -- Identify call type (index 4 = subcommand: rev-parse / blame)
-      local sub = cmd_tbl[4]
-      if sub == "rev-parse" then
-        -- Simulate non-git repo by returning empty root when requested
+    local function spawn_stub(cmd, callback)
+      table.insert(spawn_calls, cmd)
+      local args = vim.list_slice(cmd, 2)
+      local is_rev_parse = false
+      local is_blame = false
+      for _, arg in ipairs(args) do
+        if arg == "rev-parse" then
+          is_rev_parse = true
+        end
+        if arg == "blame" then
+          is_blame = true
+        end
+      end
+      if is_rev_parse then
         if rev_parse_fail then
-          return { "" } -- empty string triggers nil/empty root path branch
+          callback({ message = "not a git repo" }, nil)
+        else
+          callback(nil, { "/repo" })
         end
-        return { "/repo" }
-      elseif sub == "blame" then
-        -- Cannot modify vim.v.shell_error (readonly in this environment), so only success path is testable
+      elseif is_blame then
         if blame_fail then
-          -- Simulate blame failure by returning an empty table; code only checks shell_error (unmodifiable) so we skip this scenario
-          return {}
+          callback({ message = "blame failed" }, nil)
+        else
+          callback(nil, blame_lines)
         end
-        return blame_lines
       else
-        return {}
+        callback({ message = "unknown command" }, nil)
       end
     end
 
-    return system_calls, function(run)
+    return spawn_calls, function(run)
       with_patch(vim.loop, "fs_stat", fs_stat_stub, function()
         with_patch(limits, "get_truncated_end_line", limits_truncated_end_line, function()
-          with_patch(vim.fn, "systemlist", systemlist_stub, function()
+          with_patch(blame_cache, "spawn_command_async", spawn_stub, function()
             run()
           end)
         end)
@@ -109,22 +114,26 @@ describe("blame_cache core behavior", function()
   it("cache miss then hit (single file) increments stats appropriately", function()
     reset()
     local f1 = make_file("file_a")
-    local system_calls, harness = stub_environment{
-      blame_lines = vim.tbl_flatten{
+    local spawn_calls, harness = stub_environment({
+      blame_lines = vim.tbl_flatten({
         blame_block(1, "Alice", 1000),
         blame_block(2, "Alice", 1001),
-      },
-    }
+      }),
+    })
 
     harness(function()
-      local first = blame_cache.get_blame_data(f1, 0)
+      local first = await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       eq("Alice", first[1].author)
       local stats1 = blame_cache.get_stats()
       eq(1, stats1.misses)
       eq(0, stats1.hits)
 
       -- Second call should be hit (no second blame invocation)
-      local second = blame_cache.get_blame_data(f1, 0)
+      local second = await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       eq(first, second)
       local stats2 = blame_cache.get_stats()
       eq(1, stats2.misses)
@@ -132,8 +141,13 @@ describe("blame_cache core behavior", function()
 
       -- Ensure only one blame command (rev-parse + blame once)
       local blame_invocations = 0
-      for _, cmd in ipairs(system_calls) do
-        if cmd[4] == "blame" then blame_invocations = blame_invocations + 1 end
+      for _, cmd in ipairs(spawn_calls) do
+        for _, arg in ipairs(cmd) do
+          if arg == "blame" then
+            blame_invocations = blame_invocations + 1
+            break
+          end
+        end
       end
       eq(1, blame_invocations)
     end)
@@ -143,23 +157,32 @@ describe("blame_cache core behavior", function()
     reset()
     blame_cache.configure({ max_files = 2 })
     local files = { make_file("f1"), make_file("f2"), make_file("f3") }
-
-    local base_lines = vim.tbl_flatten{ blame_block(1, "A", 100), blame_block(2, "B", 101) }
-
-    local system_calls, harness = stub_environment{ blame_lines = base_lines }
+    local base_lines = vim.tbl_flatten({ blame_block(1, "A", 100), blame_block(2, "B", 101) })
+    local _, harness = stub_environment({ blame_lines = base_lines })
 
     harness(function()
-      -- Load first two (misses)
-      eq("A", blame_cache.get_blame_data(files[1], 0)[1].author)
-      eq("A", blame_cache.get_blame_data(files[2], 0)[1].author)
-      -- Access first again to make second oldest
-      eq("A", blame_cache.get_blame_data(files[1], 0)[1].author)
-      -- Load third -> should evict file 2
-      eq("A", blame_cache.get_blame_data(files[3], 0)[1].author)
+      local data1 = await(function(cb)
+        blame_cache.get_blame_data(files[1], 0, cb)
+      end)
+      eq("A", data1[1].author)
+      local data2 = await(function(cb)
+        blame_cache.get_blame_data(files[2], 0, cb)
+      end)
+      eq("A", data2[1].author)
+      local data1again = await(function(cb)
+        blame_cache.get_blame_data(files[1], 0, cb)
+      end)
+      eq("A", data1again[1].author)
+      local data3 = await(function(cb)
+        blame_cache.get_blame_data(files[3], 0, cb)
+      end)
+      eq("A", data3[1].author)
       local stats = blame_cache.get_stats()
-      eq(3, stats.misses) -- each initial load is a miss
-      -- Access file 2 again -> miss after eviction
-      eq("A", blame_cache.get_blame_data(files[2], 0)[1].author)
+      eq(3, stats.misses)
+      local data2again = await(function(cb)
+        blame_cache.get_blame_data(files[2], 0, cb)
+      end)
+      eq("A", data2again[1].author)
       local stats2 = blame_cache.get_stats()
       eq(4, stats2.misses)
     end)
@@ -168,12 +191,14 @@ describe("blame_cache core behavior", function()
   it("non-git directory returns nil (rev-parse failure simulated with empty root)", function()
     reset()
     local f1 = make_file("nogit")
-    local _, harness = stub_environment{
+    local _, harness = stub_environment({
       rev_parse_fail = true,
       blame_lines = {},
-    }
+    })
     harness(function()
-      local data = blame_cache.get_blame_data(f1, 0)
+      local data = await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       eq(nil, data)
     end)
   end)
@@ -184,19 +209,27 @@ describe("blame_cache core behavior", function()
   it("truncation respects limits.get_truncated_end_line", function()
     reset()
     local f1 = make_file("truncate")
-    local system_calls, harness = stub_environment{
-      truncate = 1, -- force truncation to line 1
+    local spawn_calls, harness = stub_environment({
+      truncate = 1,
       blame_lines = blame_block(1, "Alice", 1111),
-    }
+    })
     harness(function()
-      local data = blame_cache.get_blame_data(f1, 0)
+      local data = await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       eq("Alice", data[1].author)
-      -- Ensure blame command used -L 1,1
       local seen_range = false
-      for _, cmd in ipairs(system_calls) do
-        if cmd[4] == "blame" then
-          for i,v in ipairs(cmd) do
-            if v == "-L" and cmd[i+1] == "1,1" then
+      for _, cmd in ipairs(spawn_calls) do
+        local has_blame = false
+        for _, arg in ipairs(cmd) do
+          if arg == "blame" then
+            has_blame = true
+            break
+          end
+        end
+        if has_blame then
+          for i, v in ipairs(cmd) do
+            if v == "-L" and cmd[i + 1] == "1,1" then
               seen_range = true
             end
           end
@@ -209,17 +242,21 @@ describe("blame_cache core behavior", function()
   it("mixed authors selects most recent timestamp", function()
     reset()
     local f1 = make_file("mixed")
-    local lines = vim.tbl_flatten{
+    local lines = vim.tbl_flatten({
       blame_block(1, "OldAuthor", 100),
       blame_block(2, "NewAuthor", 200),
       blame_block(3, "Middle", 150),
-    }
-    local _, harness = stub_environment{ blame_lines = lines }
+    })
+    local _, harness = stub_environment({ blame_lines = lines })
     harness(function()
-      local data = blame_cache.get_blame_data(f1, 0)
+      local data = await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       eq("NewAuthor", data[2].author)
       -- get_function_author should return NewAuthor for range lines 1..3
-      local info = blame_cache.get_function_author(f1, 0, { line = 1, end_line = 3 })
+      local info = await(function(cb)
+        blame_cache.get_function_author(f1, 0, { line = 1, end_line = 3 }, cb)
+      end)
       eq("NewAuthor", info.author)
       eq(200, info.time)
     end)
@@ -228,24 +265,90 @@ describe("blame_cache core behavior", function()
   it("uncommitted author string maps to 'uncommitted'", function()
     reset()
     local f1 = make_file("uncommitted")
-    local lines = vim.tbl_flatten{
+    local lines = vim.tbl_flatten({
       blame_block(1, "Not Committed Yet", 1000),
-    }
-    local _, harness = stub_environment{ blame_lines = lines }
+    })
+    local _, harness = stub_environment({ blame_lines = lines })
     harness(function()
-      local info = blame_cache.get_function_author(f1, 0, { line = 1, end_line = 1 })
+      local info = await(function(cb)
+        blame_cache.get_function_author(f1, 0, { line = 1, end_line = 1 }, cb)
+      end)
       eq({ author = "uncommitted", time = nil }, info)
+    end)
+  end)
+
+  it("only one git blame runs per file when multiple callers request same file", function()
+    reset()
+    local f1 = make_file("concurrent")
+    local blame_invoked = 0
+    local resolve_blame
+    local blame_lines = vim.tbl_flatten({
+      blame_block(1, "Alice", 1000),
+      blame_block(2, "Bob", 1001),
+    })
+    local function delaying_spawn(cmd, callback)
+      local args = vim.list_slice(cmd, 2)
+      local is_rev_parse, is_blame = false, false
+      for _, arg in ipairs(args) do
+        if arg == "rev-parse" then is_rev_parse = true end
+        if arg == "blame" then is_blame = true end
+      end
+      if is_rev_parse then
+        callback(nil, { "/repo" })
+        return
+      end
+      if is_blame then
+        blame_invoked = blame_invoked + 1
+        resolve_blame = function()
+          callback(nil, blame_lines)
+        end
+        return
+      end
+      callback({ message = "unknown" }, nil)
+    end
+
+    local _, harness = stub_environment({ blame_lines = blame_lines })
+    harness(function()
+      with_patch(blame_cache, "spawn_command_async", delaying_spawn, function()
+        local results = {}
+        local done = 0
+        for i = 1, 3 do
+          blame_cache.get_blame_data(f1, 0, function(data)
+            results[i] = data
+            done = done + 1
+          end)
+        end
+        eq(0, done)
+        assert(resolve_blame, "blame should have been started")
+        resolve_blame()
+        local wait_start = vim.loop.hrtime()
+        while done < 3 do
+          vim.loop.run("nowait")
+          vim.wait(10, function()
+            return done >= 3
+          end, 100)
+          if (vim.loop.hrtime() - wait_start) / 1000000 > 2000 then
+            error("timeout waiting for 3 callbacks")
+          end
+        end
+        eq(1, blame_invoked)
+        eq("Alice", results[1][1].author)
+        eq("Alice", results[2][1].author)
+        eq("Alice", results[3][1].author)
+      end)
     end)
   end)
 
   it("clear_cache resets stats", function()
     reset()
     local f1 = make_file("reset_stats")
-    local _, harness = stub_environment{
+    local _, harness = stub_environment({
       blame_lines = blame_block(1, "Alice", 3210),
-    }
+    })
     harness(function()
-      blame_cache.get_blame_data(f1, 0)
+      await(function(cb)
+        blame_cache.get_blame_data(f1, 0, cb)
+      end)
       local s1 = blame_cache.get_stats()
       eq(1, s1.misses)
       blame_cache.clear_cache()

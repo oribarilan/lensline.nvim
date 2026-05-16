@@ -53,33 +53,27 @@ return {
     local cache_max_files = provider_config and provider_config.cache_max_files or 50
     blame_cache.configure({ max_files = cache_max_files })
     
-    -- Use cached blame data to get function author
-    local author_info = blame_cache.get_function_author(filename, bufnr, func_info)
-    
-    if not author_info then
-      debug.log_context("LastAuthor", "no author info found for function at line " .. func_info.line)
-      callback(nil)
-      return
-    end
-    
-    -- Format the result
-    local icon = utils.if_nerdfont_else("󰊢 ", "")
-    local result_text
-    
-    if author_info.time then
-      local relative_time = format_relative_time(author_info.time)
-      result_text = icon .. author_info.author .. ", " .. relative_time
-    else
-      -- Uncommitted changes don't have a meaningful timestamp
-      result_text = icon .. author_info.author
-    end
-    
-    local result = {
-      line = func_info.line,
-      text = result_text
-    }
-    
-    -- Always call callback (async-only)
-    callback(result)
+    blame_cache.get_function_author(filename, bufnr, func_info, function(author_info)
+      if not author_info then
+        debug.log_context("LastAuthor", "no author info found for function at line " .. func_info.line)
+        callback(nil)
+        return
+      end
+
+      local icon = utils.if_nerdfont_else("󰊢 ", "")
+      local result_text
+      if author_info.time then
+        local relative_time = format_relative_time(author_info.time)
+        result_text = icon .. author_info.author .. ", " .. relative_time
+      else
+        result_text = icon .. author_info.author
+      end
+
+      local result = {
+        line = func_info.line,
+        text = result_text
+      }
+      callback(result)
+    end)
   end
 }
