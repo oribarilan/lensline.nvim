@@ -3,6 +3,10 @@ local M = {}
 -- Cache for expensive operations
 local cache = {}
 local gitignore_cache = {}
+-- Pending async gitignore checks: filepath -> list of callbacks waiting for
+-- the in-flight `git check-ignore` to return. Used to deduplicate concurrent
+-- callers asking about the same file.
+local gitignore_pending = {}
 
 -- Clear cache when config changes
 function M.clear_cache()
@@ -42,6 +46,51 @@ local function matches_glob_pattern(filepath, patterns)
     end
   end
   return false
+end
+
+-- Async variant of is_gitignored. Resolves cache hits synchronously via cb;
+-- on cache miss, spawns `git check-ignore` off the main thread (via
+-- blame_cache.spawn_command_async) and queues concurrent callers so only
+-- one process is spawned per filepath.
+local function is_gitignored_async(filepath, cb)
+  local cached = gitignore_cache[filepath]
+  if cached == true or cached == false then
+    cb(cached)
+    return
+  end
+
+  local git_dir = vim.fn.finddir('.git', vim.fn.fnamemodify(filepath, ':h') .. ';')
+  if git_dir == '' then
+    gitignore_cache[filepath] = false
+    cb(false)
+    return
+  end
+
+  -- A check is already in flight for this filepath; queue and wait.
+  if gitignore_pending[filepath] then
+    table.insert(gitignore_pending[filepath], cb)
+    return
+  end
+
+  gitignore_pending[filepath] = { cb }
+  local git_root = vim.fn.fnamemodify(git_dir, ':h')
+  local relative_path = vim.fn.fnamemodify(filepath, ':.')
+  local cmd = { "git", "-C", git_root, "check-ignore", "-q", relative_path }
+
+  local blame_cache = require("lensline.blame_cache")
+  blame_cache.spawn_command_async(cmd, function(err, _)
+    -- git check-ignore exits 0 when the file IS ignored; non-zero (which
+    -- spawn_command_async surfaces as err) means not ignored.
+    local is_ignored = (err == nil)
+    gitignore_cache[filepath] = is_ignored
+    local callbacks = gitignore_pending[filepath]
+    gitignore_pending[filepath] = nil
+    if callbacks then
+      for _, queued_cb in ipairs(callbacks) do
+        queued_cb(is_ignored)
+      end
+    end
+  end)
 end
 
 -- Check if a file is gitignored using git check-ignore
@@ -152,6 +201,47 @@ function M.should_skip(bufnr)
   }
   
   return false, nil, metadata
+end
+
+-- Async gate: callers must wait for cb(skip, reason) before proceeding into
+-- any work that touches providers, blame, or function discovery. This is the
+-- single entry point that may spawn `git check-ignore`; downstream helpers
+-- (e.g. get_truncated_end_line) assume the gitignore decision is settled.
+function M.should_skip_async(bufnr, cb)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    cb(true, "invalid buffer")
+    return
+  end
+
+  local config = require("lensline.config").get()
+  local limits_config = config.limits or {}
+
+  local filepath = vim.api.nvim_buf_get_name(bufnr)
+  if filepath == '' then
+    cb(false)
+    return
+  end
+  filepath = vim.fn.fnamemodify(filepath, ":p")
+
+  if limits_config.exclude and #limits_config.exclude > 0 then
+    if matches_glob_pattern(filepath, limits_config.exclude) then
+      cb(true, "excluded by glob pattern")
+      return
+    end
+  end
+
+  if limits_config.exclude_gitignored then
+    is_gitignored_async(filepath, function(is_ignored)
+      if is_ignored then
+        cb(true, "excluded by .gitignore")
+      else
+        cb(false)
+      end
+    end)
+    return
+  end
+
+  cb(false)
 end
 
 -- Check if lens count exceeds limits (called after provider execution)
