@@ -142,7 +142,6 @@ describe("executor provider timeout fallback rendering", function()
           refresh_all_lenses = function() end,
         }, function()
           with_stub("lensline.limits", {
-            should_skip = function() return false end,
             should_skip_lenses = function(count, _)
               should_skip_lenses_calls = should_skip_lenses_calls + 1
               return false, nil

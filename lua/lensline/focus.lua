@@ -36,53 +36,69 @@ local debounced_update = (function()
       return
     end
 
-    -- LSP-only function discovery from lens_explorer (async, cached by changedtick)
-    lens_explorer.discover_functions_async(bufnr, 1, linecount, function(funcs)
-      -- Safety guards
-      if not funcs or #funcs == 0 then
-        -- No functions found - clear focus
+    -- Gate the LSP query on the same limits check the executor uses, so
+    -- gitignored / glob-excluded buffers don't drive function discovery.
+    local limits = require("lensline.limits")
+    limits.should_skip_async(bufnr, function(skip)
+      if skip then
         local key = "nil"
         if key ~= state.focus.key or bufnr ~= state.focus.bufnr then
           state.focus = { s = nil, e = nil, key = key, bufnr = bufnr }
-          -- Trigger a redraw; decoration provider will use state.focus
-          vim.schedule(function() 
-            vim.cmd("redraw!") 
+          vim.schedule(function()
+            vim.cmd("redraw!")
           end)
         end
         return
       end
-      
-      -- Sort functions by line number for binary search
-      table.sort(funcs, function(a, b) return (a.line or 1) < (b.line or 1) end)
 
-      -- Binary search for function containing cursor
-      local s, e
-      local lo, hi = 1, #funcs
-      while lo <= hi do
-        local mid = math.floor((lo + hi) / 2)
-        local f = funcs[mid]
-        local fs = (f.line or 1) - 1      -- Convert to 0-based
-        local fe = (f.end_line or f.line or 1) - 1  -- Convert to 0-based
-        
-        if row0 < fs then
-          hi = mid - 1
-        elseif row0 > fe then
-          lo = mid + 1
-        else
-          -- Found containing function
-          s, e = fs, fe
-          break
+      -- LSP-only function discovery from lens_explorer (async, cached by changedtick)
+      lens_explorer.discover_functions_async(bufnr, 1, linecount, function(funcs)
+        -- Safety guards
+        if not funcs or #funcs == 0 then
+          -- No functions found - clear focus
+          local key = "nil"
+          if key ~= state.focus.key or bufnr ~= state.focus.bufnr then
+            state.focus = { s = nil, e = nil, key = key, bufnr = bufnr }
+            -- Trigger a redraw; decoration provider will use state.focus
+            vim.schedule(function()
+              vim.cmd("redraw!")
+            end)
+          end
+          return
         end
-      end
 
-      local key = s and (s .. ":" .. e) or "nil"
-      if key ~= state.focus.key or bufnr ~= state.focus.bufnr then
-        state.focus = { s = s, e = e, key = key, bufnr = bufnr }
-        -- Trigger a redraw; decoration provider will use state.focus
-        vim.schedule(function() 
-          vim.cmd("redraw!") 
-        end)
-      end
+        -- Sort functions by line number for binary search
+        table.sort(funcs, function(a, b) return (a.line or 1) < (b.line or 1) end)
+
+        -- Binary search for function containing cursor
+        local s, e
+        local lo, hi = 1, #funcs
+        while lo <= hi do
+          local mid = math.floor((lo + hi) / 2)
+          local f = funcs[mid]
+          local fs = (f.line or 1) - 1      -- Convert to 0-based
+          local fe = (f.end_line or f.line or 1) - 1  -- Convert to 0-based
+
+          if row0 < fs then
+            hi = mid - 1
+          elseif row0 > fe then
+            lo = mid + 1
+          else
+            -- Found containing function
+            s, e = fs, fe
+            break
+          end
+        end
+
+        local key = s and (s .. ":" .. e) or "nil"
+        if key ~= state.focus.key or bufnr ~= state.focus.bufnr then
+          state.focus = { s = s, e = e, key = key, bufnr = bufnr }
+          -- Trigger a redraw; decoration provider will use state.focus
+          vim.schedule(function()
+            vim.cmd("redraw!")
+          end)
+        end
+      end)
     end)
   end, delay())
   return debounce_fn

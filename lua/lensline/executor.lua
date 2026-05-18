@@ -77,33 +77,45 @@ function M.trigger_unified_update(bufnr)
     return
   end
   
-  -- Check limits before any provider execution
+  -- Check limits before any provider execution. should_skip_async may spawn
+  -- `git check-ignore` off the main thread; the rest of this function runs
+  -- inside the callback so providers never execute on a buffer we don't
+  -- have a settled gitignore decision for.
   local limits = require("lensline.limits")
-  local should_skip, reason = limits.should_skip(bufnr)
-  if should_skip then
-    local debug = require("lensline.debug")
-    debug.log_context("Executor", "skipping unified update for buffer " .. bufnr .. ": " .. (reason or "unknown"))
-    return
-  end
-  
-  local debounce_key = "unified_" .. bufnr
-  local opts = config.get()
-  local debounce_delay = opts.debounce_ms or 500
-  
-  -- Cancel existing timer to prevent multiple debounced calls
-  if unified_debounce_timer[debounce_key] then
-    unified_debounce_timer[debounce_key]:stop()
-    unified_debounce_timer[debounce_key]:close()
-  end
-  
-  -- Create new debounced execution that triggers all providers
-  unified_debounce_timer[debounce_key] = vim.loop.new_timer()
-  unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
-    vim.schedule(function()
-      -- Verify execution state hasn't changed during debounce delay
-      if not execution_in_progress[bufnr] then
-        M.execute_all_providers(bufnr)
-      end
+  limits.should_skip_async(bufnr, function(should_skip, reason)
+    if should_skip then
+      local debug = require("lensline.debug")
+      debug.log_context("Executor", "skipping unified update for buffer " .. bufnr .. ": " .. (reason or "unknown"))
+      return
+    end
+
+    -- Re-check liveness/state that may have changed while the async ran.
+    if not utils.is_valid_buffer(bufnr) then
+      return
+    end
+    if execution_in_progress[bufnr] then
+      return
+    end
+
+    local debounce_key = "unified_" .. bufnr
+    local opts = config.get()
+    local debounce_delay = opts.debounce_ms or 500
+
+    -- Cancel existing timer to prevent multiple debounced calls
+    if unified_debounce_timer[debounce_key] then
+      unified_debounce_timer[debounce_key]:stop()
+      unified_debounce_timer[debounce_key]:close()
+    end
+
+    -- Create new debounced execution that triggers all providers
+    unified_debounce_timer[debounce_key] = vim.loop.new_timer()
+    unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
+      vim.schedule(function()
+        -- Verify execution state hasn't changed during debounce delay
+        if not execution_in_progress[bufnr] then
+          M.execute_all_providers(bufnr)
+        end
+      end)
     end)
   end)
 end

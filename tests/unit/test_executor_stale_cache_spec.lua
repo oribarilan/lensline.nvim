@@ -121,7 +121,6 @@ describe("executor stale cache immediate render followed by fresh async update",
           namespace = vim.api.nvim_create_namespace("stale_ns"),
         }, function()
           with_stub("lensline.limits", {
-            should_skip = function() return false end,
             should_skip_lenses = function() return false end,
             get_truncated_end_line = function(_, requested) return requested end,
             clear_cache = function() end,

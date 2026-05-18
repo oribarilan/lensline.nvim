@@ -1,14 +1,14 @@
 -- tests/unit/test_limits_spec.lua
--- unit tests for lensline.limits (truncation logic)
+-- unit tests for lensline.limits (truncation + sync gate behaviour)
 
 local eq = assert.are.same
 
-describe("limits.should_skip and get_truncated_end_line", function()
+describe("limits.get_truncated_end_line and should_skip_async", function()
   local limits, config
   local created_buffers = {}
 
   local function reset_modules()
-    for name,_ in pairs(package.loaded) do
+    for name, _ in pairs(package.loaded) do
       if name:match("^lensline") then package.loaded[name] = nil end
     end
     limits = require("lensline.limits")
@@ -38,6 +38,14 @@ describe("limits.should_skip and get_truncated_end_line", function()
     limits.clear_cache()
   end
 
+  local function sync_should_skip(bufnr)
+    local skip, reason
+    limits.should_skip_async(bufnr, function(s, r)
+      skip, reason = s, r
+    end)
+    return skip, reason
+  end
+
   before_each(function()
     reset_modules()
     created_buffers = {}
@@ -60,24 +68,20 @@ describe("limits.should_skip and get_truncated_end_line", function()
   }) do
     it(("handles %s (%d lines, max %d)"):format(tc.name, tc.line_count, tc.max_lines), function()
       setup_limits(tc.max_lines)
-      
+
       local lines = {}
       for i = 1, tc.line_count do
         lines[i] = ("line %d"):format(i)
       end
       local bufnr = make_buf(lines)
-      
-      local skip, reason, meta = limits.should_skip(bufnr)
-      
+
+      local skip, reason = sync_should_skip(bufnr)
       eq(false, skip)
       eq(nil, reason)
-      eq(tc.line_count, meta.line_count)
-      
+
       if tc.should_truncate then
-        eq(tc.max_lines, meta.truncate_to)
         eq(tc.max_lines, limits.get_truncated_end_line(bufnr, tc.line_count))
       else
-        eq(nil, meta.truncate_to)
         eq(tc.line_count, limits.get_truncated_end_line(bufnr, tc.line_count))
       end
     end)
@@ -86,28 +90,22 @@ describe("limits.should_skip and get_truncated_end_line", function()
   it("handles empty buffer", function()
     setup_limits(50)
     local bufnr = make_buf({})
-    
-    local skip, reason, meta = limits.should_skip(bufnr)
-    
+
+    local skip, reason = sync_should_skip(bufnr)
     eq(false, skip)
     eq(nil, reason)
-    eq(1, meta.line_count) -- neovim reports 1 line for empty buffer
-    eq(nil, meta.truncate_to)
     eq(30, limits.get_truncated_end_line(bufnr, 30))
   end)
 
-  it("uses cache on repeated calls", function()
+  it("get_truncated_end_line returns the same value on repeated calls", function()
     setup_limits(15)
     local lines = {}
     for i = 1, 20 do
       lines[i] = ("line%d"):format(i)
     end
     local bufnr = make_buf(lines)
-    
-    local _, _, meta1 = limits.should_skip(bufnr)
-    local _, _, meta2 = limits.should_skip(bufnr)
-    
-    eq(meta1.truncate_to, meta2.truncate_to)
+
+    eq(15, limits.get_truncated_end_line(bufnr, 100))
     eq(15, limits.get_truncated_end_line(bufnr, 100))
   end)
 end)

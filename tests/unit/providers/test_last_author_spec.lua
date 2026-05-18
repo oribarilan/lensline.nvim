@@ -70,7 +70,9 @@ describe("providers.last_author.handler", function()
     with_stub("lensline.debug", { log_context = function() end }, function()
       with_module_patches("lensline.blame_cache", {
         configure = function() end,
-        get_function_author = function() return blame_data end,
+        get_function_author = function(filename, bufnr, func_info, callback)
+          callback(blame_data)
+        end,
       }, function()
         with_stub("lensline.utils", {
           if_nerdfont_else = function(nf, fallback)

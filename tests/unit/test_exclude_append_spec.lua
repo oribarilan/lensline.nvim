@@ -208,8 +208,11 @@ describe("exclude_append integration with limits", function()
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(bufnr, "/some/path/test_exclude/file.js")
     
-    local should_skip, reason = limits.should_skip(bufnr)
-    
+    local should_skip, reason
+    limits.should_skip_async(bufnr, function(s, r)
+      should_skip, reason = s, r
+    end)
+
     -- Should be excluded due to appended pattern
     assert.is_true(should_skip)
     assert.is_not_nil(reason:match("glob pattern"))

@@ -29,4 +29,45 @@ function M.stub_debug_silent()
   package.loaded["lensline.debug"] = { log_context = function() end }
 end
 
+function M.await(async_fn, timeout_ms)
+  timeout_ms = timeout_ms or 5000
+  local done = false
+  local result = nil
+
+  async_fn(function(...)
+    result = { ... }
+    done = true
+  end)
+
+  if done then
+    if not result then
+      return nil
+    end
+    if #result == 1 then
+      return result[1]
+    end
+    return unpack(result)
+  end
+
+  local start = vim.loop.hrtime()
+  while not done do
+    local elapsed = (vim.loop.hrtime() - start) / 1000000
+    if elapsed > timeout_ms then
+      error(string.format("await timeout after %dms", timeout_ms))
+    end
+    vim.loop.run("nowait")
+    vim.wait(1, function()
+      return done
+    end, 1)
+  end
+
+  if not result then
+    return nil
+  end
+  if #result == 1 then
+    return result[1]
+  end
+  return unpack(result)
+end
+
 return M
