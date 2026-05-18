@@ -60,6 +60,7 @@ local function spawn_command_async(cmd, callback)
   local stderr = vim.loop.new_pipe(false)
   local stdout_chunks = {}
   local stderr_chunks = {}
+  local read_err = nil
 
   local handle
   handle = vim.loop.spawn(cmd[1], {
@@ -71,6 +72,10 @@ local function spawn_command_async(cmd, callback)
     handle:close()
 
     vim.schedule(function()
+      if read_err then
+        callback({ message = "read error: " .. tostring(read_err) }, nil)
+        return
+      end
       if code == 0 then
         local output = table.concat(stdout_chunks, "")
         local lines = {}
@@ -94,17 +99,20 @@ local function spawn_command_async(cmd, callback)
     return
   end
 
-  stdout:read_start(function(err, data)
-    if data then
-      table.insert(stdout_chunks, data)
+  local function make_reader(chunks)
+    return function(err, data)
+      if err then
+        read_err = read_err or err
+        return
+      end
+      if data then
+        table.insert(chunks, data)
+      end
     end
-  end)
+  end
 
-  stderr:read_start(function(err, data)
-    if data then
-      table.insert(stderr_chunks, data)
-    end
-  end)
+  stdout:read_start(make_reader(stdout_chunks))
+  stderr:read_start(make_reader(stderr_chunks))
 end
 
 M.spawn_command_async = spawn_command_async
