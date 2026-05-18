@@ -88,6 +88,8 @@ local function spawn_command_async(cmd, callback)
   end)
 
   if not handle then
+    stdout:close()
+    stderr:close()
     callback({ message = "Failed to spawn command" }, nil)
     return
   end
