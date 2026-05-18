@@ -1,5 +1,9 @@
 local M = {}
 
+-- Safety net for hung git commands (e.g. partial clones where blame stalls
+-- on a network fetch). Exposed for tests to override with a shorter value.
+M.spawn_timeout_ms = 30000
+
 -- Cache storage (keys are normalized paths)
 local cache = {
   data = {},
@@ -61,17 +65,34 @@ local function spawn_command_async(cmd, callback)
   local stdout_chunks = {}
   local stderr_chunks = {}
   local read_err = nil
+  local done = false
+  local timed_out = false
+  local timer = nil
+
+  local function stop_timer()
+    if timer and not timer:is_closing() then
+      timer:stop()
+      timer:close()
+    end
+    timer = nil
+  end
 
   local handle
   handle = vim.loop.spawn(cmd[1], {
     args = { unpack(cmd, 2) },
     stdio = { nil, stdout, stderr },
   }, function(code, signal)
+    done = true
+    stop_timer()
     stdout:close()
     stderr:close()
     handle:close()
 
     vim.schedule(function()
+      if timed_out then
+        callback({ message = "command timed out after " .. (M.spawn_timeout_ms / 1000) .. "s" }, nil)
+        return
+      end
       if read_err then
         callback({ message = "read error: " .. tostring(read_err) }, nil)
         return
@@ -98,6 +119,22 @@ local function spawn_command_async(cmd, callback)
     callback({ message = "Failed to spawn command" }, nil)
     return
   end
+
+  -- Arm the watchdog: if the process is still alive after spawn_timeout_ms,
+  -- kill it. The exit callback then fires with a non-zero code, which the
+  -- branch above translates into a timeout error.
+  timer = vim.loop.new_timer()
+  timer:start(M.spawn_timeout_ms, 0, function()
+    if done then
+      stop_timer()
+      return
+    end
+    timed_out = true
+    pcall(function()
+      handle:kill("sigterm")
+    end)
+    stop_timer()
+  end)
 
   local function make_reader(chunks)
     return function(err, data)

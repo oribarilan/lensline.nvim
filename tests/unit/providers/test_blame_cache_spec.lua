@@ -339,6 +339,38 @@ describe("blame_cache core behavior", function()
     end)
   end)
 
+  it("spawn timeout kills hung process and returns timeout error", function()
+    local original_timeout = blame_cache.spawn_timeout_ms
+    blame_cache.spawn_timeout_ms = 100
+
+    local err_received, data_received
+    local done = false
+    blame_cache.spawn_command_async({ "sleep", "60" }, function(err, data)
+      err_received = err
+      data_received = data
+      done = true
+    end)
+
+    local wait_start = vim.loop.hrtime()
+    while not done do
+      vim.loop.run("nowait")
+      vim.wait(50, function() return done end, 25)
+      if (vim.loop.hrtime() - wait_start) / 1000000 > 5000 then
+        blame_cache.spawn_timeout_ms = original_timeout
+        error("timeout waiting for spawn callback after kill")
+      end
+    end
+
+    blame_cache.spawn_timeout_ms = original_timeout
+
+    assert(err_received ~= nil, "expected error from timed-out command")
+    assert(
+      tostring(err_received.message or ""):match("timed out"),
+      "expected 'timed out' in error message, got: " .. tostring(err_received.message)
+    )
+    eq(nil, data_received)
+  end)
+
   it("clear_cache resets stats", function()
     reset()
     local f1 = make_file("reset_stats")
