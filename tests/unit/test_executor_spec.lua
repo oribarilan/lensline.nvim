@@ -94,7 +94,6 @@ describe("executor core behaviors", function()
           namespace = vim.api.nvim_create_namespace("dummy"),
         }, function()
           with_stub("lensline.limits", {
-            should_skip = function() return false end,
             should_skip_lenses = function() return false end,
           }, function()
             test_utils.stub_debug_silent()
@@ -156,7 +155,6 @@ describe("executor core behaviors", function()
           namespace = vim.api.nvim_create_namespace("dummy2"),
         }, function()
           with_stub("lensline.limits", {
-            should_skip = function() return false end,
             should_skip_lenses = function() return false end,
           }, function()
             with_stub("lensline.debug", {
@@ -224,7 +222,6 @@ describe("executor core behaviors", function()
           namespace = vim.api.nvim_create_namespace("dummy3"),
         }, function()
           with_stub("lensline.limits", {
-            should_skip = function() return false end,
             should_skip_async = function(_, cb) cb(false) end,
             should_skip_lenses = function() return false end,
           }, function()

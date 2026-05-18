@@ -215,6 +215,67 @@ describe("limits.should_skip_async", function()
     vim.api.nvim_buf_delete(bufnr, { force = true })
   end)
 
+  it("clear_cache forces a fresh git check on the next call", function()
+    local limits = require("lensline.limits")
+    limits.clear_cache()
+    local counter = { count = 0 }
+    stub_check_ignore(false, counter)
+    set_git_dir("/test/.git")
+
+    local config = require("lensline.config")
+    config.options.limits = { exclude_gitignored = true }
+
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(bufnr, "/test/src/main.lua")
+
+    limits.should_skip_async(bufnr, function(_) end)
+    eq(1, counter.count)
+
+    -- Cached: no new spawn.
+    limits.should_skip_async(bufnr, function(_) end)
+    eq(1, counter.count)
+
+    limits.clear_cache()
+
+    -- After clearing, the next call must hit git again.
+    limits.should_skip_async(bufnr, function(_) end)
+    eq(2, counter.count)
+
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end)
+
+  it("checks each distinct filepath at most once across many calls", function()
+    local limits = require("lensline.limits")
+    limits.clear_cache()
+    local checked = {}
+    local blame_cache = require("lensline.blame_cache")
+    blame_cache.spawn_command_async = function(cmd, callback)
+      if type(cmd) == "table" and cmd[1] == "git" and cmd[4] == "check-ignore" then
+        table.insert(checked, cmd[6])
+      end
+      callback({ code = 1, message = "" }, nil)
+    end
+    set_git_dir("/test/.git")
+
+    local config = require("lensline.config")
+    config.options.limits = { exclude_gitignored = true }
+
+    local buffers = {}
+    for i = 1, 5 do
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_name(bufnr, "/test/src/file_" .. i .. ".lua")
+      table.insert(buffers, bufnr)
+      limits.should_skip_async(bufnr, function(_) end)
+      -- Repeat call for the same buffer must not add another check.
+      limits.should_skip_async(bufnr, function(_) end)
+    end
+
+    eq(5, #checked)
+    for _, bufnr in ipairs(buffers) do
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end
+  end)
+
   it("treats files outside a git repo as not gitignored without spawning", function()
     local limits = require("lensline.limits")
     limits.clear_cache()
