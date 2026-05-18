@@ -70,7 +70,7 @@ describe("blame_cache core behavior", function()
 
     local function spawn_stub(cmd, callback)
       table.insert(spawn_calls, cmd)
-      local args = vim.list_slice(cmd, 2)
+      local args = { unpack(cmd, 2) }
       local is_rev_parse = false
       local is_blame = false
       for _, arg in ipairs(args) do
@@ -287,7 +287,7 @@ describe("blame_cache core behavior", function()
       blame_block(2, "Bob", 1001),
     })
     local function delaying_spawn(cmd, callback)
-      local args = vim.list_slice(cmd, 2)
+      local args = { unpack(cmd, 2) }
       local is_rev_parse, is_blame = false, false
       for _, arg in ipairs(args) do
         if arg == "rev-parse" then is_rev_parse = true end

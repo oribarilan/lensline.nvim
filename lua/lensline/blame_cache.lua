@@ -64,7 +64,7 @@ local function spawn_command_async(cmd, callback)
 
   local handle
   handle = vim.loop.spawn(cmd[1], {
-    args = vim.list_slice(cmd, 2),
+    args = { unpack(cmd, 2) },
     stdio = { nil, stdout, stderr },
   }, function(code, signal)
     stdout:close()
