@@ -97,7 +97,7 @@ function M.trigger_unified_update(bufnr)
   end
   
   -- Create new debounced execution that triggers all providers
-  unified_debounce_timer[debounce_key] = vim.loop.new_timer()
+  unified_debounce_timer[debounce_key] = utils.uv.new_timer()
   unified_debounce_timer[debounce_key]:start(debounce_delay, 0, function()
     vim.schedule(function()
       -- Verify execution state hasn't changed during debounce delay
@@ -147,7 +147,7 @@ function M.execute_all_providers(bufnr)
   end
   
   execution_in_progress[bufnr] = true
-  local total_execution_start_time = vim.loop.hrtime()
+  local total_execution_start_time = utils.uv.hrtime()
   debug.log_context("Executor", "executing all providers for buffer " .. bufnr)
   debug.log_context("Performance", "=== ASYNC EXECUTION FLOW START ===")
   
@@ -166,7 +166,7 @@ function M.execute_all_providers(bufnr)
     local end_line = vim.api.nvim_buf_line_count(bufnr)
     
     -- Try to show stale cache immediately for responsive UX
-    local stale_start_time = vim.loop.hrtime()
+    local stale_start_time = utils.uv.hrtime()
     local stale_functions = M.get_stale_cache_if_available(bufnr)
     if stale_functions and #stale_functions > 0 then
       debug.log_context("Performance", "STALE CACHE RENDER START - found " .. #stale_functions .. " functions for immediate display")
@@ -174,17 +174,17 @@ function M.execute_all_providers(bufnr)
       for name, provider_info in pairs(enabled_providers) do
         M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, stale_functions)
       end
-      local stale_end_time = vim.loop.hrtime()
+      local stale_end_time = utils.uv.hrtime()
       local stale_duration_ms = (stale_end_time - stale_start_time) / 1000000
       debug.log_context("Performance", "STALE CACHE RENDER COMPLETE - duration: " .. string.format("%.2f", stale_duration_ms) .. "ms")
     else
       debug.log_context("Performance", "NO STALE CACHE AVAILABLE - will wait for async result")
     end
     
-    local async_start_time = vim.loop.hrtime()
+    local async_start_time = utils.uv.hrtime()
     debug.log_context("Performance", "ASYNC FUNCTION DISCOVERY START for buffer " .. bufnr)
     lens_explorer.discover_functions_async(bufnr, start_line, end_line, function(functions)
-      local async_end_time = vim.loop.hrtime()
+      local async_end_time = utils.uv.hrtime()
       local async_duration_ms = (async_end_time - async_start_time) / 1000000
       debug.log_context("Performance", "ASYNC FUNCTION DISCOVERY COMPLETE - found " .. (functions and #functions or 0) .. " functions, total async duration: " .. string.format("%.2f", async_duration_ms) .. "ms")
       
@@ -195,17 +195,17 @@ function M.execute_all_providers(bufnr)
       end
       
       -- Pass the fresh discovered functions to each provider (will update stale lenses)
-      local fresh_render_start_time = vim.loop.hrtime()
+      local fresh_render_start_time = utils.uv.hrtime()
       debug.log_context("Performance", "FRESH DATA RENDER START - updating " .. #functions .. " functions")
       for name, provider_info in pairs(enabled_providers) do
         M.execute_provider_with_functions(bufnr, provider_info.module, provider_info.config, functions)
       end
-      local fresh_render_end_time = vim.loop.hrtime()
+      local fresh_render_end_time = utils.uv.hrtime()
       local fresh_render_duration_ms = (fresh_render_end_time - fresh_render_start_time) / 1000000
       debug.log_context("Performance", "FRESH DATA RENDER COMPLETE - duration: " .. string.format("%.2f", fresh_render_duration_ms) .. "ms")
       
       -- Log overall execution summary
-      local total_execution_end_time = vim.loop.hrtime()
+      local total_execution_end_time = utils.uv.hrtime()
       local total_duration_ms = (total_execution_end_time - total_execution_start_time) / 1000000
       debug.log_context("Performance", "=== ASYNC EXECUTION FLOW COMPLETE - total duration: " .. string.format("%.2f", total_duration_ms) .. "ms ===")
       
@@ -239,7 +239,7 @@ function M.execute_provider_with_functions(bufnr, provider_module, provider_conf
   local completed = false
   
   -- Timeout safety net for async providers
-  local timeout_timer = vim.loop.new_timer()
+  local timeout_timer = utils.uv.new_timer()
   -- Allow configurable provider timeout (test override via config.provider_timeout_ms)
   local timeout_ms = (config.get().provider_timeout_ms or 5000)
   timeout_timer:start(timeout_ms, 0, function()

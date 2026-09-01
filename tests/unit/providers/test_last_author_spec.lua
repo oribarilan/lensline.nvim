@@ -73,6 +73,7 @@ describe("providers.last_author.handler", function()
         get_function_author = function() return blame_data end,
       }, function()
         with_stub("lensline.utils", {
+          uv = vim.loop,
           if_nerdfont_else = function(nf, fallback)
             return use_nerdfont and nf or fallback
           end,

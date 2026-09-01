@@ -41,7 +41,7 @@ return {
     
     -- Get the file path and validate it
     local filename = vim.api.nvim_buf_get_name(bufnr)
-    if filename == "" or not vim.loop.fs_stat(filename) then
+    if filename == "" or not utils.uv.fs_stat(filename) then
       debug.log_context("LastAuthor", "invalid or unsaved file: " .. (filename or "empty"))
       callback(nil)
       return

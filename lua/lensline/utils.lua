@@ -1,9 +1,11 @@
 local M = {}
 
+M.uv = vim.uv or vim.loop
+
 -- Core Utilities
 
 function M.debounce(fn, delay)
-    local timer = vim.loop.new_timer()
+    local timer = M.uv.new_timer()
     return function(...)
         local args = { ... }
         timer:stop()
