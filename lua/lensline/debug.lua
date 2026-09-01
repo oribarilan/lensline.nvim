@@ -1,4 +1,5 @@
 local M = {}
+local utils = require("lensline.utils")
 
 local debug_file_path = nil
 local session_id = nil
@@ -20,7 +21,7 @@ end
 
 -- get file size in bytes
 local function get_file_size(filepath)
-    local stat = vim.loop.fs_stat(filepath)
+    local stat = utils.uv.fs_stat(filepath)
     return stat and stat.size or 0
 end
 

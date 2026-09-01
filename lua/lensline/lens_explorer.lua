@@ -1,4 +1,5 @@
 local M = {}
+local utils = require("lensline.utils")
 
 -- LRU cache for function discovery results per buffer
 -- Only caches document symbols (safe)
@@ -149,11 +150,11 @@ function M.find_functions_via_lsp_async(bufnr, start_line, end_line, callback)
   }
   
   -- Add timing logs around the async LSP call
-  local start_time = vim.loop.hrtime()
+  local start_time = utils.uv.hrtime()
   debug.log_context("Performance", "ASYNC LSP CALL START - textDocument/documentSymbol for buffer " .. bufnr)
   
   vim.lsp.buf_request(bufnr, "textDocument/documentSymbol", params, function(err, results)
-    local end_time = vim.loop.hrtime()
+    local end_time = utils.uv.hrtime()
     local duration_ms = (end_time - start_time) / 1000000  -- Convert to milliseconds
     debug.log_context("Performance", "ASYNC LSP CALL END - duration: " .. string.format("%.2f", duration_ms) .. "ms")
     
@@ -235,12 +236,12 @@ function M.find_functions_via_lsp(bufnr, start_line, end_line)
   }
   
   -- Add timing logs around the sync LSP call
-  local start_time = vim.loop.hrtime()
+  local start_time = utils.uv.hrtime()
   debug.log_context("Performance", "SYNC LSP CALL START - textDocument/documentSymbol for buffer " .. bufnr)
   
   local ok, results = pcall(vim.lsp.buf_request_sync, bufnr, "textDocument/documentSymbol", params, 1000)
   
-  local end_time = vim.loop.hrtime()
+  local end_time = utils.uv.hrtime()
   local duration_ms = (end_time - start_time) / 1000000  -- Convert to milliseconds
   debug.log_context("Performance", "SYNC LSP CALL END - duration: " .. string.format("%.2f", duration_ms) .. "ms")
   

@@ -1,4 +1,5 @@
 local M = {}
+local utils = require("lensline.utils")
 
 -- Cache storage
 local cache = {
@@ -41,7 +42,7 @@ end
 
 -- Get file modification time
 local function get_file_mtime(filename)
-  local stat = vim.loop.fs_stat(filename)
+  local stat = utils.uv.fs_stat(filename)
   return stat and stat.mtime.sec or 0
 end
 
